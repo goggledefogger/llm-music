@@ -91,7 +91,8 @@ VITE_OPENAI_API_KEY=your_openai_api_key
 ```
 ascii-generative-sequencer/
 ├── apps/
-│   └── web/                 # React frontend application
+│   ├── web/                 # React frontend application
+│   └── api/                 # Vercel serverless functions (planned)
 ├── packages/
 │   └── shared/              # Shared types and utilities
 ├── docs/                    # Documentation
@@ -131,6 +132,7 @@ ascii-generative-sequencer/
 
 - `pnpm dev` - Start all development servers
 - `pnpm dev:web` - Start only the web app
+- `pnpm dev:api` - Start only the API functions (planned)
 - `pnpm build` - Build all packages
 - `pnpm test` - Run all tests
 - `pnpm lint` - Lint all packages
