@@ -136,7 +136,7 @@ pnpm dev:web
 **Title**: Brief description
 **Browser**: Chrome/Firefox/Safari/Edge + version
 **Device**: Desktop/Tablet/Mobile + screen size
-**Steps**: 
+**Steps**:
 1. Step one
 2. Step two
 3. Step three
