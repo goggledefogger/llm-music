@@ -15,6 +15,7 @@ The development team has completed the UI implementation and the project is read
 
 ### 🎯 **Your Mission**
 Evaluate the user experience and provide recommendations for:
+- **🎨 VISUALIZATIONS**: Critical focus on visual representations for each module
 - **User Experience Flow**: Navigation, task completion, error prevention
 - **Visual Design**: Consistency, branding, typography, spacing
 - **Interaction Design**: Button states, feedback, micro-interactions
@@ -55,13 +56,19 @@ This is a browser-based music sequencer that uses ASCII patterns to create music
 
 ## 🎯 **Focus Areas**
 
-### **High Priority:**
+### **🎨 HIGH PRIORITY: Visualizations**
+- **ASCII Editor**: Step sequencer grid, instrument tracks, real-time preview
+- **Transport Controls**: Waveform display, playhead, loop visualization
+- **AI Chat**: Pattern analysis charts, suggestion previews, confidence indicators
+- **Patterns Library**: Pattern thumbnails, category organization, search highlighting
+
+### **Medium Priority:**
 - **Onboarding**: Is it clear what this tool does?
 - **Editor Experience**: Is the ASCII editor comfortable to use?
 - **AI Integration**: Is the chat interface well-integrated?
 - **Navigation**: Can users find what they need?
 
-### **Medium Priority:**
+### **Low Priority:**
 - **Visual Polish**: Consistent design and branding
 - **Responsive Design**: Works well on all devices
 - **Accessibility**: Inclusive design principles
@@ -70,6 +77,7 @@ This is a browser-based music sequencer that uses ASCII patterns to create music
 ## 📊 **Expected Deliverable**
 
 **UX Audit Report** with:
+- **🎨 Visualization Requirements**: Detailed specifications for each module
 - Critical issues that must be fixed
 - Usability improvements
 - Design system recommendations
@@ -84,6 +92,7 @@ This is a browser-based music sequencer that uses ASCII patterns to create music
 ## 🔗 **Resources**
 
 - **UX Guide**: `UX-EXPERT-HANDOFF.md`
+- **🎨 Visualization Requirements**: `VISUALIZATION-REQUIREMENTS.md`
 - **Technical Docs**: `docs/architecture.md`
 - **Development Guide**: `docs/development-guide.md`
 - **QA Status**: `QA-SUMMARY.md`

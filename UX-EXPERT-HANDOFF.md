@@ -10,30 +10,62 @@ The development team has completed the UI implementation and the project is read
 ```bash
 cd /Users/Danny/Source/llm-music
 pnpm dev:web
-# Open: http://localhost:3001
+# Open: http://localhost:3000
 ```
 
 ## 🎯 UX Review Focus Areas
 
-### 1. **User Experience Flow**
+### 🎨 **HIGH PRIORITY: Visualizations for Each Module**
+
+#### **1. ASCII Editor Visualization**
+- **Pattern Grid**: Visual representation of the ASCII pattern as a step sequencer grid
+- **Real-time Preview**: Show pattern structure as user types
+- **Instrument Tracks**: Visual separation of kick, snare, hihat tracks
+- **Step Indicators**: Highlight active steps and current playback position
+- **Pattern Length**: Visual indication of pattern length and loop points
+
+#### **2. Transport Controls Visualization**
+- **Waveform Display**: Show audio waveform or pattern visualization
+- **Playhead**: Visual indicator of current playback position
+- **Loop Visualization**: Show loop boundaries and current position
+- **Tempo Indicator**: Visual tempo display with beat markers
+- **Volume Meter**: Real-time audio level visualization
+
+#### **3. AI Chat Interface Visualization**
+- **Pattern Analysis**: Visual breakdown of pattern structure
+- **Suggestion Previews**: Show suggested pattern changes visually
+- **Pattern Comparison**: Side-by-side before/after pattern views
+- **AI Confidence**: Visual indicators of AI suggestion quality
+- **Pattern Statistics**: Visual metrics (complexity, density, etc.)
+
+#### **4. Patterns Library Visualization**
+- **Pattern Grid View**: Visual thumbnails of saved patterns
+- **Pattern Preview**: Quick audio preview with visual representation
+- **Category Organization**: Visual grouping of pattern types
+- **Search Results**: Visual highlighting of search matches
+- **Pattern Metadata**: Visual display of tempo, complexity, tags
+
+### 🎯 **MEDIUM PRIORITY: Core UX Areas**
+
+#### **5. User Experience Flow**
 - **Onboarding**: How intuitive is the first-time user experience?
 - **Navigation**: Is the information architecture logical?
 - **Task Completion**: Can users accomplish their goals efficiently?
 - **Error Prevention**: Are there clear paths and helpful guidance?
 
-### 2. **Visual Design & Branding**
+#### **6. Visual Design & Branding**
 - **Design System**: Is the visual language consistent?
 - **Typography**: Is text hierarchy clear and readable?
 - **Color Usage**: Does the color palette support the user experience?
 - **Spacing & Layout**: Is the visual rhythm pleasing and functional?
 
-### 3. **Interaction Design**
+#### **7. Interaction Design**
 - **Button States**: Are interactive elements clearly defined?
 - **Feedback**: Do users get appropriate feedback for their actions?
 - **Loading States**: Are there clear indicators for async operations?
 - **Micro-interactions**: Do interactions feel polished and responsive?
 
-### 4. **Accessibility & Inclusion**
+#### **8. Accessibility & Inclusion**
 - **Keyboard Navigation**: Can users navigate without a mouse?
 - **Screen Reader**: Is the interface accessible to assistive technologies?
 - **Color Contrast**: Is text readable for users with visual impairments?
@@ -75,6 +107,38 @@ pnpm dev:web
 
 ## 🔍 Specific UX Evaluation Points
 
+### 🎨 **Visualization Requirements**
+
+#### **ASCII Editor Visualizations**
+- [ ] **Step Sequencer Grid**: Visual grid showing pattern steps
+- [ ] **Instrument Tracks**: Separate visual tracks for kick, snare, hihat
+- [ ] **Active Step Highlighting**: Visual indication of current playback position
+- [ ] **Pattern Length Indicator**: Visual representation of pattern length
+- [ ] **Real-time Pattern Preview**: Live visualization as user types
+
+#### **Transport Controls Visualizations**
+- [ ] **Waveform Display**: Audio waveform or pattern visualization
+- [ ] **Playhead Indicator**: Visual cursor showing current position
+- [ ] **Loop Boundaries**: Visual indication of loop start/end
+- [ ] **Tempo Visualization**: Visual tempo display with beat markers
+- [ ] **Volume Meter**: Real-time audio level visualization
+
+#### **AI Chat Visualizations**
+- [ ] **Pattern Analysis Charts**: Visual breakdown of pattern structure
+- [ ] **Suggestion Previews**: Visual representation of AI suggestions
+- [ ] **Before/After Comparison**: Side-by-side pattern comparison
+- [ ] **AI Confidence Indicators**: Visual confidence levels for suggestions
+- [ ] **Pattern Statistics**: Visual metrics and analytics
+
+#### **Patterns Library Visualizations**
+- [ ] **Pattern Thumbnails**: Visual previews of saved patterns
+- [ ] **Category Organization**: Visual grouping and filtering
+- [ ] **Search Highlighting**: Visual search result indicators
+- [ ] **Pattern Metadata Display**: Visual tempo, complexity, tags
+- [ ] **Quick Preview**: Visual pattern preview on hover
+
+### **Core UX Evaluation Points**
+
 ### Home Page
 - [ ] **Value Proposition**: Is the purpose clear immediately?
 - [ ] **Call-to-Action**: Are the primary actions obvious?
@@ -87,6 +151,7 @@ pnpm dev:web
 - [ ] **Text Editing**: Is the ASCII editor comfortable to use?
 - [ ] **AI Integration**: Is the chat interface well-integrated?
 - [ ] **Transport Controls**: Are audio controls accessible and clear?
+- [ ] **Visualizations**: Are pattern visualizations helpful and clear?
 
 ### Navigation
 - [ ] **Information Architecture**: Is the site structure logical?
