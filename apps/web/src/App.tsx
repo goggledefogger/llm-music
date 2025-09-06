@@ -4,27 +4,24 @@ import { EditorPage } from './pages/EditorPage';
 import { HomePage } from './pages/HomePage';
 import { PatternsPage } from './pages/PatternsPage';
 import { SettingsPage } from './pages/SettingsPage';
-import { ModuleSystemProvider } from './contexts/ModuleSystemContext';
-import { AudioEngineProvider } from './contexts/AudioEngineContext';
+import { AppProvider } from './contexts/AppContext';
 
 function App() {
   return (
-    <ModuleSystemProvider>
-      <AudioEngineProvider>
-        <div className="main-layout">
-          <Routes>
-            <Route path="/" element={<MainLayout />}>
-              <Route index element={<HomePage />} />
-              <Route path="editor" element={<EditorPage />} />
-              <Route path="editor/:patternId" element={<EditorPage />} />
-              <Route path="patterns" element={<PatternsPage />} />
-              <Route path="patterns/:id" element={<EditorPage />} />
-              <Route path="settings" element={<SettingsPage />} />
-            </Route>
-          </Routes>
-        </div>
-      </AudioEngineProvider>
-    </ModuleSystemProvider>
+    <AppProvider>
+      <div className="main-layout">
+        <Routes>
+          <Route path="/" element={<MainLayout />}>
+            <Route index element={<HomePage />} />
+            <Route path="editor" element={<EditorPage />} />
+            <Route path="editor/:patternId" element={<EditorPage />} />
+            <Route path="patterns" element={<PatternsPage />} />
+            <Route path="patterns/:id" element={<EditorPage />} />
+            <Route path="settings" element={<SettingsPage />} />
+          </Route>
+        </Routes>
+      </div>
+    </AppProvider>
   );
 }
 

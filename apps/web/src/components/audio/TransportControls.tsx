@@ -1,60 +1,60 @@
-import React, { useState, useEffect } from 'react';
-import { useAudioEngineContext } from '../../contexts/AudioEngineContext';
+import React from 'react';
+import { useAudio } from '../../contexts/AppContext';
 
 export const TransportControls: React.FC = () => {
-  const audioEngine = useAudioEngineContext();
+  const { state: audioState, play, pause, stop, setTempo, setVolume, initialize } = useAudio();
 
   const handlePlayPause = async () => {
     // If not initialized, try to initialize first
-    if (!audioEngine.state.isInitialized) {
+    if (!audioState.isInitialized) {
       try {
-        await audioEngine.initialize();
+        await initialize();
       } catch (error) {
         console.error('Failed to initialize audio:', error);
         return;
       }
     }
 
-    if (audioEngine.state.isPlaying) {
-      audioEngine.pause();
+    if (audioState.isPlaying) {
+      pause();
     } else {
-      audioEngine.play();
+      play();
     }
   };
 
   const handleStop = () => {
-    if (audioEngine.state.isInitialized) {
-      audioEngine.stop();
+    if (audioState.isInitialized) {
+      stop();
     }
   };
 
   const handleTempoChange = (newTempo: number) => {
-    if (audioEngine.state.isInitialized) {
-      audioEngine.setTempo(newTempo);
+    if (audioState.isInitialized) {
+      setTempo(newTempo);
     }
   };
 
   const handleVolumeChange = (newVolume: number) => {
-    if (audioEngine.state.isInitialized) {
+    if (audioState.isInitialized) {
       // Convert 0-100 to -60 to 0 dB
       const dbVolume = (newVolume / 100) * 60 - 60;
-      audioEngine.setVolume(dbVolume);
+      setVolume(dbVolume);
     }
   };
 
   // Convert dB volume back to 0-100 for display
-  const displayVolume = Math.round(((audioEngine.state.volume + 60) / 60) * 100);
-  const displayTime = Math.floor(audioEngine.state.currentTime);
+  const displayVolume = Math.round(((audioState.volume + 60) / 60) * 100);
+  const displayTime = Math.floor(audioState.currentTime);
 
   return (
     <div className="p-4 bg-background-secondary">
-      {audioEngine.state.error && (
+      {audioState.error && (
         <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
-          Audio Error: {audioEngine.state.error}
+          Audio Error: {audioState.error}
         </div>
       )}
 
-      {!audioEngine.state.isInitialized && !audioEngine.state.error && (
+      {!audioState.isInitialized && !audioState.error && (
         <div className="mb-2 p-2 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm">
           Click anywhere on the page to enable audio, or click the play button below.
         </div>
@@ -64,16 +64,16 @@ export const TransportControls: React.FC = () => {
         <div className="flex items-center space-x-4">
           <button
             onClick={handlePlayPause}
-            className={`btn ${audioEngine.state.isPlaying ? 'btn-secondary' : 'btn-primary'} btn-md`}
+            className={`btn ${audioState.isPlaying ? 'btn-secondary' : 'btn-primary'} btn-md`}
             disabled={false} // Allow clicking to trigger initialization
           >
-            {audioEngine.state.isPlaying ? '⏸️' : '▶️'}
+            {audioState.isPlaying ? '⏸️' : '▶️'}
           </button>
 
           <button
             onClick={handleStop}
             className="btn btn-secondary btn-md"
-            disabled={!audioEngine.state.isInitialized}
+            disabled={!audioState.isInitialized}
           >
             ⏹️
           </button>
@@ -82,12 +82,12 @@ export const TransportControls: React.FC = () => {
             <span className="text-sm text-foreground-muted">Tempo:</span>
             <input
               type="number"
-              value={audioEngine.state.tempo}
+              value={audioState.tempo}
               onChange={(e) => handleTempoChange(Number(e.target.value))}
               className="input w-20 text-center"
               min="60"
               max="200"
-              disabled={!audioEngine.state.isInitialized}
+              disabled={!audioState.isInitialized}
             />
             <span className="text-sm text-foreground-muted">BPM</span>
           </div>
@@ -103,7 +103,7 @@ export const TransportControls: React.FC = () => {
               value={displayVolume}
               onChange={(e) => handleVolumeChange(Number(e.target.value))}
               className="w-20"
-              disabled={!audioEngine.state.isInitialized}
+              disabled={!audioState.isInitialized}
             />
             <span className="text-sm text-foreground-muted w-8">{displayVolume}%</span>
           </div>
@@ -117,7 +117,7 @@ export const TransportControls: React.FC = () => {
         </div>
       </div>
 
-      {!audioEngine.state.isInitialized && (
+      {!audioState.isInitialized && (
         <div className="mt-2 text-xs text-foreground-muted">
           Click anywhere to initialize audio
         </div>

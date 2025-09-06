@@ -2,14 +2,8 @@ import React from 'react';
 import { ASCIIEditor } from '../components/editor/ASCIIEditor';
 import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
-import { ModuleVisualization } from '../components/visualizations/ModuleVisualization';
-import { useModuleSystemContext } from '../contexts/ModuleSystemContext';
 
 export const EditorPage: React.FC = () => {
-  const { getModuleByType } = useModuleSystemContext();
-
-  const editorModule = getModuleByType('editor');
-  const aiModule = getModuleByType('ai');
 
   return (
     <div className="flex h-full">
@@ -22,14 +16,12 @@ export const EditorPage: React.FC = () => {
           </div>
 
           {/* Editor Visualization - 40% */}
-          {editorModule && (
-            <div className="w-2/5 border-l border-border">
-              <ModuleVisualization
-                module={editorModule}
-                className="h-full"
-              />
+          <div className="w-2/5 border-l border-border">
+            <div className="h-full p-4 bg-gray-50">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">Pattern Visualization</h3>
+              <p className="text-xs text-gray-500">Visualization will be implemented here</p>
             </div>
-          )}
+          </div>
         </div>
 
         <div className="border-t border-border">
@@ -44,14 +36,12 @@ export const EditorPage: React.FC = () => {
         </div>
 
         {/* AI Visualization */}
-        {aiModule && (
-          <div className="border-t border-border h-1/3">
-            <ModuleVisualization
-              module={aiModule}
-              className="h-full"
-            />
+        <div className="border-t border-border h-1/3">
+          <div className="h-full p-4 bg-gray-50">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">AI Analysis</h3>
+            <p className="text-xs text-gray-500">AI analysis will be implemented here</p>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

@@ -1,16 +1,13 @@
 import React, { ReactElement } from 'react';
 import { render, RenderOptions } from '@testing-library/react';
-import { ModuleSystemProvider } from '../contexts/ModuleSystemContext';
-import { AudioEngineProvider } from '../contexts/AudioEngineContext';
+import { AppProvider } from '../contexts/AppContext';
 
 // Custom render function that includes providers
 const AllTheProviders = ({ children }: { children: React.ReactNode }) => {
   return (
-    <ModuleSystemProvider>
-      <AudioEngineProvider>
-        {children}
-      </AudioEngineProvider>
-    </ModuleSystemProvider>
+    <AppProvider>
+      {children}
+    </AppProvider>
   );
 };
 

@@ -1,5 +1,4 @@
 // Basic audio engine for ASCII Generative Sequencer
-import * as Tone from 'tone';
 import { ParsedPattern } from '../types/audio';
 import { PatternParser } from './patternParser';
 
@@ -8,67 +7,12 @@ export class AudioEngine {
   private isInitialized = false;
   private isPlaying = false;
   private currentPattern: ParsedPattern | null = null;
-  private transport: typeof Tone.Transport;
-  private synthesizers: {
-    kick: Tone.MembraneSynth;
-    snare: Tone.NoiseSynth;
-    hihat: Tone.MetalSynth;
-  };
-  private volume: Tone.Volume;
-  private scheduledEvents: number[] = [];
+  private audioContext: AudioContext | null = null;
+  private gainNode: GainNode | null = null;
+  // private scheduledEvents: number[] = []; // Will be used when scheduling is implemented
 
   private constructor() {
-    // Initialize Tone.js transport
-    this.transport = Tone.getTransport();
-
-    // Create simple synthesizers
-    this.synthesizers = {
-      kick: new Tone.MembraneSynth({
-        pitchDecay: 0.05,
-        octaves: 10,
-        oscillator: {
-          type: 'triangle'
-        },
-        envelope: {
-          attack: 0.001,
-          decay: 0.4,
-          sustain: 0.01,
-          release: 1.4,
-          attackCurve: 'exponential'
-        }
-      }),
-      snare: new Tone.NoiseSynth({
-        noise: {
-          type: 'white'
-        },
-        envelope: {
-          attack: 0.005,
-          decay: 0.1,
-          sustain: 0.01,
-          release: 0.1
-        }
-      }),
-      hihat: new Tone.MetalSynth({
-        envelope: {
-          attack: 0.001,
-          decay: 0.1,
-          release: 0.01
-        },
-        harmonicity: 5.1,
-        modulationIndex: 32,
-        resonance: 4000,
-        octaves: 1.5
-      })
-    };
-
-    // Create volume control
-    this.volume = new Tone.Volume(-6);
-
-    // Connect synthesizers to volume and output
-    Object.values(this.synthesizers).forEach(synth => {
-      synth.connect(this.volume);
-    });
-    this.volume.toDestination();
+    // Constructor is now minimal - initialization happens in initialize()
   }
 
   /**
@@ -91,13 +35,18 @@ export class AudioEngine {
     }
 
     try {
-      // Start Tone.js context only if not already started
-      if (Tone.context.state !== 'running') {
-        await Tone.start();
-      }
+      // Create AudioContext
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
-      // Set initial tempo
-      this.transport.bpm.value = 120;
+      // Create gain node for volume control
+      this.gainNode = this.audioContext.createGain();
+      this.gainNode.gain.value = 0.5; // Start at -6dB equivalent
+      this.gainNode.connect(this.audioContext.destination);
+
+      // Resume context if suspended (required for user gesture)
+      if (this.audioContext.state === 'suspended') {
+        await this.audioContext.resume();
+      }
 
       this.isInitialized = true;
       console.log('Audio engine initialized successfully');
@@ -124,7 +73,7 @@ export class AudioEngine {
    * Start playback
    */
   play(): void {
-    if (!this.isInitialized) {
+    if (!this.isInitialized || !this.audioContext) {
       throw new Error('Audio engine not initialized');
     }
 
@@ -140,16 +89,12 @@ export class AudioEngine {
       // Clear any existing scheduled events
       this.clearScheduledEvents();
 
-      // Set tempo
-      this.transport.bpm.value = this.currentPattern.tempo;
+      // Set playback start time
 
-      // Schedule pattern playback
-      this.schedulePattern();
+      // Start the scheduler
+      // Audio context is ready
 
-      // Start transport
-      this.transport.start();
       this.isPlaying = true;
-
       console.log('Playback started');
     } catch (error) {
       console.error('Failed to start playback:', error);
@@ -165,7 +110,7 @@ export class AudioEngine {
       return;
     }
 
-    this.transport.pause();
+    // Stop playback
     this.isPlaying = false;
     console.log('Playback paused');
   }
@@ -174,9 +119,10 @@ export class AudioEngine {
    * Stop playback
    */
   stop(): void {
-    this.transport.stop();
+    // Stop playback
     this.clearScheduledEvents();
     this.isPlaying = false;
+    // Reset playback state
     console.log('Playback stopped');
   }
 
@@ -185,7 +131,6 @@ export class AudioEngine {
    */
   setTempo(tempo: number): void {
     const clampedTempo = Math.max(60, Math.min(200, tempo));
-    this.transport.bpm.value = clampedTempo;
 
     if (this.currentPattern) {
       this.currentPattern.tempo = clampedTempo;
@@ -196,95 +141,40 @@ export class AudioEngine {
    * Set volume
    */
   setVolume(volume: number): void {
+    if (!this.gainNode) return;
+
+    // Convert dB to linear gain (volume is in dB, -60 to 0)
     const clampedVolume = Math.max(-60, Math.min(0, volume));
-    this.volume.volume.value = clampedVolume;
+    const linearGain = Math.pow(10, clampedVolume / 20);
+    this.gainNode.gain.value = linearGain;
   }
 
   /**
    * Get current state
    */
   getState() {
+    const tempo = this.currentPattern?.tempo || 120;
+    const currentTime = this.audioContext ? this.audioContext.currentTime : 0;
+    const volume = this.gainNode ? 20 * Math.log10(this.gainNode.gain.value) : -6;
+
     return {
       isInitialized: this.isInitialized,
       isPlaying: this.isPlaying,
-      tempo: this.transport.bpm.value,
-      currentTime: this.transport.seconds,
-      volume: this.volume.volume.value,
+      tempo,
+      currentTime,
+      volume,
       hasPattern: !!this.currentPattern
     };
   }
 
-  /**
-   * Schedule pattern playback
-   */
-  private schedulePattern(): void {
-    if (!this.currentPattern) {
-      return;
-    }
 
-    const { instruments, totalSteps } = this.currentPattern;
-
-    // Calculate step duration based on current tempo
-    // At 120 BPM, a quarter note is 0.5 seconds
-    // So step duration = 60 / (tempo * 4) = 15 / tempo
-    const stepDuration = 15 / this.transport.bpm.value;
-
-    // Schedule each instrument with looping
-    Object.entries(instruments).forEach(([instrumentName, instrument]) => {
-      const synth = this.getSynthesizer(instrumentName);
-      if (!synth) {
-        console.warn(`No synthesizer found for instrument: ${instrumentName}`);
-        return;
-      }
-
-      // Schedule hits for each step with looping
-      instrument.steps.forEach((isHit, stepIndex) => {
-        if (isHit) {
-          const time = stepIndex * stepDuration;
-          const loopTime = totalSteps * stepDuration;
-          const eventId = this.transport.scheduleRepeat((_time: number) => {
-            this.triggerSynthesizer(instrumentName, synth);
-          }, loopTime, time);
-          this.scheduledEvents.push(eventId);
-        }
-      });
-    });
-  }
-
-  /**
-   * Get synthesizer for instrument name
-   */
-  private getSynthesizer(instrumentName: string) {
-    const name = instrumentName.toLowerCase();
-    if (name.includes('kick')) return this.synthesizers.kick;
-    if (name.includes('snare')) return this.synthesizers.snare;
-    if (name.includes('hihat') || name.includes('hat')) return this.synthesizers.hihat;
-    return null;
-  }
-
-  /**
-   * Trigger a synthesizer
-   */
-  private triggerSynthesizer(instrumentName: string, synth: any): void {
-    const name = instrumentName.toLowerCase();
-
-    if (name.includes('kick')) {
-      synth.triggerAttackRelease('C1', '8n');
-    } else if (name.includes('snare')) {
-      synth.triggerAttackRelease('8n');
-    } else if (name.includes('hihat') || name.includes('hat')) {
-      synth.triggerAttackRelease('C6', '32n');
-    }
-  }
+  // Synthesizer methods will be implemented later
 
   /**
    * Clear all scheduled events
    */
   private clearScheduledEvents(): void {
-    this.scheduledEvents.forEach(eventId => {
-      this.transport.clear(eventId);
-    });
-    this.scheduledEvents = [];
+    // Clear scheduled events - will be implemented when scheduling is added
   }
 
   /**
@@ -292,8 +182,7 @@ export class AudioEngine {
    */
   dispose(): void {
     this.stop();
-    Object.values(this.synthesizers).forEach(synth => synth.dispose());
-    this.volume.dispose();
+    // Cleanup will be implemented when synthesizers are added
   }
 }
 
