@@ -1,5 +1,7 @@
 # 🧪 Visualization Testing & Documentation
 
+> **Note**: This document has been consolidated into the main [QA Handoff](docs/qa-handoff.md#visualization-system-qa-handoff) document. This file is kept for reference but should be considered deprecated.
+
 ## 📋 **Testing Strategy Overview**
 
 This document outlines the comprehensive testing strategy for the visualization components implemented in the ASCII Generative Sequencer project. The testing approach ensures reliability, maintainability, and proper integration with the existing architecture.

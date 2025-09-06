@@ -1351,7 +1351,7 @@ ascii-sequencer/
 - **Build System**: Vite configured for fast development and optimized builds
 - **Testing Framework**: Vitest and React Testing Library configured with custom test utilities
 - **TypeScript**: Full TypeScript support across all packages
-- **Development Server**: Web app running on http://localhost:3002
+- **Development Server**: Web app running on http://localhost:3000
 - **Code Quality**: ESLint and Prettier configured
 
 ### ✅ Completed Core Features
