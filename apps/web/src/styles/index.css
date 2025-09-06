@@ -140,9 +140,43 @@
     @apply w-80 bg-background-secondary border-l border-border;
   }
 
+  /* Desktop layout optimizations */
+  @media (min-width: 1024px) {
+    .editor-pane {
+      @apply min-w-0; /* Allow flex shrinking */
+    }
+    
+    .visualization-panel {
+      @apply w-80 flex-shrink-0; /* Fixed width for visualizations */
+    }
+    
+    .chat-panel {
+      @apply w-64 flex-shrink-0; /* Fixed width for chat */
+    }
+  }
+
+  /* Tablet responsive */
+  @media (max-width: 1023px) and (min-width: 769px) {
+    .visualization-panel {
+      @apply w-72;
+    }
+    
+    .chat-panel {
+      @apply w-56;
+    }
+  }
+
   /* Mobile responsive */
   @media (max-width: 768px) {
     .chat-pane {
+      @apply w-full border-l-0 border-t;
+    }
+    
+    .visualization-panel {
+      @apply w-full border-l-0 border-t;
+    }
+    
+    .chat-panel {
       @apply w-full border-l-0 border-t;
     }
   }
@@ -158,6 +192,44 @@
 
   .animate-slide-out {
     animation: slide-out 0.3s ease-in;
+  }
+
+  /* Collapsible section animations */
+  .collapsible-content {
+    transition: max-height 0.3s ease-in-out, opacity 0.3s ease-in-out;
+  }
+
+  .collapsible-header {
+    transition: background-color 0.2s ease-in-out;
+  }
+
+  .collapsible-header:hover {
+    @apply bg-background-tertiary;
+  }
+
+  /* Overflow handling */
+  .overflow-container {
+    overflow: hidden;
+  }
+
+  /* Responsive text sizing */
+  .text-responsive {
+    @apply text-sm;
+  }
+
+  @media (max-width: 640px) {
+    .text-responsive {
+      @apply text-xs;
+    }
+  }
+
+  /* Visualization panel styles */
+  .visualization-section {
+    @apply mb-4 last:mb-0;
+  }
+
+  .visualization-section .collapsible-content {
+    @apply max-h-96 overflow-y-auto custom-scrollbar;
   }
 
   /* Loading states */

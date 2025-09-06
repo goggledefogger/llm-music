@@ -68,14 +68,14 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
           const steps = instrumentData.steps;
           
           return (
-            <div key={instrument} className="flex items-center space-x-3">
+            <div key={instrument} className="flex items-center space-x-2 min-w-0">
               {/* Instrument Label */}
-              <div className="w-16 text-sm font-medium text-foreground-muted capitalize">
+              <div className="w-12 text-xs font-medium text-foreground-muted capitalize flex-shrink-0">
                 {instrument}
               </div>
               
               {/* Step Grid */}
-              <div className="flex space-x-1">
+              <div className="flex space-x-0.5 flex-1 min-w-0 overflow-hidden">
                 {gridData.steps.map((stepIndex) => {
                   const isActive = stepIndex < steps.length ? steps[stepIndex] : false;
                   const isCurrentStep = stepIndex === currentStep;
@@ -85,17 +85,17 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
                       key={stepIndex}
                       onClick={() => handleStepClick(instrument, stepIndex)}
                       className={`
-                        w-8 h-8 rounded border-2 transition-all duration-150
+                        w-6 h-6 rounded border transition-all duration-150 flex-shrink-0
                         ${isActive 
                           ? `${getInstrumentColor(instrument)} text-white border-transparent` 
                           : 'bg-background border-border hover:border-foreground-muted'
                         }
-                        ${isCurrentStep ? 'ring-2 ring-yellow-400 ring-opacity-75' : ''}
+                        ${isCurrentStep ? 'ring-1 ring-yellow-400 ring-opacity-75' : ''}
                         ${onStepToggle ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
                       `}
                       title={`Step ${stepIndex + 1} - ${isActive ? 'Active' : 'Inactive'}`}
                     >
-                      <span className="text-xs font-mono">
+                      <span className="text-xs font-mono leading-none">
                         {stepIndex + 1}
                       </span>
                     </button>
@@ -104,7 +104,7 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
               </div>
               
               {/* Step Count Indicator */}
-              <div className="text-xs text-foreground-muted ml-2">
+              <div className="text-xs text-foreground-muted ml-1 flex-shrink-0">
                 {steps.filter(Boolean).length}/{steps.length}
               </div>
             </div>

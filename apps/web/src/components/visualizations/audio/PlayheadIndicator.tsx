@@ -54,20 +54,19 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
 
       {/* Timeline Visualization */}
       <div className="relative mb-4">
-        <div className="flex items-center space-x-1 bg-background rounded p-2">
+        <div className="flex items-center space-x-0.5 bg-background rounded p-1 overflow-x-auto">
           {Array.from({ length: maxSteps }, (_, i) => (
             <div
               key={i}
               className={`
-                h-8 flex-1 rounded border transition-all duration-100
+                h-6 w-6 rounded border transition-all duration-100 flex-shrink-0
                 ${i === currentStep 
                   ? 'bg-yellow-400 border-yellow-500' 
                   : 'bg-background-secondary border-border'
                 }
               `}
-              style={{ minWidth: '20px' }}
             >
-              <span className="text-xs font-mono text-center block leading-8">
+              <span className="text-xs font-mono text-center block leading-6">
                 {i + 1}
               </span>
             </div>

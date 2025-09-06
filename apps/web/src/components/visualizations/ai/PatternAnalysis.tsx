@@ -106,10 +106,10 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
       </div>
 
       {/* Key Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-background rounded p-3">
-          <div className="text-sm text-foreground-muted">Complexity</div>
-          <div className={`text-lg font-semibold ${getComplexityColor(analysis.complexity)} px-2 py-1 rounded`}>
+      <div className="grid grid-cols-2 gap-2 mb-4">
+        <div className="bg-background rounded p-2">
+          <div className="text-xs text-foreground-muted">Complexity</div>
+          <div className={`text-sm font-semibold ${getComplexityColor(analysis.complexity)} px-1 py-0.5 rounded`}>
             {getComplexityLabel(analysis.complexity)}
           </div>
           <div className="text-xs text-foreground-muted">
@@ -117,9 +117,9 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
           </div>
         </div>
 
-        <div className="bg-background rounded p-3">
-          <div className="text-sm text-foreground-muted">Density</div>
-          <div className={`text-lg font-semibold ${getDensityColor(analysis.density)} px-2 py-1 rounded`}>
+        <div className="bg-background rounded p-2">
+          <div className="text-xs text-foreground-muted">Density</div>
+          <div className={`text-sm font-semibold ${getDensityColor(analysis.density)} px-1 py-0.5 rounded`}>
             {Math.round(analysis.density * 100)}%
           </div>
           <div className="text-xs text-foreground-muted">
@@ -127,17 +127,17 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
           </div>
         </div>
 
-        <div className="bg-background rounded p-3">
-          <div className="text-sm text-foreground-muted">Instruments</div>
-          <div className="text-lg font-semibold">{analysis.instruments}</div>
-          <div className="text-xs text-foreground-muted">
+        <div className="bg-background rounded p-2">
+          <div className="text-xs text-foreground-muted">Instruments</div>
+          <div className="text-sm font-semibold">{analysis.instruments}</div>
+          <div className="text-xs text-foreground-muted truncate">
             {Object.keys(pattern.instruments).join(', ')}
           </div>
         </div>
 
-        <div className="bg-background rounded p-3">
-          <div className="text-sm text-foreground-muted">Tempo</div>
-          <div className="text-lg font-semibold">{pattern.tempo} BPM</div>
+        <div className="bg-background rounded p-2">
+          <div className="text-xs text-foreground-muted">Tempo</div>
+          <div className="text-sm font-semibold">{pattern.tempo} BPM</div>
           <div className="text-xs text-foreground-muted">
             {pattern.totalSteps} total steps
           </div>
@@ -145,20 +145,20 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
       </div>
 
       {/* Instrument Usage Chart */}
-      <div className="mb-6">
-        <h4 className="text-sm font-semibold mb-3">Instrument Usage</h4>
-        <div className="space-y-3">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold mb-2">Instrument Usage</h4>
+        <div className="space-y-2">
           {analysis.instrumentUsage.map((usage) => (
-            <div key={usage.name} className="bg-background rounded p-3">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium capitalize">{usage.name}</span>
-                <span className="text-sm text-foreground-muted">
+            <div key={usage.name} className="bg-background rounded p-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium capitalize">{usage.name}</span>
+                <span className="text-xs text-foreground-muted">
                   {usage.activeSteps}/{usage.totalSteps} ({Math.round(usage.percentage)}%)
                 </span>
               </div>
-              <div className="w-full bg-background-secondary rounded-full h-2">
+              <div className="w-full bg-background-secondary rounded-full h-1.5">
                 <div
-                  className={`h-2 rounded-full ${
+                  className={`h-1.5 rounded-full ${
                     usage.name === 'kick' ? 'bg-red-500' :
                     usage.name === 'snare' ? 'bg-blue-500' :
                     'bg-green-500'
@@ -172,27 +172,27 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
       </div>
 
       {/* Rhythm Analysis */}
-      <div className="mb-6">
-        <h4 className="text-sm font-semibold mb-3">Rhythm Analysis</h4>
-        <div className="space-y-3">
+      <div className="mb-4">
+        <h4 className="text-sm font-semibold mb-2">Rhythm Analysis</h4>
+        <div className="space-y-2">
           {analysis.rhythmPatterns.map((rhythm) => (
-            <div key={rhythm.instrument} className="bg-background rounded p-3">
-              <div className="flex justify-between items-center mb-2">
-                <span className="font-medium capitalize">{rhythm.instrument}</span>
-                <span className="text-sm text-foreground-muted">
+            <div key={rhythm.instrument} className="bg-background rounded p-2">
+              <div className="flex justify-between items-center mb-1">
+                <span className="text-sm font-medium capitalize">{rhythm.instrument}</span>
+                <span className="text-xs text-foreground-muted">
                   {rhythm.intervals.length} intervals
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-2 text-xs">
                 <div>
                   <span className="text-foreground-muted">Avg Interval:</span>
-                  <div className="font-mono">
+                  <div className="font-mono text-xs">
                     {rhythm.averageInterval > 0 ? rhythm.averageInterval.toFixed(1) : 'N/A'}
                   </div>
                 </div>
                 <div>
                   <span className="text-foreground-muted">Consistency:</span>
-                  <div className="font-mono">
+                  <div className="font-mono text-xs">
                     {Math.round(rhythm.consistency * 100)}%
                   </div>
                 </div>
@@ -203,9 +203,9 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
       </div>
 
       {/* Pattern Insights */}
-      <div className="bg-background rounded p-4">
-        <h4 className="text-sm font-semibold mb-3">Insights</h4>
-        <div className="space-y-2 text-sm">
+      <div className="bg-background rounded p-2">
+        <h4 className="text-sm font-semibold mb-2">Insights</h4>
+        <div className="space-y-1 text-xs">
           {analysis.complexity < 0.3 && (
             <div className="text-green-600">
               • Simple pattern with good clarity and focus

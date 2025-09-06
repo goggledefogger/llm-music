@@ -154,37 +154,37 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       </div>
 
       {/* Waveform Canvas */}
-      <div className="mb-4">
+      <div className="mb-3">
         <canvas
           ref={canvasRef}
-          width={800}
-          height={200}
-          className="w-full h-48 bg-background rounded border"
+          width={400}
+          height={120}
+          className="w-full h-24 bg-background rounded border"
         />
       </div>
 
       {/* Waveform Info */}
-      <div className="grid grid-cols-3 gap-4 text-sm">
+      <div className="grid grid-cols-3 gap-2 text-xs">
         <div>
           <span className="text-foreground-muted">Duration:</span>
-          <div className="font-mono">4.0s</div>
+          <div className="font-mono text-xs">4.0s</div>
         </div>
         <div>
           <span className="text-foreground-muted">Sample Rate:</span>
-          <div className="font-mono">44.1 kHz</div>
+          <div className="font-mono text-xs">44.1 kHz</div>
         </div>
         <div>
           <span className="text-foreground-muted">Current Time:</span>
-          <div className="font-mono">
+          <div className="font-mono text-xs">
             {Math.floor(currentTime / 60)}:{(currentTime % 60).toFixed(1).padStart(4, '0')}
           </div>
         </div>
       </div>
 
       {/* Pattern Structure Overlay */}
-      <div className="mt-4 p-3 bg-background rounded">
-        <h4 className="text-sm font-semibold mb-2">Pattern Structure</h4>
-        <div className="flex space-x-4 text-xs">
+      <div className="mt-3 p-2 bg-background rounded">
+        <h4 className="text-sm font-semibold mb-1">Pattern Structure</h4>
+        <div className="flex flex-wrap gap-2 text-xs">
           {Object.keys(pattern.instruments).map((instrument) => {
             const instrumentData = pattern.instruments[instrument];
             const activeSteps = instrumentData.steps.filter(Boolean).length;
@@ -192,7 +192,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
             
             return (
               <div key={instrument} className="flex items-center space-x-1">
-                <div className={`w-3 h-3 rounded ${
+                <div className={`w-2 h-2 rounded ${
                   instrument === 'kick' ? 'bg-red-500' :
                   instrument === 'snare' ? 'bg-blue-500' :
                   'bg-green-500'
