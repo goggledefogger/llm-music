@@ -81,9 +81,6 @@ Copy `.env.example` to `.env.local` and fill in your values:
 # Supabase
 REACT_APP_SUPABASE_URL=your_supabase_project_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-
-# OpenAI
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
 ```
 
 ## Project Structure

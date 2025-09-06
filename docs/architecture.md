@@ -1095,12 +1095,15 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_ANON_KEY!
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// OpenAI client is initialized with user-provided API key from settings
+const createOpenAIClient = (apiKey: string) => {
+  return new OpenAI({
+    apiKey,
+    dangerouslyAllowBrowser: true
+  });
+};
 
-export { supabase, openai };
+export { supabase, createOpenAIClient };
 ```
 
 **Service Example:**
@@ -1439,7 +1442,6 @@ pnpm test:e2e
 # Frontend (.env.local)
 REACT_APP_SUPABASE_URL=your_supabase_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
 
 # Backend (.env)
 SUPABASE_URL=your_supabase_url
