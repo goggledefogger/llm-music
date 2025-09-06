@@ -19,14 +19,16 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 - **AI**: OpenAI API integration
 - **Backend**: Vercel Serverless Functions
 - **Database**: Supabase (PostgreSQL)
-- **Monorepo**: Turborepo for build optimization
+- **Monorepo**: Turborepo with pnpm for build optimization
+- **Testing**: Vitest, React Testing Library, Playwright
+- **Package Manager**: pnpm (workspace protocol)
 
 ## Quick Start
 
 ### Prerequisites
 
 - Node.js 18+
-- npm 9+
+- pnpm 9+ (package manager)
 - Git
 
 ### Installation
@@ -39,7 +41,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 
 2. **Install dependencies**
    ```bash
-   npm install
+   pnpm install
    ```
 
 3. **Set up environment variables**
@@ -50,11 +52,11 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 
 4. **Start development server**
    ```bash
-   npm run dev
+   pnpm dev:web
    ```
 
 5. **Open your browser**
-   Navigate to `http://localhost:3000`
+   Navigate to `http://localhost:3001`
 
 ## Environment Setup
 
@@ -102,17 +104,37 @@ ascii-generative-sequencer/
 └── README.md               # This file
 ```
 
+## Current Status
+
+### ✅ Completed
+- **Project Setup**: Monorepo with pnpm and Turborepo configured
+- **Development Environment**: Vite, TypeScript, and build system working
+- **Testing Framework**: Vitest and React Testing Library configured
+- **Basic Web App**: React app running on http://localhost:3001
+- **Package Management**: pnpm workspace with proper dependency management
+
+### 🚧 In Progress
+- **ASCII Editor**: CodeMirror 6 integration
+- **Audio Engine**: Tone.js implementation
+- **AI Integration**: OpenAI API setup
+
+### 📋 Next Steps
+- Implement ASCII DSL parser
+- Add audio synthesis capabilities
+- Integrate AI chat interface
+- Create pattern library
+
 ## Development
 
 ### Available Scripts
 
-- `npm run dev` - Start all development servers
-- `npm run dev:web` - Start only the web app
-- `npm run dev:api` - Start only the API functions
-- `npm run build` - Build all packages
-- `npm run test` - Run all tests
-- `npm run lint` - Lint all packages
-- `npm run type-check` - Type check all packages
+- `pnpm dev` - Start all development servers
+- `pnpm dev:web` - Start only the web app
+- `pnpm dev:api` - Start only the API functions
+- `pnpm build` - Build all packages
+- `pnpm test` - Run all tests
+- `pnpm lint` - Lint all packages
+- `pnpm type-check` - Type check all packages
 
 ### Adding New Features
 
