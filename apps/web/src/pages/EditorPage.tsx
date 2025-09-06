@@ -2,8 +2,12 @@ import React from 'react';
 import { ASCIIEditor } from '../components/editor/ASCIIEditor';
 import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
+import { StepSequencerGrid, PatternAnalysis } from '../components/visualizations';
+import { usePattern, useAudio } from '../contexts/AppContext';
 
 export const EditorPage: React.FC = () => {
+  const { parsedPattern } = usePattern();
+  const { state: audioState } = useAudio();
 
   return (
     <div className="flex h-full">
@@ -17,9 +21,12 @@ export const EditorPage: React.FC = () => {
 
           {/* Editor Visualization - 40% */}
           <div className="w-2/5 border-l border-border">
-            <div className="h-full p-4 bg-gray-50">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Pattern Visualization</h3>
-              <p className="text-xs text-gray-500">Visualization will be implemented here</p>
+            <div className="h-full overflow-y-auto">
+              <StepSequencerGrid 
+                pattern={parsedPattern}
+                currentStep={Math.floor(audioState.currentTime * (audioState.tempo / 60)) % (parsedPattern?.totalSteps || 16)}
+                className="h-full"
+              />
             </div>
           </div>
         </div>
@@ -37,9 +44,11 @@ export const EditorPage: React.FC = () => {
 
         {/* AI Visualization */}
         <div className="border-t border-border h-1/3">
-          <div className="h-full p-4 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">AI Analysis</h3>
-            <p className="text-xs text-gray-500">AI analysis will be implemented here</p>
+          <div className="h-full overflow-y-auto">
+            <PatternAnalysis 
+              pattern={parsedPattern}
+              className="h-full"
+            />
           </div>
         </div>
       </div>
