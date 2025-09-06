@@ -391,6 +391,12 @@ components:
 
 **Technology Stack:** React 18, TypeScript, Tailwind CSS, Vite
 
+**CSS Architecture:** Modular responsive design system with:
+- Base components (`BaseVisualization`, page containers, chat interfaces)
+- Responsive utilities (responsive, compact, ultra-compact variants)
+- Consistent spacing system (3 levels: responsive, compact, ultra-compact)
+- Single source of truth for all styling decisions
+
 ### Audio Engine
 
 **Responsibility:** Real-time audio processing and synthesis
@@ -1095,12 +1101,15 @@ const supabase = createClient(
   process.env.REACT_APP_SUPABASE_ANON_KEY!
 );
 
-const openai = new OpenAI({
-  apiKey: process.env.REACT_APP_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true
-});
+// OpenAI client is initialized with user-provided API key from settings
+const createOpenAIClient = (apiKey: string) => {
+  return new OpenAI({
+    apiKey,
+    dangerouslyAllowBrowser: true
+  });
+};
 
-export { supabase, openai };
+export { supabase, createOpenAIClient };
 ```
 
 **Service Example:**
@@ -1348,7 +1357,7 @@ ascii-sequencer/
 - **Build System**: Vite configured for fast development and optimized builds
 - **Testing Framework**: Vitest and React Testing Library configured with custom test utilities
 - **TypeScript**: Full TypeScript support across all packages
-- **Development Server**: Web app running on http://localhost:3002
+- **Development Server**: Web app running on http://localhost:3000
 - **Code Quality**: ESLint and Prettier configured
 
 ### ✅ Completed Core Features
@@ -1363,10 +1372,20 @@ ascii-sequencer/
 - **Build Success**: All compilation errors resolved, clean build process
 - **Type System**: Consolidated type definitions with no duplication
 
+### ✅ Completed Visualization System
+- **Step Sequencer Grid**: Visual representation of ASCII patterns as interactive step sequencer
+- **Playhead Indicator**: Real-time playback position visualization with timeline
+- **Waveform Display**: Audio waveform visualization with pattern overlay
+- **Pattern Thumbnail**: Rich pattern previews for pattern library
+- **Suggestion Preview**: AI suggestion comparison and preview interface
+- **Pattern Analysis**: Comprehensive pattern analysis and insights dashboard
+- **Integration**: All visualizations properly integrated with existing state management
+- **Testing**: Comprehensive test suite with 104 tests covering components and integration
+- **Test Quality**: Robust testing practices with proper handling of multiple elements, split text, and component behavior
+
 ### 🚧 In Progress
 - **ASCII Editor**: CodeMirror 6 integration with custom DSL syntax
 - **AI Integration**: OpenAI API setup and integration
-- **Visualization Engine**: Real-time audio visualization components
 - **Modular Synth Effects**: Advanced audio effects and synthesis capabilities
 
 ### 📋 Next Implementation Steps
@@ -1439,7 +1458,6 @@ pnpm test:e2e
 # Frontend (.env.local)
 REACT_APP_SUPABASE_URL=your_supabase_url
 REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
 
 # Backend (.env)
 SUPABASE_URL=your_supabase_url

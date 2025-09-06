@@ -79,11 +79,11 @@ Copy `.env.example` to `.env.local` and fill in your values:
 
 ```bash
 # Supabase
-REACT_APP_SUPABASE_URL=your_supabase_project_url
-REACT_APP_SUPABASE_ANON_KEY=your_supabase_anon_key
+VITE_SUPABASE_URL=your_supabase_project_url
+VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
-# OpenAI
-REACT_APP_OPENAI_API_KEY=your_openai_api_key
+# OpenAI (for AI features)
+VITE_OPENAI_API_KEY=your_openai_api_key
 ```
 
 ## Project Structure
@@ -92,14 +92,14 @@ REACT_APP_OPENAI_API_KEY=your_openai_api_key
 ascii-generative-sequencer/
 ├── apps/
 │   ├── web/                 # React frontend application
-│   └── api/                 # Vercel serverless functions
+│   └── api/                 # Vercel serverless functions (planned)
 ├── packages/
-│   ├── shared/              # Shared types and utilities
-│   ├── ui/                  # Shared UI components
-│   └── config/              # Shared configuration
+│   └── shared/              # Shared types and utilities
 ├── docs/                    # Documentation
+├── supabase/                # Supabase configuration
 ├── .env.example             # Environment variables template
 ├── package.json             # Root package.json
+├── pnpm-workspace.yaml      # pnpm workspace configuration
 ├── turbo.json              # Turborepo configuration
 └── README.md               # This file
 ```
@@ -109,20 +109,22 @@ ascii-generative-sequencer/
 ### ✅ Completed
 - **Project Setup**: Monorepo with pnpm and Turborepo configured
 - **Development Environment**: Vite, TypeScript, and build system working
-- **Testing Framework**: Vitest and React Testing Library configured
-- **Basic Web App**: React app running on http://localhost:3000
+- **Testing Framework**: Vitest and React Testing Library configured with 104 tests passing
+- **Web Application**: React app running on http://localhost:3000
 - **Package Management**: pnpm workspace with proper dependency management
+- **Audio Engine**: Complete Web Audio API implementation with professional-quality synthesis
+- **Pattern System**: Boolean-based pattern parsing with real-time validation
+- **Visualization System**: 6 core visualization components with comprehensive testing
+- **Architecture**: Simplified component-based architecture with focused custom hooks
 
 ### 🚧 In Progress
-- **ASCII Editor**: CodeMirror 6 integration
-- **Audio Engine**: Tone.js implementation
-- **AI Integration**: OpenAI API setup
+- **ASCII Editor**: CodeMirror 6 integration (basic textarea implemented)
+- **AI Integration**: OpenAI API setup (mock interface implemented)
 
 ### 📋 Next Steps
-- Implement ASCII DSL parser
-- Add audio synthesis capabilities
-- Integrate AI chat interface
-- Create pattern library
+- Complete CodeMirror 6 integration with custom DSL syntax
+- Integrate OpenAI API for AI chat functionality
+- Add advanced audio effects and synthesis capabilities
 
 ## Development
 
@@ -130,7 +132,7 @@ ascii-generative-sequencer/
 
 - `pnpm dev` - Start all development servers
 - `pnpm dev:web` - Start only the web app
-- `pnpm dev:api` - Start only the API functions
+- `pnpm dev:api` - Start only the API functions (planned)
 - `pnpm build` - Build all packages
 - `pnpm test` - Run all tests
 - `pnpm lint` - Lint all packages

@@ -2,44 +2,49 @@ import React from 'react';
 import { ASCIIEditor } from '../components/editor/ASCIIEditor';
 import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
+import { VisualizationPanel } from '../components/layout/VisualizationPanel';
+import { usePattern, useAudio } from '../contexts/AppContext';
 
 export const EditorPage: React.FC = () => {
+  const { parsedPattern } = usePattern();
+  const { state: audioState } = useAudio();
+
+  const currentStep = Math.floor(audioState.currentTime * (audioState.tempo / 60)) % (parsedPattern?.totalSteps || 16);
 
   return (
-    <div className="flex h-full">
-      {/* Editor Pane - 70% width */}
-      <div className="editor-pane flex flex-col">
-        <div className="flex-1 flex">
-          {/* ASCII Editor - 60% */}
-          <div className="flex-1">
-            <ASCIIEditor />
-          </div>
-
-          {/* Editor Visualization - 40% */}
-          <div className="w-2/5 border-l border-border">
-            <div className="h-full p-4 bg-gray-50">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">Pattern Visualization</h3>
-              <p className="text-xs text-gray-500">Visualization will be implemented here</p>
-            </div>
-          </div>
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* Main Editor Area */}
+      <div className="flex-1 flex flex-col min-w-0">
+        {/* ASCII Editor - Takes most of the space */}
+        <div className="flex-1 min-h-0">
+          <ASCIIEditor />
         </div>
 
-        <div className="border-t border-border">
+        {/* Compact Transport Controls */}
+        <div className="border-t border-border bg-background-secondary">
           <TransportControls />
         </div>
       </div>
 
-      {/* Chat Pane - 30% width */}
-      <div className="chat-pane flex flex-col">
-        <div className="flex-1">
-          <ChatInterface />
+      {/* Visualization Panel */}
+      <div className="visualization-panel border-l border-border bg-background-secondary">
+        <div className="h-full overflow-y-auto custom-scrollbar ultra-compact-padding">
+          <VisualizationPanel
+            pattern={parsedPattern}
+            currentStep={currentStep}
+            currentTime={audioState.currentTime}
+            isPlaying={audioState.isPlaying}
+            tempo={audioState.tempo}
+            className="h-auto"
+          />
         </div>
+      </div>
 
-        {/* AI Visualization */}
-        <div className="border-t border-border h-1/3">
-          <div className="h-full p-4 bg-gray-50">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">AI Analysis</h3>
-            <p className="text-xs text-gray-500">AI analysis will be implemented here</p>
+      {/* Chat Panel */}
+      <div className="chat-panel border-l border-border bg-background">
+        <div className="h-full flex flex-col">
+          <div className="flex-1 min-h-0">
+            <ChatInterface />
           </div>
         </div>
       </div>

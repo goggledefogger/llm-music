@@ -77,9 +77,9 @@ packages:
 
 ### Key Dependencies
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Audio**: Web Audio API (direct implementation), Tone.js (installed but not used)
-- **Editor**: CodeMirror 6 (installed but not integrated)
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS with modular design system
+- **Audio**: Web Audio API (direct implementation)
+- **Editor**: Custom text editor implementation
 - **Testing**: Vitest, React Testing Library
 - **Build**: Turborepo for monorepo management
 - **State Management**: React Context with focused custom hooks
@@ -270,6 +270,71 @@ describe('ASCIIEditor', () => {
 })
 ```
 
+### Testing Best Practices
+
+#### Handling Multiple Elements
+
+When testing components that may have multiple elements with the same text, use `getAllByText` instead of `getByText`:
+
+```typescript
+// ❌ This will fail if there are multiple "kick" elements
+expect(screen.getByText('kick')).toBeInTheDocument()
+
+// ✅ This handles multiple elements correctly
+const kickElements = screen.getAllByText('kick')
+expect(kickElements.length).toBeGreaterThan(0)
+```
+
+#### Handling Split Text
+
+When text is split across multiple HTML elements (common with Tailwind CSS), use regex patterns:
+
+```typescript
+// ❌ This will fail if text is split like "3 instruments • 16 steps"
+expect(screen.getByText('16 steps')).toBeInTheDocument()
+
+// ✅ This handles split text correctly
+expect(screen.getByText(/16 steps/)).toBeInTheDocument()
+```
+
+#### Specific Element Selection
+
+When there are multiple elements with the same role, be more specific:
+
+```typescript
+// ❌ This will fail if there are multiple textboxes
+const editor = screen.getByRole('textbox')
+
+// ✅ This targets a specific textbox by placeholder
+const editor = screen.getByPlaceholderText('Enter your ASCII pattern here...')
+```
+
+#### Component-Specific Text Matching
+
+Match the actual rendered text, not what you expect:
+
+```typescript
+// ❌ This assumes the component shows "Pattern Loop: 2/4"
+expect(screen.getByText('Pattern Loop: 2/4')).toBeInTheDocument()
+
+// ✅ This matches the actual component behavior
+expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()
+```
+
+#### Handling Dynamic Content
+
+For content that changes based on component state, use flexible matchers:
+
+```typescript
+// ❌ This assumes exact text format
+expect(screen.getByText('Current Step: 5')).toBeInTheDocument()
+
+// ✅ This handles the actual component structure
+expect(screen.getByText('Current Step:')).toBeInTheDocument()
+const currentStepElements = screen.getAllByText('5')
+expect(currentStepElements.length).toBeGreaterThan(0)
+```
+
 ### Test Configuration
 
 ```typescript
@@ -285,6 +350,100 @@ export default defineConfig({
     globals: true,
   },
 })
+```
+
+### Common Testing Pitfalls
+
+#### 1. Multiple Elements with Same Text
+
+**Problem**: `getByText` fails when multiple elements contain the same text.
+
+**Solution**: Use `getAllByText` and check the length:
+
+```typescript
+const elements = screen.getAllByText('kick')
+expect(elements.length).toBeGreaterThan(0)
+```
+
+#### 2. Split Text Across Elements
+
+**Problem**: Text is broken up by whitespace or spans in the HTML.
+
+**Solution**: Use regex patterns:
+
+```typescript
+expect(screen.getByText(/16 steps/)).toBeInTheDocument()
+```
+
+#### 3. Component Behavior Assumptions
+
+**Problem**: Tests assume component behavior without checking actual implementation.
+
+**Solution**: Inspect the actual rendered HTML and match it:
+
+```typescript
+// Check what the component actually renders
+console.log(screen.debug())
+```
+
+#### 4. Role Ambiguity
+
+**Problem**: Multiple elements have the same role (e.g., multiple textboxes).
+
+**Solution**: Use more specific selectors:
+
+```typescript
+// Use placeholder, label, or other unique attributes
+const editor = screen.getByPlaceholderText('Enter your ASCII pattern here...')
+```
+
+#### 5. Async Content Loading
+
+**Problem**: Content loads asynchronously and tests run before it's ready.
+
+**Solution**: Use `waitFor` for async operations:
+
+```typescript
+await waitFor(() => {
+  expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
+})
+```
+
+### Debugging Test Failures
+
+#### 1. Inspect Rendered HTML
+
+```typescript
+// Add this to any test to see the full HTML output
+console.log(screen.debug())
+```
+
+#### 2. Check for Multiple Elements
+
+```typescript
+// Use getAllByText to see how many elements match
+const elements = screen.getAllByText('kick')
+console.log('Found', elements.length, 'elements with text "kick"')
+```
+
+#### 3. Use More Specific Queries
+
+```typescript
+// Instead of getByText, use getByRole with name
+const button = screen.getByRole('button', { name: '▶️' })
+
+// Or use getByTestId for unique identifiers
+const element = screen.getByTestId('unique-test-id')
+```
+
+#### 4. Test Component Behavior, Not Implementation
+
+```typescript
+// ❌ Testing implementation details
+expect(component.state.isValid).toBe(true)
+
+// ✅ Testing user-visible behavior
+expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 ```
 
 ## Current Implementation Status
@@ -418,8 +577,10 @@ it('should auto-validate patterns as user types', async () => {
 
 ### Styling
 
-- Use Tailwind CSS for styling
-- Follow mobile-first responsive design
+- Use Tailwind CSS with modular design system for styling
+- Follow mobile-first responsive design with 3-level spacing system
+- Use BaseVisualization component for all visualization components
+- Follow established CSS class patterns (page-container, chat-header, etc.)
 - Use CSS modules for component-specific styles
 - Maintain consistent spacing and typography
 
@@ -604,7 +765,6 @@ Required environment variables:
 # .env.local
 VITE_SUPABASE_URL=your_supabase_url
 VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
-VITE_OPENAI_API_KEY=your_openai_api_key
 ```
 
 ### Getting Help

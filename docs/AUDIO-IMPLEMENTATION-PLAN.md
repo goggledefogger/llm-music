@@ -109,7 +109,7 @@ seq hihat: x.x.x.x.x.x.x.x.
 ## 🚀 **Getting Started**
 
 ### **Prerequisites**:
-- Tone.js already installed
+- Web Audio API implementation in progress
 - Web Audio API support in browser
 - User gesture required for audio context
 

@@ -47,21 +47,24 @@ export const TransportControls: React.FC = () => {
   const displayTime = Math.floor(audioState.currentTime);
 
   return (
-    <div className="p-4 bg-background-secondary">
+    <div className="p-4">
+      {/* Status Messages */}
       {audioState.error && (
-        <div className="mb-2 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
+        <div className="mb-3 p-2 bg-red-100 border border-red-300 rounded text-red-700 text-sm">
           Audio Error: {audioState.error}
         </div>
       )}
 
       {!audioState.isInitialized && !audioState.error && (
-        <div className="mb-2 p-2 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm">
-          Click anywhere on the page to enable audio, or click the play button below.
+        <div className="mb-3 p-2 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm">
+          Click anywhere to enable audio
         </div>
       )}
 
+      {/* Main Controls */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
+        {/* Playback Controls */}
+        <div className="flex items-center space-x-3">
           <button
             onClick={handlePlayPause}
             className={`btn ${audioState.isPlaying ? 'btn-secondary' : 'btn-primary'} btn-md`}
@@ -78,34 +81,36 @@ export const TransportControls: React.FC = () => {
             ⏹️
           </button>
 
+          {/* Tempo Control */}
           <div className="flex items-center space-x-2">
             <span className="text-sm text-foreground-muted">Tempo:</span>
             <input
               type="number"
               value={audioState.tempo}
               onChange={(e) => handleTempoChange(Number(e.target.value))}
-              className="input w-20 text-center"
+              className="input w-16 text-center text-sm"
               min="60"
               max="200"
               disabled={!audioState.isInitialized}
             />
-            <span className="text-sm text-foreground-muted">BPM</span>
+            <span className="text-xs text-foreground-muted">BPM</span>
           </div>
         </div>
 
+        {/* Volume and Time */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-foreground-muted">Volume:</span>
+            <span className="text-sm text-foreground-muted">Vol:</span>
             <input
               type="range"
               min="0"
               max="100"
               value={displayVolume}
               onChange={(e) => handleVolumeChange(Number(e.target.value))}
-              className="w-20"
+              className="w-16"
               disabled={!audioState.isInitialized}
             />
-            <span className="text-sm text-foreground-muted w-8">{displayVolume}%</span>
+            <span className="text-xs text-foreground-muted w-6">{displayVolume}%</span>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -116,12 +121,6 @@ export const TransportControls: React.FC = () => {
           </div>
         </div>
       </div>
-
-      {!audioState.isInitialized && (
-        <div className="mt-2 text-xs text-foreground-muted">
-          Click anywhere to initialize audio
-        </div>
-      )}
     </div>
   );
 };

@@ -11,7 +11,7 @@ export class AudioEngine {
   private gainNode: GainNode | null = null;
   private scheduledEvents: number[] = [];
   private startTime: number = 0;
-  private currentStep: number = 0;
+  // private currentStep: number = 0; // TODO: Implement step tracking for visualizations
   private stepInterval: number = 0;
 
   private constructor() {
@@ -100,7 +100,7 @@ export class AudioEngine {
 
       // Set playback start time
       this.startTime = this.audioContext.currentTime;
-      this.currentStep = 0;
+      // this.currentStep = 0; // TODO: Implement step tracking for visualizations
 
       // Start the scheduler
       this.schedulePattern();
