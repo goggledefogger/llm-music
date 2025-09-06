@@ -1,5 +1,5 @@
 // Basic audio engine for ASCII Generative Sequencer
-import { ParsedPattern } from '../types/audio';
+import { ParsedPattern } from '../types/app';
 import { PatternParser } from './patternParser';
 
 export class AudioEngine {
@@ -9,7 +9,10 @@ export class AudioEngine {
   private currentPattern: ParsedPattern | null = null;
   private audioContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
-  // private scheduledEvents: number[] = []; // Will be used when scheduling is implemented
+  private scheduledEvents: number[] = [];
+  private startTime: number = 0;
+  private currentStep: number = 0;
+  private stepInterval: number = 0;
 
   private constructor() {
     // Constructor is now minimal - initialization happens in initialize()
@@ -89,10 +92,18 @@ export class AudioEngine {
       // Clear any existing scheduled events
       this.clearScheduledEvents();
 
+      // Calculate step interval based on tempo
+      const stepsPerBeat = 4; // 16th notes
+      const beatsPerMinute = this.currentPattern.tempo;
+      const secondsPerBeat = 60 / beatsPerMinute;
+      this.stepInterval = secondsPerBeat / stepsPerBeat;
+
       // Set playback start time
+      this.startTime = this.audioContext.currentTime;
+      this.currentStep = 0;
 
       // Start the scheduler
-      // Audio context is ready
+      this.schedulePattern();
 
       this.isPlaying = true;
       console.log('Playback started');
@@ -154,8 +165,13 @@ export class AudioEngine {
    */
   getState() {
     const tempo = this.currentPattern?.tempo || 120;
-    const currentTime = this.audioContext ? this.audioContext.currentTime : 0;
     const volume = this.gainNode ? 20 * Math.log10(this.gainNode.gain.value) : -6;
+
+    // Calculate current playback time
+    let currentTime = 0;
+    if (this.audioContext && this.isPlaying && this.startTime > 0) {
+      currentTime = this.audioContext.currentTime - this.startTime;
+    }
 
     return {
       isInitialized: this.isInitialized,
@@ -163,7 +179,7 @@ export class AudioEngine {
       tempo,
       currentTime,
       volume,
-      hasPattern: !!this.currentPattern
+      error: null // Audio engine doesn't track errors in state, they're handled by the hook
     };
   }
 
@@ -171,10 +187,107 @@ export class AudioEngine {
   // Synthesizer methods will be implemented later
 
   /**
+   * Schedule pattern playback
+   */
+  private schedulePattern(): void {
+    if (!this.audioContext || !this.currentPattern) return;
+
+    const totalSteps = this.currentPattern.totalSteps;
+
+    // Schedule the entire pattern loop
+    for (let step = 0; step < totalSteps; step++) {
+      const stepTime = this.startTime + (step * this.stepInterval);
+
+      // Check each instrument for hits at this step
+      Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+        if (instrumentData.steps[step] === true) {
+          this.scheduleInstrumentHit(instrumentName, stepTime);
+        }
+      });
+    }
+
+    // Schedule the next loop
+    const loopTime = this.startTime + (totalSteps * this.stepInterval);
+    const timeoutId = window.setTimeout(() => {
+      if (this.isPlaying) {
+        this.startTime = this.audioContext!.currentTime;
+        this.schedulePattern();
+      }
+    }, (loopTime - this.audioContext.currentTime) * 1000);
+
+    this.scheduledEvents.push(timeoutId);
+  }
+
+  /**
+   * Schedule an instrument hit
+   */
+  private scheduleInstrumentHit(instrumentName: string, time: number): void {
+    if (!this.audioContext || !this.gainNode) return;
+
+    const oscillator = this.audioContext.createOscillator();
+    const envelope = this.audioContext.createGain();
+
+    // Connect: oscillator -> envelope -> gain -> destination
+    oscillator.connect(envelope);
+    envelope.connect(this.gainNode);
+
+    // Set up the sound based on instrument
+    switch (instrumentName.toLowerCase()) {
+      case 'kick':
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(60, time);
+        oscillator.frequency.exponentialRampToValueAtTime(30, time + 0.1);
+        envelope.gain.setValueAtTime(0.8, time);
+        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+        oscillator.start(time);
+        oscillator.stop(time + 0.2);
+        break;
+
+      case 'snare':
+        // Create noise for snare
+        const bufferSize = this.audioContext.sampleRate * 0.1;
+        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+        const output = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const noise = this.audioContext.createBufferSource();
+        noise.buffer = buffer;
+        noise.connect(envelope);
+
+        envelope.gain.setValueAtTime(0.3, time);
+        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+        noise.start(time);
+        noise.stop(time + 0.1);
+        break;
+
+      case 'hihat':
+        oscillator.type = 'square';
+        oscillator.frequency.setValueAtTime(8000, time);
+        envelope.gain.setValueAtTime(0.1, time);
+        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+        oscillator.start(time);
+        oscillator.stop(time + 0.05);
+        break;
+
+      default:
+        // Default sound for unknown instruments
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(440, time);
+        envelope.gain.setValueAtTime(0.3, time);
+        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+        oscillator.start(time);
+        oscillator.stop(time + 0.1);
+        break;
+    }
+  }
+
+  /**
    * Clear all scheduled events
    */
   private clearScheduledEvents(): void {
-    // Clear scheduled events - will be implemented when scheduling is added
+    this.scheduledEvents.forEach(id => clearTimeout(id));
+    this.scheduledEvents = [];
   }
 
   /**

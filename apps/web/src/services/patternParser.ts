@@ -1,5 +1,5 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern } from '../types/audio';
+import { ParsedPattern } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;

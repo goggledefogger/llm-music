@@ -15,16 +15,7 @@ export interface PatternStep {
   isHit: boolean;
 }
 
-export interface ParsedPattern {
-  tempo: number;
-  instruments: {
-    [instrumentName: string]: {
-      steps: boolean[];
-      name: string;
-    };
-  };
-  totalSteps: number;
-}
+// ParsedPattern moved to ../types/app.ts to avoid duplication
 
 export interface AudioEngineConfig {
   tempo: number;
