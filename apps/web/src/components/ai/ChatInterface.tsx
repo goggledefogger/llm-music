@@ -1,10 +1,17 @@
 import React, { useState } from 'react';
 
+interface ChatMessage {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+  timestamp: Date;
+}
+
 export const ChatInterface: React.FC = () => {
-  const [messages, setMessages] = useState([
+  const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: '1',
-      role: 'assistant' as const,
+      role: 'assistant',
       content: 'Hello! I\'m your AI music assistant. I can help you create, modify, and improve your ASCII patterns. What would you like to work on?',
       timestamp: new Date(),
     },
@@ -14,9 +21,9 @@ export const ChatInterface: React.FC = () => {
   const handleSend = () => {
     if (!input.trim()) return;
 
-    const newMessage = {
+    const newMessage: ChatMessage = {
       id: Date.now().toString(),
-      role: 'user' as const,
+      role: 'user',
       content: input,
       timestamp: new Date(),
     };
@@ -26,9 +33,9 @@ export const ChatInterface: React.FC = () => {
 
     // Simulate AI response
     setTimeout(() => {
-      const aiResponse = {
+      const aiResponse: ChatMessage = {
         id: (Date.now() + 1).toString(),
-        role: 'assistant' as const,
+        role: 'assistant',
         content: 'I understand you want help with your pattern. Let me analyze your current code and provide suggestions...',
         timestamp: new Date(),
       };
