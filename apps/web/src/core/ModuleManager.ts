@@ -5,6 +5,7 @@ export class ModuleManagerImpl implements ModuleManager {
   public modules: Map<string, ModuleInterface> = new Map();
   public activeModule: string | null = null;
   private listeners: Map<string, Set<(data: any) => void>> = new Map();
+  private moduleHealth: Map<string, { isHealthy: boolean; lastError?: string; lastChecked: Date }> = new Map();
 
   /**
    * Register a new module
@@ -14,6 +15,10 @@ export class ModuleManagerImpl implements ModuleManager {
     const moduleId = this.generateModuleId(moduleData);
 
     this.modules.set(moduleId, module);
+    this.moduleHealth.set(moduleId, {
+      isHealthy: true,
+      lastChecked: new Date()
+    });
     this.emit('module:registered', { moduleId, module });
 
     console.log(`Module registered: ${moduleId}`);
@@ -27,6 +32,7 @@ export class ModuleManagerImpl implements ModuleManager {
     if (module) {
       module.destroy();
       this.modules.delete(id);
+      this.moduleHealth.delete(id);
       this.emit('module:unregistered', { moduleId: id });
 
       if (this.activeModule === id) {
@@ -76,11 +82,17 @@ export class ModuleManagerImpl implements ModuleManager {
    * Initialize all modules
    */
   async initializeAll(): Promise<void> {
-    const initPromises = this.getAllModules().map(module =>
-      module.initialize().catch(error => {
-        console.error(`Failed to initialize module:`, error);
-      })
-    );
+    const initPromises = this.getAllModules().map(async (module) => {
+      const moduleId = this.getModuleId(module);
+      try {
+        await module.initialize();
+        this.updateModuleHealth(moduleId, true);
+      } catch (error) {
+        const errorMessage = error instanceof Error ? error.message : 'Unknown initialization error';
+        this.updateModuleHealth(moduleId, false, errorMessage);
+        console.error(`Failed to initialize module ${moduleId}:`, error);
+      }
+    });
 
     await Promise.all(initPromises);
     this.emit('modules:initialized', {});
@@ -155,6 +167,8 @@ export class ModuleManagerImpl implements ModuleManager {
     totalModules: number;
     activeModule: string | null;
     modulesByType: Record<ModuleType, number>;
+    healthyModules: number;
+    unhealthyModules: number;
   } {
     const modulesByType: Record<ModuleType, number> = {
       editor: 0,
@@ -162,6 +176,9 @@ export class ModuleManagerImpl implements ModuleManager {
       ai: 0,
       patterns: 0
     };
+
+    let healthyModules = 0;
+    let unhealthyModules = 0;
 
     this.getAllModules().forEach(module => {
       const data = module.getData();
@@ -171,11 +188,74 @@ export class ModuleManagerImpl implements ModuleManager {
       }
     });
 
+    this.moduleHealth.forEach(health => {
+      if (health.isHealthy) {
+        healthyModules++;
+      } else {
+        unhealthyModules++;
+      }
+    });
+
     return {
       totalModules: this.modules.size,
       activeModule: this.activeModule,
-      modulesByType
+      modulesByType,
+      healthyModules,
+      unhealthyModules
     };
+  }
+
+  /**
+   * Update module health status
+   */
+  updateModuleHealth(moduleId: string, isHealthy: boolean, error?: string): void {
+    this.moduleHealth.set(moduleId, {
+      isHealthy,
+      lastError: error,
+      lastChecked: new Date()
+    });
+    this.emit('module:health-updated', { moduleId, isHealthy, error });
+  }
+
+  /**
+   * Get module health status
+   */
+  getModuleHealth(moduleId: string): { isHealthy: boolean; lastError?: string; lastChecked: Date } | null {
+    return this.moduleHealth.get(moduleId) || null;
+  }
+
+  /**
+   * Get all healthy modules
+   */
+  getHealthyModules(): ModuleInterface[] {
+    return this.getAllModules().filter(module => {
+      const moduleId = this.getModuleId(module);
+      const health = this.moduleHealth.get(moduleId);
+      return health?.isHealthy === true;
+    });
+  }
+
+  /**
+   * Get all unhealthy modules
+   */
+  getUnhealthyModules(): ModuleInterface[] {
+    return this.getAllModules().filter(module => {
+      const moduleId = this.getModuleId(module);
+      const health = this.moduleHealth.get(moduleId);
+      return health?.isHealthy === false;
+    });
+  }
+
+  /**
+   * Get module ID from module instance
+   */
+  getModuleId(module: ModuleInterface): string {
+    for (const [id, mod] of this.modules.entries()) {
+      if (mod === module) {
+        return id;
+      }
+    }
+    throw new Error('Module not found in registry');
   }
 }
 

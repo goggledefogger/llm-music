@@ -3,6 +3,7 @@ import React from 'react';
 import { BaseModule } from '../core/BaseModule';
 import { EditorModuleData, ParsedPattern } from '../types/module';
 import { PatternParser } from '../services/patternParser';
+import { moduleManager } from '../core/ModuleManager';
 
 export class EditorModule extends BaseModule {
   private content: string = `TEMPO 120
@@ -61,6 +62,11 @@ seq hihat: x.x.x.x.x.x.x.x.`;
     // Initialize editor-specific functionality
     this.validateContent();
     this.parsePattern();
+
+    // If pattern is valid, update the audio module
+    if (this.validation.isValid && this.pattern) {
+      this.updateAudioModule();
+    }
   }
 
   protected onDataUpdate(newData: Partial<EditorModuleData>): void {
@@ -68,6 +74,11 @@ seq hihat: x.x.x.x.x.x.x.x.`;
       this.content = newData.content;
       this.validateContent();
       this.parsePattern();
+
+      // If pattern is valid, update the audio module
+      if (this.validation.isValid && this.pattern) {
+        this.updateAudioModule();
+      }
     }
 
     if (newData.cursorPosition !== undefined) {
@@ -123,11 +134,23 @@ seq hihat: x.x.x.x.x.x.x.x.`;
     try {
       const result = PatternParser.validate(this.content);
       this.validation = result;
+
+      // Update module health based on validation
+      if (result.isValid) {
+        this.setError(null); // Clear any previous errors
+      } else {
+        this.setError(`Validation failed: ${result.errors.join(', ')}`);
+      }
     } catch (error) {
+      const errorMessage = 'Validation error: ' + (error instanceof Error ? error.message : 'Unknown error');
       this.validation = {
         isValid: false,
-        errors: ['Validation error: ' + (error instanceof Error ? error.message : 'Unknown error')]
+        errors: [errorMessage],
+        warnings: [],
+        validInstruments: [],
+        invalidInstruments: []
       };
+      this.setError(errorMessage);
     }
   }
 
@@ -135,11 +158,15 @@ seq hihat: x.x.x.x.x.x.x.x.`;
     try {
       if (this.validation.isValid) {
         this.pattern = PatternParser.parse(this.content);
+        this.setError(null); // Clear any parsing errors
       } else {
         this.pattern = null;
+        // Don't set error here as validation already handled it
       }
     } catch (error) {
       this.pattern = null;
+      const errorMessage = 'Pattern parsing error: ' + (error instanceof Error ? error.message : 'Unknown error');
+      this.setError(errorMessage);
       console.error('Pattern parsing error:', error);
     }
   }
@@ -153,6 +180,11 @@ seq hihat: x.x.x.x.x.x.x.x.`;
     if (step < instrumentData.steps.length) {
       instrumentData.steps[step] = !instrumentData.steps[step];
       this.updateContentFromPattern();
+
+      // Update audio module if pattern is valid
+      if (this.validation.isValid && this.pattern) {
+        this.updateAudioModule();
+      }
     }
   }
 
@@ -172,5 +204,31 @@ seq hihat: x.x.x.x.x.x.x.x.`;
 
     this.content = newContent.trim();
     this.validateContent();
+  }
+
+  private updateAudioModule(): void {
+    try {
+      // Get the audio module from the module manager
+      const audioModules = moduleManager.getModulesByType('audio');
+      console.log('EditorModule: updateAudioModule called', {
+        audioModulesCount: audioModules.length,
+        hasPattern: !!this.pattern,
+        pattern: this.pattern
+      });
+
+      if (audioModules.length > 0 && this.pattern) {
+        const audioModule = audioModules[0];
+        // Update the audio module with the new pattern
+        audioModule.updateData({ pattern: this.pattern });
+        console.log('EditorModule: Updated audio module with pattern');
+      } else {
+        console.warn('EditorModule: Cannot update audio module', {
+          audioModulesCount: audioModules.length,
+          hasPattern: !!this.pattern
+        });
+      }
+    } catch (error) {
+      console.error('Failed to update audio module:', error);
+    }
   }
 }

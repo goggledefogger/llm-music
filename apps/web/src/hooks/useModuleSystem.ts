@@ -34,19 +34,29 @@ export const useModuleSystem = (): ModuleSystemHook => {
 
   // Initialize modules
   const initialize = useCallback(async () => {
+    if (state.isInitialized) {
+      return;
+    }
+
     try {
       setState(prev => ({ ...prev, error: null }));
 
-      // Create and register modules
-      const editorModule = new EditorModule();
-      const audioModule = new AudioModule();
-      const aiModule = new AIModule();
-      const patternsModule = new PatternsModule();
+      // Only create and register modules if they don't exist
+      const existingModules = moduleManager.getAllModules();
+      const hasModules = existingModules.length > 0;
 
-      moduleManager.registerModule(editorModule);
-      moduleManager.registerModule(audioModule);
-      moduleManager.registerModule(aiModule);
-      moduleManager.registerModule(patternsModule);
+      if (!hasModules) {
+        // Create and register modules
+        const editorModule = new EditorModule();
+        const audioModule = new AudioModule();
+        const aiModule = new AIModule();
+        const patternsModule = new PatternsModule();
+
+        moduleManager.registerModule(editorModule);
+        moduleManager.registerModule(audioModule);
+        moduleManager.registerModule(aiModule);
+        moduleManager.registerModule(patternsModule);
+      }
 
       // Initialize all modules
       await moduleManager.initializeAll();
@@ -65,7 +75,7 @@ export const useModuleSystem = (): ModuleSystemHook => {
       setState(prev => ({ ...prev, error: errorMessage }));
       console.error('Module system initialization failed:', error);
     }
-  }, []);
+  }, [state.isInitialized]);
 
   // Destroy modules
   const destroy = useCallback(() => {
@@ -150,14 +160,17 @@ export const useModuleSystem = (): ModuleSystemHook => {
     };
   }, []);
 
-  // Auto-initialize on mount
+  // Auto-initialize on mount (only once)
   useEffect(() => {
-    initialize();
+    if (!state.isInitialized) {
+      initialize();
+    }
 
     return () => {
-      destroy();
+      // Only destroy if this is the last instance
+      // We'll let the singleton handle cleanup
     };
-  }, [initialize, destroy]);
+  }, [state.isInitialized, initialize]);
 
   return {
     state,

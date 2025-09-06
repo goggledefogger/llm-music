@@ -1,39 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { useAudioEngine } from '../../hooks/useAudioEngine';
+import { useAudioEngineContext } from '../../contexts/AudioEngineContext';
 
 export const TransportControls: React.FC = () => {
-  const audioEngine = useAudioEngine();
-  const [isInitialized, setIsInitialized] = useState(false);
+  const audioEngine = useAudioEngineContext();
 
-  // Initialize audio engine on first user interaction
-  useEffect(() => {
-    const handleFirstInteraction = async () => {
-      if (!isInitialized && !audioEngine.state.isInitialized) {
-        try {
-          await audioEngine.initialize();
-          setIsInitialized(true);
-        } catch (error) {
-          console.error('Failed to initialize audio:', error);
-        }
-      }
-    };
-
-    // Add event listeners for user interaction
-    const events = ['click', 'keydown', 'touchstart'];
-    events.forEach(event => {
-      document.addEventListener(event, handleFirstInteraction, { once: true });
-    });
-
-    return () => {
-      events.forEach(event => {
-        document.removeEventListener(event, handleFirstInteraction);
-      });
-    };
-  }, [audioEngine, isInitialized]);
-
-  const handlePlayPause = () => {
+  const handlePlayPause = async () => {
+    // If not initialized, try to initialize first
     if (!audioEngine.state.isInitialized) {
-      return;
+      try {
+        await audioEngine.initialize();
+      } catch (error) {
+        console.error('Failed to initialize audio:', error);
+        return;
+      }
     }
 
     if (audioEngine.state.isPlaying) {
@@ -75,12 +54,18 @@ export const TransportControls: React.FC = () => {
         </div>
       )}
 
+      {!audioEngine.state.isInitialized && !audioEngine.state.error && (
+        <div className="mb-2 p-2 bg-blue-100 border border-blue-300 rounded text-blue-700 text-sm">
+          Click anywhere on the page to enable audio, or click the play button below.
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <button
             onClick={handlePlayPause}
             className={`btn ${audioEngine.state.isPlaying ? 'btn-secondary' : 'btn-primary'} btn-md`}
-            disabled={!audioEngine.state.isInitialized}
+            disabled={false} // Allow clicking to trigger initialization
           >
             {audioEngine.state.isPlaying ? '⏸️' : '▶️'}
           </button>

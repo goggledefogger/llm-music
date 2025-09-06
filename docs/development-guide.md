@@ -218,8 +218,8 @@ apps/web/src/
 ### Writing Tests
 
 ```typescript
-// Example test file
-import { render, screen } from '@testing-library/react'
+// Example test file with auto-validation testing
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { describe, it, expect } from 'vitest'
 import { ASCIIEditor } from './ASCIIEditor'
 
@@ -229,10 +229,42 @@ describe('ASCIIEditor', () => {
     expect(screen.getByRole('textbox')).toBeInTheDocument()
   })
 
-  it('accepts user input', () => {
+  it('auto-validates and loads valid patterns', async () => {
     render(<ASCIIEditor />)
     const editor = screen.getByRole('textbox')
-    // Test user interaction
+
+    // Type a valid pattern
+    fireEvent.change(editor, { target: { value: 'TEMPO 120\nseq kick: x...x...' } })
+
+    // Wait for auto-validation to complete
+    await waitFor(() => {
+      expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
+    })
+  })
+
+  it('shows validation errors for invalid patterns', async () => {
+    render(<ASCIIEditor />)
+    const editor = screen.getByRole('textbox')
+
+    // Type an invalid pattern
+    fireEvent.change(editor, { target: { value: 'INVALID PATTERN' } })
+
+    // Wait for validation to complete
+    await waitFor(() => {
+      expect(screen.getByText('✗ Invalid')).toBeInTheDocument()
+    })
+  })
+
+  it('shows warnings for patterns with issues', async () => {
+    render(<ASCIIEditor />)
+    const editor = screen.getByRole('textbox')
+
+    // Type a pattern with warnings (no tempo)
+    fireEvent.change(editor, { target: { value: 'seq kick: x...' } })
+
+    await waitFor(() => {
+      expect(screen.getByText(/No tempo specified/)).toBeInTheDocument()
+    })
   })
 })
 ```
@@ -252,6 +284,85 @@ export default defineConfig({
     globals: true,
   },
 })
+```
+
+## Auto-Validation System
+
+### Overview
+
+The ASCII Generative Sequencer features an **auto-validation system** that validates and loads patterns automatically as users type, without requiring manual button clicks. This provides immediate feedback and a seamless user experience.
+
+### Key Features
+
+- **Real-time Validation**: Patterns are validated as users type with a 300ms debounce
+- **Auto-loading**: Valid patterns are automatically loaded into the audio engine
+- **Graceful Error Handling**: Invalid patterns don't break the system - only the problematic parts are disabled
+- **Detailed Feedback**: Users see specific errors, warnings, and valid instrument status
+- **Module Health Tracking**: The system tracks which modules are healthy and which have failed
+
+### Implementation Details
+
+#### Pattern Parser Enhancements
+
+```typescript
+// Enhanced validation with detailed feedback
+static validate(pattern: string): {
+  isValid: boolean;
+  errors: string[];
+  warnings: string[];
+  validInstruments: string[];
+  invalidInstruments: string[];
+}
+
+// Partial parsing for graceful degradation
+static parsePartial(pattern: string): {
+  parsed: ParsedPattern | null;
+  errors: string[];
+  warnings: string[];
+  validInstruments: string[];
+}
+```
+
+#### Module Health System
+
+```typescript
+// Module health tracking
+interface ModuleHealth {
+  isHealthy: boolean;
+  lastError?: string;
+  lastChecked: Date;
+}
+
+// Graceful failure handling
+updateModuleHealth(moduleId: string, isHealthy: boolean, error?: string): void
+getHealthyModules(): ModuleInterface[]
+getUnhealthyModules(): ModuleInterface[]
+```
+
+#### Auto-Validation Flow
+
+1. **User Types**: Content changes trigger validation
+2. **Debounced Validation**: 300ms delay prevents excessive validation
+3. **Pattern Analysis**: Parser validates syntax and structure
+4. **Module Updates**: Editor module receives validation results
+5. **Audio Loading**: Valid patterns are auto-loaded into audio engine
+6. **UI Feedback**: Users see real-time validation status
+
+### Testing Auto-Validation
+
+```typescript
+// Test auto-validation behavior
+it('should auto-validate patterns as user types', async () => {
+  render(<ASCIIEditor />);
+  const editor = screen.getByRole('textbox');
+
+  // Type valid pattern
+  fireEvent.change(editor, { target: { value: 'TEMPO 120\nseq kick: x...x...' } });
+
+  await waitFor(() => {
+    expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument();
+  });
+});
 ```
 
 ## Code Standards

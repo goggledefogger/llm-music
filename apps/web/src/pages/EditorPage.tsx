@@ -3,10 +3,10 @@ import { ASCIIEditor } from '../components/editor/ASCIIEditor';
 import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
 import { ModuleVisualization } from '../components/visualizations/ModuleVisualization';
-import { useModuleSystem } from '../hooks/useModuleSystem';
+import { useModuleSystemContext } from '../contexts/ModuleSystemContext';
 
 export const EditorPage: React.FC = () => {
-  const { getModuleByType } = useModuleSystem();
+  const { getModuleByType } = useModuleSystemContext();
 
   const editorModule = getModuleByType('editor');
   const aiModule = getModuleByType('ai');

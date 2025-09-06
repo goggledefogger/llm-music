@@ -1,6 +1,6 @@
 // Audio engine hook for React components
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { AudioEngine } from '../services/audioEngine';
+import { useState, useEffect, useCallback } from 'react';
+import { audioEngine } from '../services/audioEngine';
 import { AudioEngineState, AudioEngineHook } from '../types/audio';
 
 export const useAudioEngine = (): AudioEngineHook => {
@@ -13,22 +13,23 @@ export const useAudioEngine = (): AudioEngineHook => {
     error: null
   });
 
-  const audioEngineRef = useRef<AudioEngine | null>(null);
-
   // Initialize audio engine
   const initialize = useCallback(async () => {
-    if (state.isInitialized) {
+    // Check if the singleton is already initialized
+    const engineState = audioEngine.getState();
+    if (engineState.isInitialized) {
+      setState(prev => ({
+        ...prev,
+        isInitialized: true,
+        error: null
+      }));
       return;
     }
 
     try {
       setState(prev => ({ ...prev, error: null }));
 
-      if (!audioEngineRef.current) {
-        audioEngineRef.current = new AudioEngine();
-      }
-
-      await audioEngineRef.current.initialize();
+      await audioEngine.initialize();
 
       setState(prev => ({
         ...prev,
@@ -42,11 +43,47 @@ export const useAudioEngine = (): AudioEngineHook => {
         error: errorMessage
       }));
     }
-  }, [state.isInitialized]);
+  }, []);
+
+  // Auto-initialize on first user interaction (only if not already initialized)
+  useEffect(() => {
+    // Check if singleton is already initialized
+    const engineState = audioEngine.getState();
+    if (engineState.isInitialized) {
+      setState(prev => ({
+        ...prev,
+        isInitialized: true,
+        error: null
+      }));
+      return;
+    }
+
+    const handleUserInteraction = async () => {
+      const currentEngineState = audioEngine.getState();
+      if (!currentEngineState.isInitialized && !state.error) {
+        await initialize();
+      }
+      // Remove event listeners after first interaction
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+
+    // Add event listeners for user interaction
+    document.addEventListener('click', handleUserInteraction);
+    document.addEventListener('keydown', handleUserInteraction);
+    document.addEventListener('touchstart', handleUserInteraction);
+
+    return () => {
+      document.removeEventListener('click', handleUserInteraction);
+      document.removeEventListener('keydown', handleUserInteraction);
+      document.removeEventListener('touchstart', handleUserInteraction);
+    };
+  }, [state.error, initialize]);
 
   // Play function
   const play = useCallback(() => {
-    if (!audioEngineRef.current || !state.isInitialized) {
+    if (!state.isInitialized) {
       setState(prev => ({
         ...prev,
         error: 'Audio engine not initialized'
@@ -55,7 +92,7 @@ export const useAudioEngine = (): AudioEngineHook => {
     }
 
     try {
-      audioEngineRef.current.play();
+      audioEngine.play();
       setState(prev => ({
         ...prev,
         isPlaying: true,
@@ -72,12 +109,8 @@ export const useAudioEngine = (): AudioEngineHook => {
 
   // Pause function
   const pause = useCallback(() => {
-    if (!audioEngineRef.current) {
-      return;
-    }
-
     try {
-      audioEngineRef.current.pause();
+      audioEngine.pause();
       setState(prev => ({
         ...prev,
         isPlaying: false
@@ -93,12 +126,8 @@ export const useAudioEngine = (): AudioEngineHook => {
 
   // Stop function
   const stop = useCallback(() => {
-    if (!audioEngineRef.current) {
-      return;
-    }
-
     try {
-      audioEngineRef.current.stop();
+      audioEngine.stop();
       setState(prev => ({
         ...prev,
         isPlaying: false,
@@ -115,12 +144,8 @@ export const useAudioEngine = (): AudioEngineHook => {
 
   // Set tempo function
   const setTempo = useCallback((tempo: number) => {
-    if (!audioEngineRef.current) {
-      return;
-    }
-
     try {
-      audioEngineRef.current.setTempo(tempo);
+      audioEngine.setTempo(tempo);
       setState(prev => ({
         ...prev,
         tempo
@@ -136,12 +161,8 @@ export const useAudioEngine = (): AudioEngineHook => {
 
   // Set volume function
   const setVolume = useCallback((volume: number) => {
-    if (!audioEngineRef.current) {
-      return;
-    }
-
     try {
-      audioEngineRef.current.setVolume(volume);
+      audioEngine.setVolume(volume);
       setState(prev => ({
         ...prev,
         volume
@@ -157,7 +178,9 @@ export const useAudioEngine = (): AudioEngineHook => {
 
   // Load pattern function
   const loadPattern = useCallback((pattern: string) => {
-    if (!audioEngineRef.current || !state.isInitialized) {
+    // Check if the audio engine is actually initialized
+    const engineState = audioEngine.getState();
+    if (!engineState.isInitialized) {
       setState(prev => ({
         ...prev,
         error: 'Audio engine not initialized'
@@ -166,7 +189,7 @@ export const useAudioEngine = (): AudioEngineHook => {
     }
 
     try {
-      audioEngineRef.current.loadPattern(pattern);
+      audioEngine.loadPattern(pattern);
       setState(prev => ({
         ...prev,
         error: null
@@ -178,19 +201,16 @@ export const useAudioEngine = (): AudioEngineHook => {
         error: errorMessage
       }));
     }
-  }, [state.isInitialized]);
+  }, []);
 
   // Update state from audio engine
   useEffect(() => {
-    if (!audioEngineRef.current || !state.isInitialized) {
-      return;
-    }
-
     const interval = setInterval(() => {
       try {
-        const engineState = audioEngineRef.current!.getState();
+        const engineState = audioEngine.getState();
         setState(prev => ({
           ...prev,
+          isInitialized: engineState.isInitialized,
           isPlaying: engineState.isPlaying,
           tempo: engineState.tempo,
           currentTime: engineState.currentTime,
@@ -202,14 +222,13 @@ export const useAudioEngine = (): AudioEngineHook => {
     }, 100);
 
     return () => clearInterval(interval);
-  }, [state.isInitialized]);
+  }, []);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
-      if (audioEngineRef.current) {
-        audioEngineRef.current.dispose();
-      }
+      // Don't dispose the singleton audio engine here
+      // Let the application handle cleanup
     };
   }, []);
 

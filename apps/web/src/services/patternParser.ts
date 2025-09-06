@@ -75,22 +75,38 @@ export class PatternParser {
   }
 
   /**
-   * Validate a pattern string
+   * Validate a pattern string with detailed error reporting
    */
-  static validate(pattern: string): { isValid: boolean; errors: string[] } {
+  static validate(pattern: string): {
+    isValid: boolean;
+    errors: string[];
+    warnings: string[];
+    validInstruments: string[];
+    invalidInstruments: string[];
+  } {
     const errors: string[] = [];
+    const warnings: string[] = [];
+    const validInstruments: string[] = [];
+    const invalidInstruments: string[] = [];
 
     if (!pattern.trim()) {
-      errors.push('Pattern cannot be empty');
-      return { isValid: false, errors };
+      return {
+        isValid: false,
+        errors: ['Pattern cannot be empty'],
+        warnings: [],
+        validInstruments: [],
+        invalidInstruments: []
+      };
     }
 
     const lines = pattern.split('\n').map(line => line.trim()).filter(line => line.length > 0);
     let hasValidSequence = false;
+    let hasTempo = false;
 
     for (const line of lines) {
       // Check tempo format
       if (line.startsWith('TEMPO ')) {
+        hasTempo = true;
         const tempoMatch = line.match(/TEMPO\s+(\d+)/);
         if (!tempoMatch) {
           errors.push('Invalid tempo format. Use: TEMPO 120');
@@ -108,15 +124,31 @@ export class PatternParser {
         const seqMatch = line.match(/seq\s+(\w+):\s*(.+)/);
         if (!seqMatch) {
           errors.push(`Invalid sequence format: ${line}`);
+          invalidInstruments.push('unknown');
         } else {
           const [, instrumentName, patternString] = seqMatch;
           if (!/^[xX.\s]+$/.test(patternString)) {
             errors.push(`Invalid pattern characters in ${instrumentName}. Use only 'x' and '.'`);
+            invalidInstruments.push(instrumentName);
           } else {
             hasValidSequence = true;
+            validInstruments.push(instrumentName);
+
+            // Add warnings for potentially problematic patterns
+            const stepCount = patternString.replace(/\s/g, '').length;
+            if (stepCount < 4) {
+              warnings.push(`${instrumentName} has very few steps (${stepCount}). Consider adding more steps.`);
+            }
+            if (stepCount > 32) {
+              warnings.push(`${instrumentName} has many steps (${stepCount}). This may be hard to follow.`);
+            }
           }
         }
       }
+    }
+
+    if (!hasTempo) {
+      warnings.push('No tempo specified. Using default tempo of 120 BPM.');
     }
 
     if (!hasValidSequence) {
@@ -125,7 +157,49 @@ export class PatternParser {
 
     return {
       isValid: errors.length === 0,
-      errors
+      errors,
+      warnings,
+      validInstruments,
+      invalidInstruments
     };
+  }
+
+  /**
+   * Parse a pattern with partial validation - returns what can be parsed
+   */
+  static parsePartial(pattern: string): {
+    parsed: ParsedPattern | null;
+    errors: string[];
+    warnings: string[];
+    validInstruments: string[];
+  } {
+    const validation = this.validate(pattern);
+    const validInstruments = validation.validInstruments;
+
+    if (validation.errors.length > 0) {
+      return {
+        parsed: null,
+        errors: validation.errors,
+        warnings: validation.warnings,
+        validInstruments
+      };
+    }
+
+    try {
+      const parsed = this.parse(pattern);
+      return {
+        parsed,
+        errors: [],
+        warnings: validation.warnings,
+        validInstruments
+      };
+    } catch (error) {
+      return {
+        parsed: null,
+        errors: ['Failed to parse pattern: ' + (error instanceof Error ? error.message : 'Unknown error')],
+        warnings: validation.warnings,
+        validInstruments
+      };
+    }
   }
 }

@@ -4,6 +4,7 @@ import { ParsedPattern } from '../types/audio';
 import { PatternParser } from './patternParser';
 
 export class AudioEngine {
+  private static instance: AudioEngine | null = null;
   private isInitialized = false;
   private isPlaying = false;
   private currentPattern: ParsedPattern | null = null;
@@ -16,7 +17,7 @@ export class AudioEngine {
   private volume: Tone.Volume;
   private scheduledEvents: number[] = [];
 
-  constructor() {
+  private constructor() {
     // Initialize Tone.js transport
     this.transport = Tone.getTransport();
 
@@ -71,6 +72,16 @@ export class AudioEngine {
   }
 
   /**
+   * Get the singleton instance of AudioEngine
+   */
+  public static getInstance(): AudioEngine {
+    if (!AudioEngine.instance) {
+      AudioEngine.instance = new AudioEngine();
+    }
+    return AudioEngine.instance;
+  }
+
+  /**
    * Initialize the audio engine
    * Must be called after a user gesture
    */
@@ -80,8 +91,10 @@ export class AudioEngine {
     }
 
     try {
-      // Start Tone.js context
-      await Tone.start();
+      // Start Tone.js context only if not already started
+      if (Tone.context.state !== 'running') {
+        await Tone.start();
+      }
 
       // Set initial tempo
       this.transport.bpm.value = 120;
@@ -210,9 +223,13 @@ export class AudioEngine {
     }
 
     const { instruments, totalSteps } = this.currentPattern;
-    // Quarter note duration
 
-    // Schedule each instrument
+    // Calculate step duration based on current tempo
+    // At 120 BPM, a quarter note is 0.5 seconds
+    // So step duration = 60 / (tempo * 4) = 15 / tempo
+    const stepDuration = 15 / this.transport.bpm.value;
+
+    // Schedule each instrument with looping
     Object.entries(instruments).forEach(([instrumentName, instrument]) => {
       const synth = this.getSynthesizer(instrumentName);
       if (!synth) {
@@ -220,24 +237,18 @@ export class AudioEngine {
         return;
       }
 
-      // Schedule hits for each step
+      // Schedule hits for each step with looping
       instrument.steps.forEach((isHit, stepIndex) => {
         if (isHit) {
-          const time = stepIndex * 0.5; // 0.5 seconds per step at 120 BPM
-          const eventId = this.transport.schedule((_time: number) => {
+          const time = stepIndex * stepDuration;
+          const loopTime = totalSteps * stepDuration;
+          const eventId = this.transport.scheduleRepeat((_time: number) => {
             this.triggerSynthesizer(instrumentName, synth);
-          }, time);
+          }, loopTime, time);
           this.scheduledEvents.push(eventId);
         }
       });
     });
-
-    // Schedule loop
-    const loopTime = totalSteps * 0.5; // 0.5 seconds per step
-    const loopEventId = this.transport.schedule(() => {
-      this.schedulePattern(); // Reschedule for next loop
-    }, loopTime);
-    this.scheduledEvents.push(loopEventId);
   }
 
   /**
@@ -285,3 +296,6 @@ export class AudioEngine {
     this.volume.dispose();
   }
 }
+
+// Export singleton instance
+export const audioEngine = AudioEngine.getInstance();

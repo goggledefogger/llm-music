@@ -2,14 +2,9 @@
 import React from 'react';
 import { BaseModule } from '../core/BaseModule';
 import { AudioModuleData, ParsedPattern } from '../types/module';
-import { AudioEngine } from '../services/audioEngine';
+import { audioEngine } from '../services/audioEngine';
 
 export class AudioModule extends BaseModule {
-  private audioEngine: AudioEngine;
-  private isPlaying: boolean = false;
-  private tempo: number = 120;
-  private volume: number = -6;
-  private currentTime: number = 0;
   private pattern: ParsedPattern | null = null;
   private waveform: number[] = [];
 
@@ -19,8 +14,6 @@ export class AudioModule extends BaseModule {
       canExport: true,
       canAnalyze: true
     });
-
-    this.audioEngine = new AudioEngine();
 
     this.metadata.visualization = {
       type: 'waveform',
@@ -37,22 +30,28 @@ export class AudioModule extends BaseModule {
   }
 
   protected getInitialData(): AudioModuleData {
+    // Get initial state from the audio engine
+    const engineState = audioEngine.getState();
+
     return {
-      isPlaying: this.isPlaying,
-      tempo: this.tempo,
-      volume: this.volume,
-      currentTime: this.currentTime,
+      isPlaying: engineState.isPlaying,
+      tempo: engineState.tempo,
+      volume: engineState.volume,
+      currentTime: engineState.currentTime,
       pattern: this.pattern,
       waveform: this.waveform
     };
   }
 
   protected getModuleData(): AudioModuleData {
+    // Get current state from the audio engine
+    const engineState = audioEngine.getState();
+
     return {
-      isPlaying: this.isPlaying,
-      tempo: this.tempo,
-      volume: this.volume,
-      currentTime: this.currentTime,
+      isPlaying: engineState.isPlaying,
+      tempo: engineState.tempo,
+      volume: engineState.volume,
+      currentTime: engineState.currentTime,
       pattern: this.pattern,
       waveform: this.waveform
     };
@@ -60,36 +59,39 @@ export class AudioModule extends BaseModule {
 
   protected async onInitialize(): Promise<void> {
     try {
-      await this.audioEngine.initialize();
-      this.startStateUpdates();
+      await audioEngine.initialize();
+      // Don't start state updates here - let useAudioEngine hook handle it
     } catch (error) {
       throw new Error(`Failed to initialize audio engine: ${error}`);
     }
   }
 
   protected onDestroy(): void {
-    if (this.audioEngine) {
-      this.audioEngine.dispose();
-    }
+    // Don't dispose the singleton audio engine here
+    // Let the useAudioEngine hook handle cleanup
   }
 
   protected onDataUpdate(newData: Partial<AudioModuleData>): void {
     if (newData.tempo !== undefined) {
-      this.tempo = newData.tempo;
-      this.audioEngine.setTempo(this.tempo);
+      audioEngine.setTempo(newData.tempo);
     }
 
     if (newData.volume !== undefined) {
-      this.volume = newData.volume;
-      this.audioEngine.setVolume(this.volume);
+      audioEngine.setVolume(newData.volume);
     }
 
     if (newData.pattern !== undefined) {
       this.pattern = newData.pattern;
+      console.log('AudioModule: Received pattern update', {
+        hasPattern: !!this.pattern,
+        pattern: this.pattern
+      });
+
       if (this.pattern) {
         // Convert pattern to string for audio engine
-        const patternString = this.patternToString(this.pattern);
-        this.audioEngine.loadPattern(patternString);
+        const patternString = this.convertPatternToString(this.pattern);
+        console.log('AudioModule: Loading pattern to audio engine', patternString);
+        audioEngine.loadPattern(patternString);
       }
     }
   }
@@ -115,8 +117,7 @@ export class AudioModule extends BaseModule {
   // Audio-specific methods
   async play(): Promise<void> {
     try {
-      this.audioEngine.play();
-      this.isPlaying = true;
+      audioEngine.play();
       this.setState({ lastUpdated: new Date() });
     } catch (error) {
       this.setError(`Play failed: ${error}`);
@@ -125,8 +126,7 @@ export class AudioModule extends BaseModule {
 
   pause(): void {
     try {
-      this.audioEngine.pause();
-      this.isPlaying = false;
+      audioEngine.pause();
       this.setState({ lastUpdated: new Date() });
     } catch (error) {
       this.setError(`Pause failed: ${error}`);
@@ -135,9 +135,7 @@ export class AudioModule extends BaseModule {
 
   stop(): void {
     try {
-      this.audioEngine.stop();
-      this.isPlaying = false;
-      this.currentTime = 0;
+      audioEngine.stop();
       this.setState({ lastUpdated: new Date() });
     } catch (error) {
       this.setError(`Stop failed: ${error}`);
@@ -167,33 +165,12 @@ export class AudioModule extends BaseModule {
     this.setState({ lastUpdated: new Date() });
   }
 
-  getAudioEngine(): AudioEngine {
-    return this.audioEngine;
+  getAudioEngine() {
+    return audioEngine;
   }
 
-  private startStateUpdates(): void {
-    // Update state from audio engine periodically
-    const updateInterval = setInterval(() => {
-      if (this.isDestroyed) {
-        clearInterval(updateInterval);
-        return;
-      }
 
-      try {
-        const engineState = this.audioEngine.getState();
-        this.isPlaying = engineState.isPlaying;
-        this.tempo = engineState.tempo;
-        this.currentTime = engineState.currentTime;
-        this.volume = engineState.volume;
-
-        this.setState({ lastUpdated: new Date() });
-      } catch (error) {
-        console.error('Error updating audio state:', error);
-      }
-    }, 100);
-  }
-
-  private patternToString(pattern: ParsedPattern): string {
+  private convertPatternToString(pattern: ParsedPattern): string {
     let content = `TEMPO ${pattern.tempo}\n\n`;
 
     Object.entries(pattern.instruments).forEach(([name, instrument]) => {
