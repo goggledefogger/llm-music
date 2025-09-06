@@ -255,7 +255,7 @@ pnpm install
 # Start development server
 pnpm dev:web
 
-# Open browser to http://localhost:3001
+# Open browser to http://localhost:3000
 ```
 
 ### Available Scripts

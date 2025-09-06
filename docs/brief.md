@@ -231,7 +231,7 @@ Initial feedback from live coding community members indicates strong interest in
 1. **Development Environment**: Monorepo setup with pnpm and Turborepo
 2. **Build System**: Vite configured with TypeScript and hot reloading
 3. **Testing Framework**: Vitest and React Testing Library configured
-4. **Basic Web App**: React application running on http://localhost:3001
+4. **Basic Web App**: React application running on http://localhost:3000
 5. **Package Management**: pnpm workspace with proper dependency management
 6. **Code Quality**: ESLint and Prettier configured for consistent code style
 

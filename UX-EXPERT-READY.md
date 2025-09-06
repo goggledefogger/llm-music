@@ -26,7 +26,7 @@ Evaluate the user experience and provide recommendations for:
 ```bash
 cd /Users/Danny/Source/llm-music
 pnpm dev:web
-# Open: http://localhost:3001
+# Open: http://localhost:3000
 ```
 
 ## 📖 **Your Guide**

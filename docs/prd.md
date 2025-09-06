@@ -194,7 +194,7 @@ The project shall use a monorepo structure with the following organization:
 - **Project Setup**: Monorepo with pnpm and Turborepo configured
 - **Development Environment**: Vite, TypeScript, and build system working
 - **Testing Framework**: Vitest and React Testing Library configured
-- **Basic Web App**: React application running on http://localhost:3001
+- **Basic Web App**: React application running on http://localhost:3000
 - **Package Management**: pnpm workspace with proper dependency management
 - **Code Quality**: ESLint and Prettier configured
 

@@ -36,7 +36,7 @@ The development team has successfully implemented a basic audio engine for the A
 ```bash
 cd /Users/Danny/Source/llm-music
 pnpm dev:web
-# Open: http://localhost:3001
+# Open: http://localhost:3000
 ```
 
 ### **2. Test Audio Playback**

@@ -48,7 +48,7 @@ This guide provides comprehensive instructions for setting up, developing, and c
    ```
 
 5. **Open your browser**
-   Navigate to `http://localhost:3001`
+   Navigate to `http://localhost:3000`
 
 ## Development Environment
 
