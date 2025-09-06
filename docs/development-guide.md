@@ -522,11 +522,11 @@ pnpm install
 #### 2. Port Already in Use
 
 ```bash
-# Kill process on port 3001
-lsof -ti:3001 | xargs kill -9
+# Kill process on port 3000
+lsof -ti:3000 | xargs kill -9
 
 # Or use different port
-pnpm dev:web --port 3002
+pnpm dev:web --port 3001
 ```
 
 #### 3. TypeScript Errors

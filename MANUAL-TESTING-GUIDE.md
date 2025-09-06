@@ -12,7 +12,7 @@ cd /Users/Danny/Source/llm-music
 pnpm install
 pnpm dev:web
 ```
-**Open**: http://localhost:3001
+**Open**: http://localhost:3000
 
 ### 2. Test Environment
 - **Browser**: Chrome, Firefox, Safari, Edge

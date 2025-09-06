@@ -56,7 +56,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
    ```
 
 5. **Open your browser**
-   Navigate to `http://localhost:3001`
+   Navigate to `http://localhost:3000`
 
 ## Environment Setup
 
@@ -110,7 +110,7 @@ ascii-generative-sequencer/
 - **Project Setup**: Monorepo with pnpm and Turborepo configured
 - **Development Environment**: Vite, TypeScript, and build system working
 - **Testing Framework**: Vitest and React Testing Library configured
-- **Basic Web App**: React app running on http://localhost:3001
+- **Basic Web App**: React app running on http://localhost:3000
 - **Package Management**: pnpm workspace with proper dependency management
 
 ### 🚧 In Progress

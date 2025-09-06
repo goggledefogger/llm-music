@@ -22,7 +22,7 @@ cd /Users/Danny/Source/llm-music
 pnpm install
 pnpm dev:web
 
-# 2. Open browser to http://localhost:3001
+# 2. Open browser to http://localhost:3000
 # 3. Test navigation and UI interactions
 ```
 
