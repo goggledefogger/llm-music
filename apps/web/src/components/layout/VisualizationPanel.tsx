@@ -34,7 +34,7 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   };
 
   return (
-    <div className={`space-y-4 ${className}`}>
+    <div className={`ultra-compact-spacing ${className}`}>
       {/* Step Sequencer Grid */}
       <div className="visualization-section">
         <CollapsibleSection
@@ -77,7 +77,7 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
           onToggle={() => toggleSection('audioVisualization')}
           className="h-auto"
         >
-          <div className="space-y-4">
+          <div className="ultra-compact-spacing">
             <PlayheadIndicator
               pattern={pattern}
               currentTime={currentTime}

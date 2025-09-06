@@ -45,14 +45,14 @@ export const ChatInterface: React.FC = () => {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="border-b border-border p-4">
+      <div className="chat-header">
         <h2 className="text-lg font-semibold">AI Assistant</h2>
         <p className="text-sm text-foreground-muted">
           Get help creating and modifying patterns
         </p>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar">
+      <div className="chat-messages">
         {messages.map((message) => (
           <div
             key={message.id}

@@ -77,9 +77,9 @@ packages:
 
 ### Key Dependencies
 
-- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS
-- **Audio**: Web Audio API (direct implementation), Tone.js (installed but not used)
-- **Editor**: CodeMirror 6 (installed but not integrated)
+- **Frontend**: React 18, TypeScript, Vite, Tailwind CSS with modular design system
+- **Audio**: Web Audio API (direct implementation)
+- **Editor**: Custom text editor implementation
 - **Testing**: Vitest, React Testing Library
 - **Build**: Turborepo for monorepo management
 - **State Management**: React Context with focused custom hooks
@@ -577,8 +577,10 @@ it('should auto-validate patterns as user types', async () => {
 
 ### Styling
 
-- Use Tailwind CSS for styling
-- Follow mobile-first responsive design
+- Use Tailwind CSS with modular design system for styling
+- Follow mobile-first responsive design with 3-level spacing system
+- Use BaseVisualization component for all visualization components
+- Follow established CSS class patterns (page-container, chat-header, etc.)
 - Use CSS modules for component-specific styles
 - Maintain consistent spacing and typography
 

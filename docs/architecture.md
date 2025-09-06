@@ -391,6 +391,12 @@ components:
 
 **Technology Stack:** React 18, TypeScript, Tailwind CSS, Vite
 
+**CSS Architecture:** Modular responsive design system with:
+- Base components (`BaseVisualization`, page containers, chat interfaces)
+- Responsive utilities (responsive, compact, ultra-compact variants)
+- Consistent spacing system (3 levels: responsive, compact, ultra-compact)
+- Single source of truth for all styling decisions
+
 ### Audio Engine
 
 **Responsibility:** Real-time audio processing and synthesis

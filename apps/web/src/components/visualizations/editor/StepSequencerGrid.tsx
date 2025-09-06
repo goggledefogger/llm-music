@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ParsedPattern } from '../../../types/app';
+import { BaseVisualization } from '../BaseVisualization';
 
 interface StepSequencerGridProps {
   pattern: ParsedPattern | null;
@@ -54,15 +55,11 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
   };
 
   return (
-    <div className={`bg-background-secondary rounded-lg p-4 ${className}`}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">Step Sequencer</h3>
-        <div className="text-sm text-foreground-muted">
-          {gridData.instruments.length} instrument{gridData.instruments.length !== 1 ? 's' : ''} • {gridData.maxSteps} steps
-        </div>
-      </div>
-
-      <div className="space-y-2">
+    <BaseVisualization
+      className={className}
+      description={`${gridData.instruments.length} instrument${gridData.instruments.length !== 1 ? 's' : ''} • ${gridData.maxSteps} steps`}
+      variant="ultra-compact"
+    >
         {gridData.instruments.map((instrument) => {
           const instrumentData = pattern.instruments[instrument];
           const steps = instrumentData.steps;
@@ -70,7 +67,7 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
           return (
             <div key={instrument} className="flex items-center space-x-2 min-w-0">
               {/* Instrument Label */}
-              <div className="w-12 text-xs font-medium text-foreground-muted capitalize flex-shrink-0">
+              <div className="w-12 md:w-14 text-xs md:text-sm font-medium text-foreground-muted capitalize flex-shrink-0">
                 {instrument}
               </div>
               
@@ -85,7 +82,8 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
                       key={stepIndex}
                       onClick={() => handleStepClick(instrument, stepIndex)}
                       className={`
-                        w-6 h-6 rounded border transition-all duration-150 flex-shrink-0
+                        w-4 h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded border transition-all duration-150 flex-shrink-0
+                        text-xs font-mono leading-none
                         ${isActive 
                           ? `${getInstrumentColor(instrument)} text-white border-transparent` 
                           : 'bg-background border-border hover:border-foreground-muted'
@@ -95,9 +93,7 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
                       `}
                       title={`Step ${stepIndex + 1} - ${isActive ? 'Active' : 'Inactive'}`}
                     >
-                      <span className="text-xs font-mono leading-none">
-                        {stepIndex + 1}
-                      </span>
+                      {stepIndex + 1}
                     </button>
                   );
                 })}
@@ -110,28 +106,6 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
             </div>
           );
         })}
-      </div>
-
-      {/* Current Step Indicator */}
-      {currentStep >= 0 && (
-        <div className="mt-4 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-          <span className="font-medium">Current Step:</span> {currentStep + 1}
-        </div>
-      )}
-
-      {/* Pattern Info */}
-      <div className="mt-4 pt-4 border-t border-border">
-        <div className="grid grid-cols-2 gap-4 text-sm">
-          <div>
-            <span className="text-foreground-muted">Tempo:</span>
-            <span className="ml-2 font-mono">{pattern.tempo} BPM</span>
-          </div>
-          <div>
-            <span className="text-foreground-muted">Total Steps:</span>
-            <span className="ml-2 font-mono">{pattern.totalSteps}</span>
-          </div>
-        </div>
-      </div>
-    </div>
+    </BaseVisualization>
   );
 };

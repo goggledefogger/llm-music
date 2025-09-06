@@ -1,3 +1,6 @@
+// Base visualization component
+export { BaseVisualization } from './BaseVisualization';
+
 // Editor visualizations
 export { StepSequencerGrid } from './editor/StepSequencerGrid';
 

@@ -1,5 +1,6 @@
 import React, { useRef, useEffect, useState } from 'react';
 import { ParsedPattern } from '../../../types/app';
+import { BaseVisualization } from '../BaseVisualization';
 
 interface WaveformDisplayProps {
   pattern: ParsedPattern | null;
@@ -145,13 +146,11 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
   }
 
   return (
-    <div className={`bg-background-secondary rounded-lg p-4 ${className}`}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">Audio Waveform</h3>
-        <div className="text-sm text-foreground-muted">
-          {isPlaying ? 'Playing' : 'Stopped'} • {tempo} BPM
-        </div>
-      </div>
+    <BaseVisualization
+      className={className}
+      description={`${isPlaying ? 'Playing' : 'Stopped'} • ${tempo} BPM`}
+      variant="ultra-compact"
+    >
 
       {/* Waveform Canvas */}
       <div className="mb-3">
@@ -204,6 +203,6 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
           })}
         </div>
       </div>
-    </div>
+    </BaseVisualization>
   );
 };

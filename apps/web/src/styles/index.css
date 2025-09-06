@@ -140,6 +140,180 @@
     @apply w-80 bg-background-secondary border-l border-border;
   }
 
+  /* Page container styles */
+  .page-container {
+    @apply p-8 max-w-6xl mx-auto;
+  }
+
+  .page-container-sm {
+    @apply p-8 max-w-4xl mx-auto;
+  }
+
+  .page-container-lg {
+    @apply p-8 max-w-7xl mx-auto;
+  }
+
+  .page-header {
+    @apply text-center mb-12;
+  }
+
+  .page-title {
+    @apply text-4xl font-bold text-accent mb-4;
+  }
+
+  .page-subtitle {
+    @apply text-xl text-foreground-secondary mb-8;
+  }
+
+  /* Chat interface styles */
+  .chat-header {
+    @apply border-b border-border p-4;
+  }
+
+  .chat-messages {
+    @apply flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar;
+  }
+
+  /* Responsive layout system */
+  .visualization-panel {
+    @apply w-full;
+  }
+
+  .chat-panel {
+    @apply w-full;
+  }
+
+  /* Responsive component utilities */
+  .responsive-text {
+    @apply text-sm;
+  }
+
+  .responsive-padding {
+    @apply p-3;
+  }
+
+  .responsive-spacing {
+    @apply space-y-2;
+  }
+
+  .responsive-grid {
+    @apply grid gap-2;
+    grid-template-columns: 1fr;
+  }
+
+  /* Compact responsive utilities for dense layouts */
+  .compact-padding {
+    @apply p-2;
+  }
+
+  .compact-spacing {
+    @apply space-y-1;
+  }
+
+  .compact-text {
+    @apply text-sm;
+  }
+
+  /* Ultra-compact utilities for visualization panels */
+  .ultra-compact-padding {
+    @apply p-1;
+  }
+
+  .ultra-compact-spacing {
+    @apply space-y-0.5;
+  }
+
+  .ultra-compact-text {
+    @apply text-xs;
+  }
+
+  /* Responsive breakpoints */
+  @media (min-width: 640px) {
+    .responsive-text {
+      @apply text-base;
+    }
+    
+    .responsive-padding {
+      @apply p-4;
+    }
+    
+    .responsive-spacing {
+      @apply space-y-3;
+    }
+    
+    .responsive-grid {
+      @apply gap-3;
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    .compact-padding {
+      @apply p-3;
+    }
+    
+    .compact-spacing {
+      @apply space-y-2;
+    }
+    
+    .compact-text {
+      @apply text-sm;
+    }
+
+    .ultra-compact-padding {
+      @apply p-2;
+    }
+    
+    .ultra-compact-spacing {
+      @apply space-y-1;
+    }
+    
+    .ultra-compact-text {
+      @apply text-sm;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .responsive-text {
+      @apply text-lg;
+    }
+    
+    .responsive-padding {
+      @apply p-6;
+    }
+    
+    .responsive-spacing {
+      @apply space-y-4;
+    }
+    
+    .responsive-grid {
+      @apply gap-4;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .compact-padding {
+      @apply p-4;
+    }
+    
+    .compact-spacing {
+      @apply space-y-2;
+    }
+    
+    .compact-text {
+      @apply text-base;
+    }
+
+    .ultra-compact-padding {
+      @apply p-3;
+    }
+    
+    .ultra-compact-spacing {
+      @apply space-y-1;
+    }
+    
+    .ultra-compact-text {
+      @apply text-sm;
+    }
+  }
+
   /* Desktop layout optimizations */
   @media (min-width: 1024px) {
     .editor-pane {
@@ -207,22 +381,6 @@
     @apply bg-background-tertiary;
   }
 
-  /* Overflow handling */
-  .overflow-container {
-    overflow: hidden;
-  }
-
-  /* Responsive text sizing */
-  .text-responsive {
-    @apply text-sm;
-  }
-
-  @media (max-width: 640px) {
-    .text-responsive {
-      @apply text-xs;
-    }
-  }
-
   /* Visualization panel styles */
   .visualization-section {
     @apply mb-4 last:mb-0;
@@ -230,6 +388,40 @@
 
   .visualization-section .collapsible-content {
     @apply max-h-96 overflow-y-auto custom-scrollbar;
+  }
+
+  /* Base visualization component styles */
+  .viz-default {
+    @apply bg-background-secondary rounded-lg responsive-padding;
+  }
+
+  .viz-compact {
+    @apply bg-background-secondary rounded-lg compact-padding;
+  }
+
+  .viz-ultra-compact {
+    /* No background or padding - handled by parent container */
+  }
+
+  .viz-description {
+    @apply text-xs text-foreground-muted mb-2;
+  }
+
+  .viz-content {
+    @apply ultra-compact-spacing;
+  }
+
+  /* Visualization component variants */
+  .viz-default .viz-description {
+    @apply text-sm mb-3;
+  }
+
+  .viz-compact .viz-description {
+    @apply text-xs mb-2;
+  }
+
+  .viz-ultra-compact .viz-description {
+    @apply text-xs mb-1;
   }
 
   /* Loading states */

@@ -12,8 +12,8 @@ export const EditorPage: React.FC = () => {
   const currentStep = Math.floor(audioState.currentTime * (audioState.tempo / 60)) % (parsedPattern?.totalSteps || 16);
 
   return (
-    <div className="flex h-full">
-      {/* Main Editor Area - 60% width */}
+    <div className="flex h-full flex-col lg:flex-row">
+      {/* Main Editor Area */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* ASCII Editor - Takes most of the space */}
         <div className="flex-1 min-h-0">
@@ -26,9 +26,9 @@ export const EditorPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Visualization Panel - 25% width */}
-      <div className="w-80 border-l border-border bg-background-secondary">
-        <div className="h-full overflow-y-auto custom-scrollbar p-4">
+      {/* Visualization Panel */}
+      <div className="visualization-panel border-l border-border bg-background-secondary">
+        <div className="h-full overflow-y-auto custom-scrollbar ultra-compact-padding">
           <VisualizationPanel
             pattern={parsedPattern}
             currentStep={currentStep}
@@ -40,8 +40,8 @@ export const EditorPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Chat Panel - 15% width */}
-      <div className="w-64 border-l border-border bg-background">
+      {/* Chat Panel */}
+      <div className="chat-panel border-l border-border bg-background">
         <div className="h-full flex flex-col">
           <div className="flex-1 min-h-0">
             <ChatInterface />

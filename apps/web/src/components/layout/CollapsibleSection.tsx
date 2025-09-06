@@ -41,11 +41,11 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       {/* Header */}
       <button
         onClick={toggleExpanded}
-        className={`w-full flex items-center justify-between p-4 text-left collapsible-header ${headerClassName}`}
+        className={`w-full flex items-center justify-between ultra-compact-padding text-left collapsible-header ${headerClassName}`}
       >
-        <div className="flex items-center space-x-3">
-          {icon && <span className="text-lg">{icon}</span>}
-          <h3 className="text-lg font-semibold">{title}</h3>
+        <div className="flex items-center space-x-2">
+          {icon && <span className="text-sm">{icon}</span>}
+          <h3 className="ultra-compact-text font-semibold">{title}</h3>
         </div>
         <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
           <svg
@@ -67,7 +67,7 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
       {/* Content */}
       {isExpanded && (
         <div className="border-t border-border">
-          <div className={`p-4 ${contentClassName}`}>
+          <div className={`ultra-compact-padding ${contentClassName}`}>
             {children}
           </div>
         </div>

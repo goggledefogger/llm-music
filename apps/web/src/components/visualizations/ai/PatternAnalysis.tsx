@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
 import { ParsedPattern } from '../../../types/app';
+import { BaseVisualization } from '../BaseVisualization';
 
 interface PatternAnalysisProps {
   pattern: ParsedPattern | null;
@@ -97,13 +98,11 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
   };
 
   return (
-    <div className={`bg-background-secondary rounded-lg p-4 ${className}`}>
-      <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">Pattern Analysis</h3>
-        <p className="text-sm text-foreground-muted">
-          Detailed breakdown of your pattern structure and characteristics
-        </p>
-      </div>
+    <BaseVisualization
+      className={className}
+      description="Detailed breakdown of your pattern structure and characteristics"
+      variant="ultra-compact"
+    >
 
       {/* Key Metrics */}
       <div className="grid grid-cols-2 gap-2 mb-4">
@@ -238,6 +237,6 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
           )}
         </div>
       </div>
-    </div>
+    </BaseVisualization>
   );
 };
