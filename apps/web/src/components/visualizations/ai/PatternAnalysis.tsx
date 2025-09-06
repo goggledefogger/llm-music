@@ -226,12 +226,12 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
               • Dense pattern - very energetic and busy
             </div>
           )}
-          {analysis.instruments.length === 1 && (
+          {analysis.instruments === 1 && (
             <div className="text-orange-600">
               • Single instrument pattern - consider adding more layers
             </div>
           )}
-          {analysis.instruments.length > 4 && (
+          {analysis.instruments > 4 && (
             <div className="text-pink-600">
               • Multi-layered pattern with rich texture
             </div>
