@@ -199,11 +199,12 @@ pnpm test App.test.tsx
 ```
 
 ### Current Test Status
-- **Total Tests**: 112 tests
-- **Passing**: 112 tests ✅
+- **Total Tests**: 114 tests
+- **Passing**: 114 tests ✅
 - **Failing**: 0 tests ✅
 - **Coverage**: Comprehensive coverage of components, services, and utilities
 - **Test Quality**: Robust testing practices with behavior-focused approach
+- **Integration Tests**: 2 focused integration tests covering core user workflows
 
 ### Test Structure
 
@@ -219,8 +220,11 @@ apps/web/src/
 ├── hooks/
 │   ├── useAudioEngine.ts
 │   └── useAudioEngine.test.ts
-└── test/
-    └── setup.ts
+├── test/
+│   ├── integration/
+│   │   └── workflow.test.tsx
+│   ├── sharedMocks.ts
+│   └── setup.ts
 ```
 
 ### Writing Tests
@@ -276,6 +280,41 @@ describe('ASCIIEditor', () => {
   })
 })
 ```
+
+### Recent Testing Improvements
+
+#### Mock Centralization
+We've centralized common mocks to reduce duplication and improve maintainability:
+
+```typescript
+// src/test/sharedMocks.ts
+export const mockAudioContext = { /* centralized mock */ };
+export const mockTone = { /* centralized mock */ };
+export const resetMocks = () => { /* reset helper */ };
+
+// Usage in tests
+import { mockAudioContext, mockTone, resetMocks } from '../test/sharedMocks';
+```
+
+**Benefits**:
+- Reduced code duplication by ~70 lines per test file
+- Consistent mock behavior across all tests
+- Single source of truth for common mocks
+
+#### Integration Testing
+We've simplified integration tests to focus on behavior rather than implementation details:
+
+```typescript
+// ✅ Good: Test complete workflows
+it('should complete basic workflow: create pattern → validate → play → stop', async () => {
+  // Test the essential user journey
+});
+
+// ❌ Avoid: Overly specific UI expectations
+expect(screen.getByText('140 BPM')).toBeInTheDocument();
+```
+
+**Key Principle**: Integration tests should verify workflows work end-to-end, not test implementation details.
 
 ### Testing Best Practices
 
