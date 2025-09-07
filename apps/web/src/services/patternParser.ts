@@ -1,5 +1,5 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern } from '../types/app';
+import { ParsedPattern, EQModule } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;
@@ -14,6 +14,7 @@ export class PatternParser {
 
     let tempo = this.DEFAULT_TEMPO;
     const instruments: ParsedPattern['instruments'] = {};
+    const eqModules: ParsedPattern['eqModules'] = {};
 
     for (const line of lines) {
       // Parse tempo
@@ -21,6 +22,19 @@ export class PatternParser {
         const tempoMatch = line.match(/TEMPO\s+(\d+)/);
         if (tempoMatch) {
           tempo = Math.max(60, Math.min(200, parseInt(tempoMatch[1], 10)));
+        }
+        continue;
+      }
+
+      // Parse EQ modules
+      if (line.startsWith('eq ')) {
+        const eqMatch = line.match(/eq\s+(\w+):\s*(.+)/);
+        if (eqMatch) {
+          const [, moduleName, eqString] = eqMatch;
+          const eqModule = this.parseEQString(moduleName, eqString);
+          if (eqModule) {
+            eqModules[moduleName] = eqModule;
+          }
         }
         continue;
       }
@@ -51,6 +65,7 @@ export class PatternParser {
     return {
       tempo,
       instruments,
+      eqModules,
       totalSteps
     };
   }
@@ -72,6 +87,28 @@ export class PatternParser {
 
     // Limit to max steps
     return steps.slice(0, this.MAX_STEPS);
+  }
+
+  /**
+   * Parse EQ string like "low=2 mid=-1 high=0" into EQModule
+   * Format: low=X mid=Y high=Z where X, Y, Z are integers from -3 to +3
+   */
+  private static parseEQString(moduleName: string, eqString: string): EQModule | null {
+    // Match pattern: low=X mid=Y high=Z
+    const eqMatch = eqString.match(/low=(-?\d+)\s+mid=(-?\d+)\s+high=(-?\d+)/);
+    
+    if (!eqMatch) {
+      return null;
+    }
+
+    const [, lowStr, midStr, highStr] = eqMatch;
+    
+    return {
+      name: moduleName,
+      low: Math.max(-3, Math.min(3, parseInt(lowStr, 10))),
+      mid: Math.max(-3, Math.min(3, parseInt(midStr, 10))),
+      high: Math.max(-3, Math.min(3, parseInt(highStr, 10)))
+    };
   }
 
   /**
@@ -114,6 +151,21 @@ export class PatternParser {
           const tempo = parseInt(tempoMatch[1], 10);
           if (tempo < 60 || tempo > 200) {
             errors.push('Tempo must be between 60 and 200 BPM');
+          }
+        }
+        continue;
+      }
+
+      // Check EQ format
+      if (line.startsWith('eq ')) {
+        const eqMatch = line.match(/eq\s+(\w+):\s*(.+)/);
+        if (!eqMatch) {
+          errors.push(`Invalid EQ format: ${line}. Use: eq name: low=X mid=Y high=Z`);
+        } else {
+          const [, moduleName, eqString] = eqMatch;
+          const eqModule = this.parseEQString(moduleName, eqString);
+          if (!eqModule) {
+            errors.push(`Invalid EQ values for ${moduleName}. Use: low=X mid=Y high=Z (range: -3 to +3)`);
           }
         }
         continue;

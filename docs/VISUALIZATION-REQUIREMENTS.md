@@ -129,9 +129,29 @@ The UX expert has identified that **visualizations are critical** for each modul
   - Instrument usage pie chart
   - Rhythm analysis graph
   - Pattern density visualization
+  - **EQ Module Display** (Added Sept 2025)
 - **Interactions**:
   - Hover for detailed information
   - Click to focus on specific metrics
+
+#### **1.1. EQ Module Visualization** (Added Sept 2025)
+- **Purpose**: Visual representation of EQ settings for each instrument
+- **Layout**: Dedicated EQ section within Pattern Analysis
+- **Visual Elements**:
+  - **Color-coded EQ values**: Green for positive, red for negative, gray for neutral
+  - **EQ module cards**: Each instrument gets its own EQ display card
+  - **Frequency labels**: Low, Mid, High clearly labeled
+  - **Gain values**: Monospace font showing exact values (+3, -2, 0, etc.)
+  - **Real-time updates**: EQ values update immediately as user types
+- **Visual Design**:
+  - **Clean layout**: Each EQ module in rounded card with proper spacing
+  - **Professional appearance**: Consistent with overall design system
+  - **Accessibility**: High contrast colors and clear typography
+  - **Responsive**: Works on all screen sizes
+- **Interactions**:
+  - **Real-time sync**: Updates automatically with ASCII editor changes
+  - **Visual feedback**: Color changes reflect EQ adjustments
+  - **No direct editing**: EQ values edited through ASCII syntax only
 
 #### **2. Suggestion Previews**
 - **Purpose**: Visual representation of AI suggestions

@@ -885,6 +885,7 @@ The ASCII Generative Sequencer implements a comprehensive **auto-validation syst
 - **Graceful Error Handling**: Invalid patterns don't break the system - only problematic parts are disabled
 - **Module Health Tracking**: System monitors and reports the health status of all modules
 - **Partial Functionality**: Valid instruments continue to work even when others fail
+- **EQ Module Support**: Keyboard-friendly EQ controls with real-time visualization
 
 ### System Components
 
@@ -905,7 +906,62 @@ interface PartialParseResult {
   warnings: string[];
   validInstruments: string[];
 }
+
+// EQ Module Support (Added Sept 2025)
+interface EQModule {
+  name: string;
+  low: number;    // -3 to +3 (dB equivalent)
+  mid: number;    // -3 to +3 (dB equivalent)
+  high: number;   // -3 to +3 (dB equivalent)
+}
+
+interface ParsedPattern {
+  tempo: number;
+  instruments: {
+    [instrumentName: string]: {
+      steps: boolean[];
+      name: string;
+    };
+  };
+  eqModules: {
+    [moduleName: string]: EQModule;
+  };
+  totalSteps: number;
+}
 ```
+
+#### EQ Module System (Added Sept 2025)
+
+The ASCII Generative Sequencer now supports **EQ (Equalizer) modules** that allow users to adjust frequency response for different instruments and the master output. This feature provides professional-grade audio control through simple, keyboard-friendly syntax.
+
+**EQ Syntax:**
+```ascii
+# EQ Module Definition
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=-1 high=1
+eq snare: low=-1 mid=2 high=1
+```
+
+**Key Features:**
+- **Keyboard-Only Input**: No mouse required - everything is text-based
+- **Simple Syntax**: `eq name: low=X mid=Y high=Z` format
+- **Range Control**: Values clamped to -3 to +3 (dB equivalent)
+- **Real-time Visualization**: Color-coded EQ display in Pattern Analysis
+- **Multiple Modules**: Support for unlimited EQ modules per pattern
+- **Validation**: Comprehensive error handling and syntax validation
+
+**EQ Module Properties:**
+- **Low**: Bass frequencies (typically 20Hz - 250Hz)
+- **Mid**: Midrange frequencies (typically 250Hz - 4kHz)  
+- **High**: Treble frequencies (typically 4kHz - 20kHz)
+- **Range**: -3 to +3 (automatically clamped)
+- **Precision**: Integer values only for simplicity
+
+**Visualization:**
+- **Color Coding**: Green for positive values, red for negative, gray for neutral
+- **Real-time Updates**: EQ values update immediately as user types
+- **Clear Layout**: Each EQ module displayed in dedicated section
+- **Professional Display**: Monospace font for precise value reading
 
 #### Module Health System
 

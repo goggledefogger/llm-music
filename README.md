@@ -5,6 +5,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 ## Features
 
 - 🎵 **ASCII Pattern DSL**: Create music using simple text-based syntax
+- 🎛️ **EQ Modules**: Professional-grade equalizer controls with keyboard-friendly syntax
 - 🤖 **AI Assistant**: Get help from AI to generate and modify patterns
 - 🎧 **Real-time Audio**: High-quality audio synthesis with Tone.js
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile
@@ -57,6 +58,31 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 
 5. **Open your browser**
    Navigate to `http://localhost:3000`
+
+## Example Usage
+
+### Basic Pattern
+```ascii
+TEMPO 120
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
+### Pattern with EQ
+```ascii
+TEMPO 120
+
+# EQ Settings
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=-1 high=1
+eq snare: low=-1 mid=2 high=1
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+```
 
 ## Environment Setup
 

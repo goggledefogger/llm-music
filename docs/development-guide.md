@@ -178,6 +178,85 @@ pnpm lint             # Lint web app code
 pnpm type-check       # Type check web app
 ```
 
+## ASCII DSL Syntax
+
+### Basic Pattern Syntax
+
+The ASCII Generative Sequencer uses a simple, keyboard-friendly DSL for creating musical patterns:
+
+```ascii
+TEMPO 120
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
+**Key Elements:**
+- `TEMPO`: Sets the BPM (60-200 range)
+- `seq instrument:`: Defines a step sequence for an instrument
+- `x`: Active step (sound plays)
+- `.`: Inactive step (silence)
+- `#`: Comment line
+
+### EQ Module Syntax (Added Sept 2025)
+
+The sequencer now supports **EQ (Equalizer) modules** for professional audio control:
+
+```ascii
+TEMPO 120
+
+# EQ Settings
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=-1 high=1
+eq snare: low=-1 mid=2 high=1
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
+**EQ Syntax:**
+- `eq name:`: Defines an EQ module
+- `low=X`: Bass frequency adjustment (-3 to +3)
+- `mid=Y`: Midrange frequency adjustment (-3 to +3)
+- `high=Z`: Treble frequency adjustment (-3 to +3)
+
+**EQ Features:**
+- **Keyboard-Only**: No mouse required - pure text input
+- **Range Control**: Values automatically clamped to -3 to +3
+- **Real-time Visualization**: Color-coded display in Pattern Analysis
+- **Multiple Modules**: Support for unlimited EQ modules
+- **Validation**: Comprehensive error handling
+
+**EQ Examples:**
+```ascii
+# Boost kick bass, cut snare low end
+eq kick: low=3 mid=0 high=-1
+eq snare: low=-2 mid=2 high=1
+
+# Master EQ for overall mix
+eq master: low=1 mid=0 high=-1
+
+# Hihat with bright top end
+eq hihat: low=0 mid=0 high=2
+```
+
+### Pattern Validation
+
+The system provides real-time validation with helpful error messages:
+
+```ascii
+# Valid pattern
+TEMPO 120
+eq kick: low=2 mid=-1 high=1
+seq kick: x...x...x...x...
+
+# Invalid patterns with error messages
+eq kick: low=5 mid=invalid high=1  # Error: Invalid EQ values
+seq kick: x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...  # Warning: Too many steps
+```
+
 ## Testing
 
 ### Test Framework: Vitest
@@ -602,6 +681,68 @@ it('should auto-validate patterns as user types', async () => {
   await waitFor(() => {
     expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument();
   });
+});
+```
+
+### Testing EQ Modules
+
+```typescript
+// Test EQ module parsing
+it('should parse EQ modules correctly', () => {
+  const pattern = `TEMPO 120
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=-1 high=1
+seq kick: x...x...x...x...`;
+
+  const result = PatternParser.parse(pattern);
+
+  expect(result.eqModules.master).toEqual({
+    name: 'master',
+    low: 0,
+    mid: 0,
+    high: 0
+  });
+  expect(result.eqModules.kick).toEqual({
+    name: 'kick',
+    low: 2,
+    mid: -1,
+    high: 1
+  });
+});
+
+// Test EQ value clamping
+it('should clamp EQ values to -3 to +3 range', () => {
+  const pattern = `TEMPO 120
+eq test: low=5 mid=-10 high=0`;
+
+  const result = PatternParser.parse(pattern);
+
+  expect(result.eqModules.test).toEqual({
+    name: 'test',
+    low: 3,    // Clamped from 5
+    mid: -3,   // Clamped from -10
+    high: 0
+  });
+});
+
+// Test EQ validation
+it('should validate EQ syntax correctly', () => {
+  const validPattern = `TEMPO 120
+eq master: low=0 mid=0 high=0
+seq kick: x...x...x...x...`;
+
+  const invalidPattern = `TEMPO 120
+eq invalid: low=2 mid=invalid high=1
+seq kick: x...x...x...x...`;
+
+  const validResult = PatternParser.validate(validPattern);
+  const invalidResult = PatternParser.validate(invalidPattern);
+
+  expect(validResult.isValid).toBe(true);
+  expect(invalidResult.isValid).toBe(false);
+  expect(invalidResult.errors.some(error => 
+    error.includes('Invalid EQ values')
+  )).toBe(true);
 });
 ```
 

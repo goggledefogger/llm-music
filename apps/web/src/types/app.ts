@@ -1,5 +1,12 @@
 // Simplified app types for component-based architecture
 
+export interface EQModule {
+  name: string;
+  low: number;    // -3 to +3
+  mid: number;    // -3 to +3
+  high: number;   // -3 to +3
+}
+
 export interface ParsedPattern {
   tempo: number;
   instruments: {
@@ -7,6 +14,9 @@ export interface ParsedPattern {
       steps: boolean[];
       name: string;
     };
+  };
+  eqModules: {
+    [moduleName: string]: EQModule;
   };
   totalSteps: number;
 }

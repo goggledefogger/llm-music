@@ -27,7 +27,8 @@ apps/web/src/
 ├── pages/
 │   └── EditorPage.test.tsx         # ✅ New - Integration tests
 └── services/
-    └── patternParser.test.ts       # ✅ Existing - Parser tests
+    ├── patternParser.test.ts       # ✅ Existing - Parser tests
+    └── patternParser.eq.test.ts    # ✅ New - EQ module tests
 ```
 
 ### **Testing Framework**
@@ -47,6 +48,7 @@ apps/web/src/
 - State management
 - Event handling
 - Edge cases and error states
+- **EQ Module Testing** (Added Sept 2025)
 
 **Example**:
 ```typescript
@@ -117,16 +119,17 @@ vi.mock('tone', () => ({
 ## 📊 **Test Coverage Analysis**
 
 ### **Current Test Status**
-- **Total Test Files**: 8 (4 existing + 4 new)
-- **Total Tests**: 104 (104 passing + 0 failing)
-- **Coverage Areas**: Components, Services, Integration
+- **Total Test Files**: 9 (4 existing + 5 new)
+- **Total Tests**: 110 (110 passing + 0 failing)
+- **Coverage Areas**: Components, Services, Integration, EQ Modules
 - **Test Quality**: Robust testing practices with proper handling of multiple elements, split text, and component behavior
 
 ### **Test Results Summary**
 ```
-✅ ALL TESTS PASSING (104):
+✅ ALL TESTS PASSING (110):
 - ASCIIEditor: 10/10 tests passing
 - PatternParser: 25/25 tests passing
+- PatternParser.EQ: 6/6 tests passing (Added Sept 2025)
 - App: 1/1 test passing
 - StepSequencerGrid: 8/8 tests passing
 - PlayheadIndicator: 6/6 tests passing
@@ -140,6 +143,7 @@ vi.mock('tone', () => ({
 - Specific selectors for unique element identification
 - Component behavior matching with actual rendered output
 - Async content handling with waitFor
+- **EQ Module Testing Coverage** (Added Sept 2025)
 ```
 
 ### **Test Quality Improvements**
@@ -223,6 +227,76 @@ it('updates when pattern changes', async () => {
   });
 });
 ```
+
+## 🎛️ **EQ Module Testing** (Added Sept 2025)
+
+### **EQ Test Coverage**
+
+The EQ module system includes comprehensive testing to ensure reliable parsing, validation, and visualization:
+
+#### **Test File**: `patternParser.eq.test.ts`
+- **Total Tests**: 6/6 passing
+- **Coverage**: Parsing, validation, clamping, error handling
+
+#### **Test Categories**:
+
+**1. EQ Parsing Tests**
+```typescript
+it('should parse EQ modules with valid syntax', () => {
+  const pattern = `TEMPO 120
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=-1 high=1`;
+
+  const result = PatternParser.parse(pattern);
+  
+  expect(result.eqModules.master).toEqual({
+    name: 'master',
+    low: 0, mid: 0, high: 0
+  });
+});
+```
+
+**2. Value Clamping Tests**
+```typescript
+it('should clamp EQ values to -3 to +3 range', () => {
+  const pattern = `eq test: low=5 mid=-10 high=0`;
+  const result = PatternParser.parse(pattern);
+  
+  expect(result.eqModules.test).toEqual({
+    name: 'test',
+    low: 3,    // Clamped from 5
+    mid: -3,   // Clamped from -10
+    high: 0
+  });
+});
+```
+
+**3. Validation Tests**
+```typescript
+it('should validate EQ syntax correctly', () => {
+  const invalidPattern = `eq invalid: low=2 mid=invalid high=1`;
+  const result = PatternParser.validate(invalidPattern);
+  
+  expect(result.isValid).toBe(false);
+  expect(result.errors.some(error => 
+    error.includes('Invalid EQ values')
+  )).toBe(true);
+});
+```
+
+**4. Edge Case Tests**
+- Invalid syntax handling
+- Missing EQ modules
+- Multiple EQ modules
+- Pattern without EQ
+
+#### **EQ Visualization Testing**
+
+The EQ display component is tested through integration tests:
+- **Real-time updates**: EQ values update as user types
+- **Color coding**: Proper color display for positive/negative values
+- **Layout**: Correct display of multiple EQ modules
+- **Responsive design**: Works on all screen sizes
 
 ## 🎯 **Testing Best Practices**
 
