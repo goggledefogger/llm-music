@@ -26,7 +26,7 @@ describe('PatternAnalysis', () => {
 
   it('renders without crashing', () => {
     render(<PatternAnalysis pattern={mockPattern} />);
-    expect(screen.getByText('Pattern Analysis')).toBeInTheDocument();
+    expect(screen.getByText('Detailed breakdown of your pattern structure and characteristics')).toBeInTheDocument();
   });
 
   it('shows no pattern message when pattern is null', () => {

@@ -89,6 +89,9 @@ export class AudioEngine {
     }
 
     try {
+      const timestamp = new Date().toISOString();
+      console.log(`[${timestamp}] Starting playback - tempo: ${this.currentPattern.tempo}, totalSteps: ${this.currentPattern.totalSteps}`);
+      
       // Clear any existing scheduled events
       this.clearScheduledEvents();
 
@@ -102,11 +105,13 @@ export class AudioEngine {
       this.startTime = this.audioContext.currentTime;
       // this.currentStep = 0; // TODO: Implement step tracking for visualizations
 
+      console.log(`[${timestamp}] Calculated stepInterval: ${this.stepInterval.toFixed(3)}s, startTime: ${this.startTime.toFixed(3)}`);
+
       // Start the scheduler
       this.schedulePattern();
 
       this.isPlaying = true;
-      console.log('Playback started');
+      console.log(`[${timestamp}] Playback started successfully`);
     } catch (error) {
       console.error('Failed to start playback:', error);
       throw new Error('Failed to start playback');
@@ -193,27 +198,56 @@ export class AudioEngine {
     if (!this.audioContext || !this.currentPattern) return;
 
     const totalSteps = this.currentPattern.totalSteps;
+    const currentTime = this.audioContext.currentTime;
+    const timestamp = new Date().toISOString();
 
-    // Schedule the entire pattern loop
-    for (let step = 0; step < totalSteps; step++) {
-      const stepTime = this.startTime + (step * this.stepInterval);
+    console.log(`[${timestamp}] schedulePattern called - currentTime: ${currentTime.toFixed(3)}, startTime: ${this.startTime.toFixed(3)}`);
 
-      // Check each instrument for hits at this step
-      Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-        if (instrumentData.steps[step] === true) {
-          this.scheduleInstrumentHit(instrumentName, stepTime);
+    // Schedule multiple loops ahead to ensure continuous playback
+    const loopsToSchedule = 4; // Schedule 4 loops ahead
+    const loopDuration = totalSteps * this.stepInterval;
+
+    console.log(`[${timestamp}] Scheduling ${loopsToSchedule} loops, loopDuration: ${loopDuration.toFixed(3)}s, stepInterval: ${this.stepInterval.toFixed(3)}s`);
+
+    for (let loop = 0; loop < loopsToSchedule; loop++) {
+      const loopStartTime = this.startTime + (loop * loopDuration);
+      
+      // Only schedule if the loop start time is in the future
+      if (loopStartTime >= currentTime) {
+        console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
+        
+        // Schedule the entire pattern loop
+        for (let step = 0; step < totalSteps; step++) {
+          const stepTime = loopStartTime + (step * this.stepInterval);
+
+          // Check each instrument for hits at this step
+          Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+            if (instrumentData.steps[step] === true) {
+              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}`);
+              this.scheduleInstrumentHit(instrumentName, stepTime);
+            }
+          });
         }
-      });
+      } else {
+        console.log(`[${timestamp}] Skipping loop ${loop} at time ${loopStartTime.toFixed(3)} (in the past)`);
+      }
     }
 
-    // Schedule the next loop
-    const loopTime = this.startTime + (totalSteps * this.stepInterval);
+    // Schedule the next batch of loops
+    const nextSchedulingTime = this.startTime + (loopsToSchedule * loopDuration);
+    const timeoutDelay = (nextSchedulingTime - this.audioContext.currentTime) * 1000;
+    
+    console.log(`[${timestamp}] Next scheduling at ${nextSchedulingTime.toFixed(3)}, timeout delay: ${timeoutDelay.toFixed(0)}ms`);
+    
     const timeoutId = window.setTimeout(() => {
       if (this.isPlaying) {
-        this.startTime = this.audioContext!.currentTime;
+        const callbackTimestamp = new Date().toISOString();
+        console.log(`[${callbackTimestamp}] Scheduling callback triggered, updating startTime to ${nextSchedulingTime.toFixed(3)}`);
+        // Update start time to the next loop position
+        this.startTime = nextSchedulingTime;
         this.schedulePattern();
       }
-    }, (loopTime - this.audioContext.currentTime) * 1000);
+    }, timeoutDelay);
 
     this.scheduledEvents.push(timeoutId);
   }

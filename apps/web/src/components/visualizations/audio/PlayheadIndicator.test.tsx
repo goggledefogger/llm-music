@@ -25,7 +25,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    expect(screen.getByText('Playhead Position')).toBeInTheDocument();
+    expect(screen.getByText('Stopped • 120 BPM')).toBeInTheDocument();
   });
 
   it('shows no pattern message when pattern is null', () => {

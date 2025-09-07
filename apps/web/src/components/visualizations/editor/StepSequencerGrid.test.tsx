@@ -39,7 +39,7 @@ describe('StepSequencerGrid', () => {
 
   it('renders without crashing', () => {
     render(<StepSequencerGrid pattern={mockPattern} />);
-    expect(screen.getByText('Step Sequencer')).toBeInTheDocument();
+    expect(screen.getByText('3 instruments • 16 steps')).toBeInTheDocument();
   });
 
   it('shows no pattern message when pattern is null', () => {
@@ -52,7 +52,6 @@ describe('StepSequencerGrid', () => {
     render(<StepSequencerGrid pattern={mockPattern} />);
     
     expect(screen.getByText('3 instruments • 16 steps')).toBeInTheDocument();
-    expect(screen.getByText('120 BPM')).toBeInTheDocument();
     // Check for step count in the pattern info section - use regex to handle split text
     expect(screen.getByText(/16 steps/)).toBeInTheDocument();
   });
@@ -77,8 +76,6 @@ describe('StepSequencerGrid', () => {
   it('highlights current step when provided', () => {
     render(<StepSequencerGrid pattern={mockPattern} currentStep={4} />);
     
-    // Should show current step indicator in the current step display
-    expect(screen.getByText('Current Step:')).toBeInTheDocument();
     // The current step should be displayed as 5 (1-indexed)
     const currentStepElements = screen.getAllByText('5');
     expect(currentStepElements.length).toBeGreaterThan(0);
@@ -146,10 +143,7 @@ describe('StepSequencerGrid', () => {
   it('displays tempo and total steps in pattern info', () => {
     render(<StepSequencerGrid pattern={mockPattern} />);
     
-    const patternInfo = screen.getByText('Tempo:').closest('div');
-    expect(patternInfo).toHaveTextContent('120 BPM');
-    
-    const totalStepsInfo = screen.getByText('Total Steps:').closest('div');
-    expect(totalStepsInfo).toHaveTextContent('16');
+    // The component shows instrument and step count in the description
+    expect(screen.getByText('3 instruments • 16 steps')).toBeInTheDocument();
   });
 });

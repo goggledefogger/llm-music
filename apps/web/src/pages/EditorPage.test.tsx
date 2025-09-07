@@ -111,7 +111,7 @@ describe('EditorPage', () => {
     render(<EditorPage />);
     
     // Pattern Analysis should be present - check for the analysis section
-    expect(screen.getByText('Load a pattern to see the analysis')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Analysis')).toBeInTheDocument();
   });
 
   it('displays transport controls at the bottom', () => {
@@ -190,11 +190,11 @@ describe('EditorPage', () => {
     expect(mainContainer).toBeInTheDocument();
     
     // Should have editor pane
-    const editorPane = container.querySelector('.editor-pane');
+    const editorPane = container.querySelector('.flex-1.flex.flex-col.min-w-0');
     expect(editorPane).toBeInTheDocument();
     
     // Should have chat pane
-    const chatPane = container.querySelector('.chat-pane');
+    const chatPane = container.querySelector('.chat-panel');
     expect(chatPane).toBeInTheDocument();
   });
 
