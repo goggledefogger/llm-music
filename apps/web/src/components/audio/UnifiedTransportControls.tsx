@@ -8,7 +8,7 @@ interface TransportControlsProps {
   showPerformance?: boolean;
 }
 
-export const TransportControls: React.FC<TransportControlsProps> = ({
+export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
   className = '',
   showEffects = true,
   showPerformance = false

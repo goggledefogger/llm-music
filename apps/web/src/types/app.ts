@@ -39,19 +39,6 @@ export interface AudioState {
   error: string | null;
 }
 
-export interface HybridAudioState {
-  isInitialized: boolean;
-  isPlaying: boolean;
-  isPaused: boolean;
-  tempo: number;
-  volume: number;
-  currentTime: number;
-  error: string | null;
-  // Hybrid-specific state
-  effectsEnabled: boolean;
-  collaborationEnabled: boolean;
-  audioQuality: 'low' | 'medium' | 'high';
-}
 
 export interface UnifiedAudioState {
   isInitialized: boolean;
