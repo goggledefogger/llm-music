@@ -2,7 +2,7 @@ import React from 'react';
 import { useAudio } from '../../contexts/AppContext';
 
 export const TransportControls: React.FC = () => {
-  const { state: audioState, play, pause, stop, setTempo, setVolume, initialize } = useAudio();
+  const { state: audioState, play, pause, stop, setTempo, setVolume, initialize, setOverflowMode } = useAudio();
 
   const handlePlayPause = async () => {
     // If not initialized, try to initialize first
@@ -39,6 +39,12 @@ export const TransportControls: React.FC = () => {
       // Convert 0-100 to -60 to 0 dB
       const dbVolume = (newVolume / 100) * 60 - 60;
       setVolume(dbVolume);
+    }
+  };
+
+  const handleOverflowToggle = (mode: 'loop' | 'rest') => {
+    if (audioState.isInitialized && setOverflowMode) {
+      setOverflowMode(mode);
     }
   };
 
@@ -97,7 +103,7 @@ export const TransportControls: React.FC = () => {
           </div>
         </div>
 
-        {/* Volume and Time */}
+        {/* Volume, Overflow Mode, and Time */}
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
             <span className="text-sm text-foreground-muted">Vol:</span>
@@ -111,6 +117,29 @@ export const TransportControls: React.FC = () => {
               disabled={!audioState.isInitialized}
             />
             <span className="text-xs text-foreground-muted w-6">{displayVolume}%</span>
+          </div>
+
+          {/* Overflow Mode */}
+          <div className="flex items-center space-x-2">
+            <span className="text-sm text-foreground-muted">Steps:</span>
+            <div className="inline-flex rounded border border-border overflow-hidden">
+              <button
+                className={`px-2 py-1 text-xs ${audioState.overflowMode === 'loop' ? 'bg-background-secondary' : ''}`}
+                onClick={() => handleOverflowToggle('loop')}
+                disabled={!audioState.isInitialized}
+                title="Shorter tracks wrap to the start"
+              >
+                Loop
+              </button>
+              <button
+                className={`px-2 py-1 text-xs border-l border-border ${audioState.overflowMode === 'rest' ? 'bg-background-secondary' : ''}`}
+                onClick={() => handleOverflowToggle('rest')}
+                disabled={!audioState.isInitialized}
+                title="Shorter tracks remain silent beyond their length"
+              >
+                Rest
+              </button>
+            </div>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -136,4 +165,3 @@ export const TransportControls: React.FC = () => {
     </div>
   );
 };
-

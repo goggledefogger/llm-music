@@ -626,6 +626,10 @@ The audio engine has been fully implemented with a **Unified Audio Engine** that
 - **Web Audio API**: Direct use of Web Audio API for precise timing
 - **Real-time Everything**: No pre-calculation, all changes apply immediately
 - **Pattern Loop Scheduling**: Continuous loop scheduling for seamless playback
+  - Uses step-based timing with `STEPS_PER_BEAT = 4` (16th notes)
+  - Supports per-instrument length via max-steps loop
+  - Overflow Mode: `loop` (wrap shorter tracks) or `rest` (silence beyond length)
+  - Gapless updates: on sequence/tempo changes, the engine cancels only future scheduled hits (keeps currently sounding nodes) and immediately reschedules using the new pattern/tempo
 - **Cross-Platform Compatibility**: Works on all modern browsers and mobile devices
 - **Performance Optimized**: Efficient audio graph with minimal CPU usage
 
@@ -753,35 +757,31 @@ private schedulePattern(): void {
   if (!this.audioContext || !this.currentPattern) return;
 
   const totalSteps = this.currentPattern.totalSteps;
+  const stepInterval = this.getStepInterval();
+  const loopDuration = totalSteps * stepInterval;
   const currentTime = this.audioContext.currentTime;
 
-  // Schedule multiple loops ahead to ensure continuous playback
-  const loopsToSchedule = 4; // Schedule 4 loops ahead
-  const loopDuration = totalSteps * this.stepInterval;
+  // Compute current loop and step so we always schedule the current loop
+  const pos = currentTime - this.startTime;
+  const currentLoop = Math.floor(pos / loopDuration);
+  const currentStepInLoop = Math.floor((pos % loopDuration) / stepInterval);
 
-  for (let loop = 0; loop < loopsToSchedule; loop++) {
-    const loopStartTime = this.startTime + (loop * loopDuration);
-
-    // Only schedule if the loop start time is in the future
-    if (loopStartTime >= currentTime) {
-      // Schedule the entire pattern loop
-      for (let step = 0; step < totalSteps; step++) {
-        const stepTime = loopStartTime + (step * this.stepInterval);
-        // ... schedule instrument hits
+  const loopsToSchedule = 4; // schedule current + next loops
+  for (let loop = currentLoop; loop < currentLoop + loopsToSchedule; loop++) {
+    const loopStartTime = this.startTime + loop * loopDuration;
+    const startStep = loop === currentLoop ? currentStepInLoop : 0;
+    for (let step = startStep; step < totalSteps; step++) {
+      const stepTime = loopStartTime + step * stepInterval;
+      if (stepTime >= currentTime) {
+        // schedule instrument hits for this step
       }
     }
   }
 
-  // Schedule the next batch of loops
-  const nextScheduleTime = this.startTime + (loopsToSchedule * loopDuration);
-  const timeoutDelay = (nextScheduleTime - currentTime) * 1000;
-
-  this.timeoutId = window.setTimeout(() => {
-    if (this.isPlaying) {
-      this.startTime = nextScheduleTime; // Update startTime for the next batch
-      this.schedulePattern();
-    }
-  }, timeoutDelay);
+  // Schedule the next batch midway to maintain the queue
+  const nextSchedulingTime = this.startTime + (currentLoop + Math.floor(loopsToSchedule / 2)) * loopDuration;
+  const timeoutDelay = Math.max(0, (nextSchedulingTime - currentTime) * 1000);
+  window.setTimeout(() => { if (this.isPlaying) this.schedulePattern(); }, timeoutDelay);
 }
 ```
 

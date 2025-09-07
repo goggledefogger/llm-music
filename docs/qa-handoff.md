@@ -481,6 +481,7 @@ The visualization system adds rich visual feedback to enhance the user experienc
 4. **Loop Indicators**: Test loop visualization
 5. **Tempo Changes**: Test with different tempos
 6. **Playback States**: Test play/pause/stop states
+7. **Live Edits**: While playing, edit the ASCII pattern (add/remove steps). Playback must continue without pausing; status remains "Playing" and beat continuity is preserved
 
 #### **3. PatternAnalysis**
 **Location**: `src/components/visualizations/ai/PatternAnalysis.tsx`
@@ -520,7 +521,7 @@ The test suite has been enhanced with robust testing practices to handle common 
 
 ##### **Component Behavior Matching**
 - Tests match actual rendered output, not assumptions
-- Example: `expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()`
+- Example (step-based timing): `expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()`
 
 ##### **Async Content Handling**
 - Tests use `waitFor` for asynchronous content loading

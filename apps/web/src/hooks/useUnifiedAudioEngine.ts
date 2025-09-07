@@ -13,7 +13,8 @@ export const useUnifiedAudioEngine = () => {
     currentTime: 0,
     error: null,
     effectsEnabled: false,
-    audioQuality: 'high'
+    audioQuality: 'high',
+    overflowMode: 'loop'
   });
 
   // Initialize unified audio engine
@@ -187,6 +188,20 @@ export const useUnifiedAudioEngine = () => {
     }
   }, []);
 
+  // Overflow mode control (loop vs rest for shorter instruments)
+  const setOverflowMode = useCallback((mode: 'loop' | 'rest') => {
+    try {
+      unifiedAudioEngine.setOverflowMode(mode);
+      updateState();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set overflow mode';
+      setState(prev => ({
+        ...prev,
+        error: errorMessage
+      }));
+    }
+  }, [updateState]);
+
   // Get parameter history for debugging
   const getParameterHistory = useCallback(() => {
     return unifiedAudioEngine.getParameterHistory();
@@ -217,6 +232,7 @@ export const useUnifiedAudioEngine = () => {
     setTempo,
     setVolume,
     loadPattern,
-    getParameterHistory
+    getParameterHistory,
+    setOverflowMode
   };
 };

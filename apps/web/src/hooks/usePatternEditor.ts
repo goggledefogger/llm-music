@@ -45,8 +45,8 @@ seq hihat: x.x.x.x.x.x.x.x.`);
       }
     };
 
-    // Debounce validation to avoid excessive processing
-    const timeoutId = setTimeout(validateAndParse, 300);
+    // Debounce validation to avoid excessive processing (more responsive live edits)
+    const timeoutId = setTimeout(validateAndParse, 120);
     return () => clearTimeout(timeoutId);
   }, [content]);
 

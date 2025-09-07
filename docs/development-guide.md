@@ -522,8 +522,9 @@ Match the actual rendered text, not what you expect:
 // ❌ This assumes the component shows "Pattern Loop: 2/4"
 expect(screen.getByText('Pattern Loop: 2/4')).toBeInTheDocument()
 
-// ✅ This matches the actual component behavior
-expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()
+// ✅ Match real step-based timing (STEPS_PER_BEAT = 4)
+// At 120 BPM and currentTime = 1.0s → 8 steps → index 8 → display 9
+expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()
 ```
 
 #### Handling Dynamic Content
@@ -613,6 +614,10 @@ await waitFor(() => {
   expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 })
 ```
+
+### Live Edit Behavior
+
+Playback must continue during editor updates. The audio engine cancels only future scheduled hits and immediately reschedules based on the latest pattern/tempo while preserving the current beat position. Tests should assert that the UI status remains "Playing" and the pause button (⏸️) remains visible after editing the ASCII pattern during playback.
 
 ### Debugging Test Failures
 

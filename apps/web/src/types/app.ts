@@ -51,6 +51,7 @@ export interface UnifiedAudioState {
   // Unified-specific state
   effectsEnabled: boolean;
   audioQuality: 'low' | 'medium' | 'high';
+  overflowMode?: 'loop' | 'rest';
 }
 
 export interface UIState {
@@ -86,6 +87,7 @@ export interface AppActions {
   stop: () => void;
   setTempo: (tempo: number) => void;
   setVolume: (volume: number) => void;
+  setOverflowMode?: (mode: 'loop' | 'rest') => void;
 
   // UI actions
   setActiveTab: (tab: UIState['activeTab']) => void;

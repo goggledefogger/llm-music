@@ -29,6 +29,7 @@ The development team has successfully implemented a basic audio engine for the A
 - **Error Handling**: Graceful error handling with user feedback
 - **Real-time Updates**: Transport controls reflect actual audio state
 - **Pattern Feedback**: Visual validation and loading status
+ - **Gapless Live Edits**: Editing the ASCII pattern or tempo during playback does not pause audio; scheduling updates preserve the beat
 
 ## 🎵 **How to Test the Audio**
 

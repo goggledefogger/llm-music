@@ -1,6 +1,7 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
 import { ParsedPattern, UnifiedAudioState } from '../types/app';
 import { PatternParser } from './patternParser';
+import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
 export interface ParameterUpdate {
   type: ParameterType;
@@ -41,10 +42,18 @@ export class UnifiedAudioEngine {
   private activeOscillators: OscillatorNode[] = [];
   private activeNoiseSources: AudioBufferSourceNode[] = [];
   private scheduledEvents: number[] = [];
+  // Track sources scheduled to start in the future so we can cancel them on live edits
+  private pendingSources: Array<{ startTime: number; instrument: string; stop: () => void }>
+    = [];
 
   // Real-time parameter system
   private parameterHistory: ParameterUpdate[] = [];
   private maxParameterHistory = 100;
+
+  // Scheduling behavior for instruments shorter than the longest track
+  // 'loop': shorter instruments wrap using modulo (default)
+  // 'rest': shorter instruments are silent beyond their length
+  private overflowMode: 'loop' | 'rest' = 'loop';
 
   private constructor() {
     // Constructor is minimal - initialization happens in initialize()
@@ -352,18 +361,11 @@ export class UnifiedAudioEngine {
     // Adjust start time to maintain current position with new tempo
     this.startTime = currentTime - (elapsedTime / tempoRatio);
 
-    // Clear existing scheduled events to prevent multiple copies
+    // Clear existing scheduled events & cancel future sources; keep current audio playing
     this.clearScheduledEvents();
+    this.cancelFutureScheduledAudio();
 
-    // Stop all currently playing audio to prevent overlap
-    this.stopAllAudio();
-
-    // Restore master gain for immediate audio
-    if (this.masterGain) {
-      this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
-    }
-
-    // Immediately reschedule from current position with new tempo
+    // Immediately reschedule from current position with new tempo (no hard stop)
     this.schedulePattern();
 
     console.log(`[Unified] Timing adjusted - tempo ratio: ${tempoRatio.toFixed(3)}`);
@@ -377,18 +379,11 @@ export class UnifiedAudioEngine {
 
     console.log(`[Unified] Sequence adjusted for pattern change`);
 
-    // Clear existing scheduled events
+    // Clear scheduled events & cancel future sources; let currently playing sounds finish
     this.clearScheduledEvents();
+    this.cancelFutureScheduledAudio();
 
-    // Stop all currently playing audio
-    this.stopAllAudio();
-
-    // Restore master gain
-    if (this.masterGain) {
-      this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
-    }
-
-    // Immediately reschedule with new pattern
+    // Immediately reschedule with new pattern (no hard stop)
     this.schedulePattern();
   }
 
@@ -421,7 +416,8 @@ export class UnifiedAudioEngine {
       volume,
       error: null,
       effectsEnabled: false, // TODO: Implement effects
-      audioQuality: 'high'
+      audioQuality: 'high',
+      overflowMode: this.overflowMode
     };
   }
 
@@ -430,7 +426,7 @@ export class UnifiedAudioEngine {
    */
   private getStepInterval(): number {
     if (!this.currentPattern) return 0;
-    const stepsPerBeat = 4; // 16th notes
+    const stepsPerBeat = AUDIO_CONSTANTS.STEPS_PER_BEAT; // e.g., 4 = 16th notes
     const beatsPerMinute = this.currentPattern.tempo;
     const secondsPerBeat = 60 / beatsPerMinute;
     return secondsPerBeat / stepsPerBeat;
@@ -465,42 +461,52 @@ export class UnifiedAudioEngine {
 
     console.log(`[${timestamp}] Current position: ${currentPosition.toFixed(3)}s, loop: ${currentLoop}, step: ${currentStepInLoop}`);
 
-    // Schedule loops starting from the current loop
+    // Schedule loops starting from the current loop (always schedule the current loop)
     for (let loop = currentLoop; loop < currentLoop + loopsToSchedule; loop++) {
       const loopStartTime = this.startTime + (loop * loopDuration);
+      console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
 
-      // Only schedule if the loop start time is in the future or very close to now
-      if (loopStartTime >= currentTime - 0.1) { // Allow 100ms lookahead
-        console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
+      // Determine which steps to schedule in this loop
+      let startStep = 0;
+      const endStep = totalSteps;
 
-        // Determine which steps to schedule in this loop
-        let startStep = 0;
-        let endStep = totalSteps;
+      // If this is the current loop, start from the current step
+      if (loop === currentLoop) {
+        const timeInCurrentLoop = currentTime - loopStartTime;
+        const actualCurrentStep = Math.floor(timeInCurrentLoop / stepInterval);
+        startStep = Math.max(0, actualCurrentStep);
+        console.log(`[${timestamp}] Current loop ${loop}, time in loop: ${timeInCurrentLoop.toFixed(3)}s, starting from step ${startStep}`);
+      }
 
-        // If this is the current loop, start from the current step
-        if (loop === currentLoop) {
-          const timeInCurrentLoop = currentTime - loopStartTime;
-          const actualCurrentStep = Math.floor(timeInCurrentLoop / stepInterval);
-          startStep = Math.max(0, actualCurrentStep);
-          console.log(`[${timestamp}] Current loop ${loop}, time in loop: ${timeInCurrentLoop.toFixed(3)}s, starting from step ${startStep}`);
-        }
+      // Schedule steps in this loop
+      for (let step = startStep; step < endStep; step++) {
+        const stepTime = loopStartTime + (step * stepInterval);
 
-        // Schedule steps in this loop
-        for (let step = startStep; step < endStep; step++) {
-          const stepTime = loopStartTime + (step * stepInterval);
+        // Only schedule if the step time is in the future
+        if (stepTime >= currentTime) {
+          // Check each instrument for hits at this step
+          Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+            if (instrumentData.steps.length === 0) return;
 
-          // Only schedule if the step time is in the future
-          if (stepTime >= currentTime) {
-            // Check each instrument for hits at this step
-            Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-              // Use modulo to loop the pattern steps if totalSteps > pattern length
+            let isHit = false;
+            if (this.overflowMode === 'loop') {
+              // Wrap shorter instruments
               const patternStep = step % instrumentData.steps.length;
-              if (instrumentData.steps[patternStep] === true) {
-                console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step} (pattern step ${patternStep}), time ${stepTime.toFixed(3)}`);
-                this.scheduleInstrumentHit(instrumentName, stepTime);
+              isHit = instrumentData.steps[patternStep] === true;
+            } else {
+              // Rest beyond instrument length
+              if (step < instrumentData.steps.length) {
+                isHit = instrumentData.steps[step] === true;
+              } else {
+                isHit = false;
               }
-            });
-          }
+            }
+
+            if (isHit) {
+              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}`);
+              this.scheduleInstrumentHit(instrumentName, stepTime);
+            }
+          });
         }
       }
     }
@@ -542,7 +548,9 @@ export class UnifiedAudioEngine {
     this.activeOscillators.push(oscillator);
 
     // Set up the sound based on instrument
-    switch (instrumentName.toLowerCase()) {
+    const lowerName = instrumentName.toLowerCase();
+    let scheduledNoise: AudioBufferSourceNode | null = null;
+    switch (lowerName) {
       case 'kick':
         oscillator.type = 'sine';
         oscillator.frequency.setValueAtTime(60, time);
@@ -567,6 +575,7 @@ export class UnifiedAudioEngine {
 
         // Track for immediate stopping
         this.activeNoiseSources.push(noise);
+        scheduledNoise = noise;
 
         envelope.gain.setValueAtTime(0.3, time);
         envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
@@ -593,6 +602,33 @@ export class UnifiedAudioEngine {
         oscillator.stop(time + 0.1);
         break;
     }
+
+    // Track scheduled sources so we can cancel future events on live edits
+    const now = this.audioContext.currentTime;
+    const cleanupFns: Array<() => void> = [];
+    // For oscillator-based instruments (kick, hihat, default)
+    cleanupFns.push(() => {
+      try { oscillator.stop(now); } catch (e) { /* ignore */ }
+      try { oscillator.disconnect(); } catch (e) { /* ignore */ }
+      try { envelope.disconnect(); } catch (e) { /* ignore */ }
+      this.activeOscillators = this.activeOscillators.filter(osc => osc !== oscillator);
+    });
+    if (scheduledNoise) {
+      cleanupFns.push(() => {
+        try { scheduledNoise!.stop(now); } catch (e) { /* ignore */ }
+        try { scheduledNoise!.disconnect(); } catch (e) { /* ignore */ }
+        this.activeNoiseSources = this.activeNoiseSources.filter(src => src !== scheduledNoise);
+      });
+    }
+    const scheduled = { startTime: time, instrument: lowerName, stop: () => cleanupFns.forEach(fn => fn()) };
+    this.pendingSources.push(scheduled);
+
+    // Auto-prune this scheduled entry shortly after it should have started
+    const delayMs = Math.max(0, (time - now + 0.5) * 1000);
+    const pruneId = window.setTimeout(() => {
+      this.pendingSources = this.pendingSources.filter(s => s !== scheduled);
+    }, delayMs);
+    this.scheduledEvents.push(pruneId);
 
     // Auto-cleanup when audio ends
     if (typeof oscillator.addEventListener === 'function') {
@@ -633,6 +669,9 @@ export class UnifiedAudioEngine {
     if (this.masterGain && this.audioContext) {
       this.masterGain.gain.setValueAtTime(0, this.audioContext.currentTime);
     }
+
+    // Cancel any sources scheduled for the future
+    this.cancelFutureScheduledAudio();
   }
 
   /**
@@ -644,10 +683,45 @@ export class UnifiedAudioEngine {
   }
 
   /**
+   * Cancel any audio sources that are scheduled to start in the future.
+   * Keeps currently playing sounds to avoid audible gaps during live edits.
+   */
+  private cancelFutureScheduledAudio(): void {
+    if (!this.audioContext) return;
+    const now = this.audioContext.currentTime - 0.002; // small epsilon
+    const remaining: typeof this.pendingSources = [];
+    for (const s of this.pendingSources) {
+      if (s.startTime >= now) {
+        try { s.stop(); } catch { /* ignore */ }
+      } else {
+        remaining.push(s);
+      }
+    }
+    this.pendingSources = remaining;
+  }
+
+  /**
    * Get parameter history for debugging
    */
   getParameterHistory(): ParameterUpdate[] {
     return [...this.parameterHistory];
+  }
+
+  /**
+   * Set scheduling overflow mode ('loop' | 'rest')
+   * When changed during playback, reschedules to apply immediately.
+   */
+  setOverflowMode(mode: 'loop' | 'rest'): void {
+    if (this.overflowMode === mode) return;
+    this.overflowMode = mode;
+    if (this.isPlaying && this.audioContext) {
+      this.clearScheduledEvents();
+      this.stopAllAudio();
+      if (this.masterGain) {
+        this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
+      }
+      this.schedulePattern();
+    }
   }
 
   /**

@@ -81,14 +81,14 @@ describe('PlayheadIndicator', () => {
     render(
       <PlayheadIndicator
         pattern={mockPattern}
-        currentTime={2.0}
+        currentTime={1.0}
         isPlaying={true}
         tempo={120}
       />
     );
     
-    // At 2 seconds with 120 BPM, we should be at step 8 (2 beats * 4 steps per beat)
-    expect(screen.getByText('9')).toBeInTheDocument(); // Step 9 (0-indexed)
+    // At 1.0s with 120 BPM and 4 steps/beat: 8 steps → index 8 → display 9
+    expect(screen.getByText('9')).toBeInTheDocument(); // Step 9 (0-indexed + 1)
   });
 
   it('shows pattern loop information', () => {
@@ -101,7 +101,8 @@ describe('PlayheadIndicator', () => {
       />
     );
     
-    expect(screen.getByText('Pattern Loop: 3/16')).toBeInTheDocument();
+    // At 1.0s: step index 8 → display 9
+    expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument();
   });
 
   it('displays progress bar', () => {
@@ -191,8 +192,8 @@ describe('PlayheadIndicator', () => {
       />
     );
     
-    // The component shows at least 16 steps due to Math.max(..., 16)
-    expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument();
+    // The component shows at least 16 steps; at 0.5s: 4 steps → index 4 → display 5
+    expect(screen.getByText('Pattern Loop: 5/16')).toBeInTheDocument();
     expect(screen.getByText('16 steps')).toBeInTheDocument();
   });
 });

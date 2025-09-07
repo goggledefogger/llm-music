@@ -75,10 +75,10 @@ expect(screen.getByText('Pattern Loop: 2/4')).toBeInTheDocument()
 // Error: Unable to find an element with the text: Pattern Loop: 2/4
 ```
 
-**Solution**: Inspect the actual rendered HTML and match it:
+**Solution**: Inspect the actual rendered HTML and match it (step-based timing):
 ```typescript
-// ✅ This matches the actual component behavior
-expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()
+// ✅ With STEPS_PER_BEAT=4, 120 BPM, currentTime=1.0s → shows 9/16
+expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()
 ```
 
 **When to Use**: Always - test the actual behavior, not assumptions.
@@ -233,8 +233,8 @@ const editor = screen.getByPlaceholderText('Enter your ASCII pattern here...')
 ### Pattern 4: Component Behavior Matching
 
 ```typescript
-// Match actual component behavior, not assumptions
-expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()
+// Match actual component behavior (step-based timing)
+expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()
 ```
 
 ### Pattern 5: Async Content Handling

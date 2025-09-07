@@ -354,7 +354,7 @@ The test suite has been enhanced with robust testing practices to handle common 
 
 #### **Component Behavior Matching**
 - Tests match actual rendered output, not assumptions
-- Example: `expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()`
+- Example (step-based timing): `expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()`
 
 #### **Async Content Handling**
 - Tests use `waitFor` for asynchronous content loading

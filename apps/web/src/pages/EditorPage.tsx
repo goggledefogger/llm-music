@@ -4,12 +4,16 @@ import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
 import { VisualizationPanel } from '../components/layout/VisualizationPanel';
 import { usePattern, useAudio } from '../contexts/AppContext';
+import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
 export const EditorPage: React.FC = () => {
   const { parsedPattern } = usePattern();
   const { state: audioState } = useAudio();
 
-  const currentStep = Math.floor(audioState.currentTime * (audioState.tempo / 60)) % (parsedPattern?.totalSteps || 16);
+  // Current sequencer step (uses STEPS_PER_BEAT to reflect 16th-note resolution)
+  const currentStep = Math.floor(
+    audioState.currentTime * ((audioState.tempo / 60) * AUDIO_CONSTANTS.STEPS_PER_BEAT)
+  ) % (parsedPattern?.totalSteps || 16);
 
   return (
     <div className="flex h-full flex-col lg:flex-row">

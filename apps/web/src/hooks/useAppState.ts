@@ -91,6 +91,7 @@ export const useAppState = () => {
     stop: audioEngine.stop,
     setTempo: audioEngine.setTempo,
     setVolume: audioEngine.setVolume,
+    setOverflowMode: audioEngine.setOverflowMode,
 
     // UI actions
     setActiveTab: useCallback((tab: UIState['activeTab']) => {

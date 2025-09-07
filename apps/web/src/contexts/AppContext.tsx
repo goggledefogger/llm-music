@@ -53,7 +53,8 @@ export const useAudio = () => {
     stop: actions.stop,
     setTempo: actions.setTempo,
     setVolume: actions.setVolume,
-    initialize: actions.initializeAudio
+    initialize: actions.initializeAudio,
+    setOverflowMode: actions.setOverflowMode
   };
 };
 

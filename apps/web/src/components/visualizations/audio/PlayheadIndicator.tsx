@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ParsedPattern } from '../../../types/app';
 import { BaseVisualization } from '../BaseVisualization';
+import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
 interface PlayheadIndicatorProps {
   pattern: ParsedPattern | null;
@@ -23,14 +24,18 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
   useEffect(() => {
     if (!pattern || !isPlaying) return;
 
-    // Calculate current step based on tempo and time
-    const beatsPerSecond = tempo / 60;
-    const totalBeats = currentTime * beatsPerSecond;
-    const step = Math.floor(totalBeats) % (pattern.totalSteps || 16);
-    const beat = totalBeats % 1;
+    // Calculate current step based on tempo and steps-per-beat (real-time)
+    const stepsPerSecond = (tempo / 60) * AUDIO_CONSTANTS.STEPS_PER_BEAT;
+    const totalStepsProgress = currentTime * stepsPerSecond; // fractional steps
+    const maxSteps = Math.max(
+      ...Object.values(pattern.instruments).map(inst => inst.steps.length),
+      16
+    );
+    const step = Math.floor(totalStepsProgress) % maxSteps;
+    const stepFraction = totalStepsProgress % 1;
 
     setCurrentStep(step);
-    setBeatPosition(beat);
+    setBeatPosition(stepFraction);
   }, [currentTime, tempo, pattern, isPlaying]);
 
   if (!pattern) {
@@ -43,6 +48,8 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
 
   const maxSteps = Math.max(...Object.values(pattern.instruments).map(inst => inst.steps.length), 16);
   const stepWidth = 100 / maxSteps;
+  const stepsPerBeat = AUDIO_CONSTANTS.STEPS_PER_BEAT;
+  const totalSegments = Math.max(1, Math.ceil(maxSteps / stepsPerBeat));
 
   return (
     <BaseVisualization
@@ -125,11 +132,11 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
             Pattern Loop: {currentStep + 1}/{maxSteps}
           </span>
           <div className="flex space-x-1">
-            {Array.from({ length: 4 }, (_, i) => (
+            {Array.from({ length: totalSegments }, (_, i) => (
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full ${
-                  Math.floor(currentStep / 4) === i 
+                  Math.floor(currentStep / stepsPerBeat) === i 
                     ? 'bg-blue-500' 
                     : 'bg-blue-200'
                 }`}

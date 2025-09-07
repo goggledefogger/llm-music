@@ -131,10 +131,51 @@ seq kick: x...x...x...x...`;
       expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument();
     });
 
+    // Playback should continue (pause button visible and status reads "Playing")
+    expect(screen.getByRole('button', { name: '⏸️' })).toBeInTheDocument();
+    expect(screen.getByText('Playing')).toBeInTheDocument();
+
     // Stop playback
     const stopButton = screen.getByRole('button', { name: '⏹️' });
     await act(async () => {
       fireEvent.click(stopButton);
+    });
+  });
+
+  it('does not pause when updating the editor while playing', async () => {
+    render(<EditorPage />);
+
+    const editor = screen.getByPlaceholderText('Enter your ASCII pattern here...');
+
+    // Load a valid pattern and start playback
+    await act(async () => {
+      fireEvent.change(editor, { target: { value: 'TEMPO 120\nseq kick: x...x...x...x...' } });
+    });
+    await waitFor(() => {
+      expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument();
+    });
+
+    const playButton2 = screen.getByRole('button', { name: '▶️' });
+    await act(async () => {
+      fireEvent.click(playButton2);
+    });
+
+    // Update the editor content while playing
+    await act(async () => {
+      fireEvent.change(editor, { target: { value: 'TEMPO 120\nseq kick: x...x...x...x...\nseq snare: ....x.......x...' } });
+    });
+    await waitFor(() => {
+      expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument();
+    });
+
+    // Verify that playback continues (pause button and status)
+    expect(screen.getByRole('button', { name: '⏸️' })).toBeInTheDocument();
+    expect(screen.getByText('Playing')).toBeInTheDocument();
+
+    // Stop playback
+    const stopButton2 = screen.getByRole('button', { name: '⏹️' });
+    await act(async () => {
+      fireEvent.click(stopButton2);
     });
   });
 

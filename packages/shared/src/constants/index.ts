@@ -3,6 +3,8 @@ export const AUDIO_CONSTANTS = {
   DEFAULT_TEMPO: 120,
   MIN_TEMPO: 60,
   MAX_TEMPO: 200,
+  // Musical timing: number of sequencer steps per beat (e.g., 4 = 16th notes)
+  STEPS_PER_BEAT: 4,
   DEFAULT_VOLUME: 0.8,
   MIN_VOLUME: 0,
   MAX_VOLUME: 1,

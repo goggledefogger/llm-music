@@ -147,11 +147,11 @@ expect(screen.getByText('Pattern Loop: 2/4')).toBeInTheDocument()
 // Error: Unable to find an element with the text: Pattern Loop: 2/4
 ```
 
-**Solution**: Inspect the actual rendered HTML and match it:
+**Solution**: Inspect the actual rendered HTML and match it (step-based timing):
 
 ```typescript
-// ✅ This matches the actual component behavior
-expect(screen.getByText('Pattern Loop: 2/16')).toBeInTheDocument()
+// ✅ With STEPS_PER_BEAT=4, 120 BPM, currentTime=1.0s → shows 9/16
+expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()
 ```
 
 ### 5. Async Content Loading
@@ -336,8 +336,8 @@ describe('PlayheadIndicator', () => {
       />
     )
     
-    // Match actual component behavior
-    expect(screen.getByText('Pattern Loop: 3/16')).toBeInTheDocument()
+    // Match actual step-based behavior (STEPS_PER_BEAT=4)
+    expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument()
   })
 })
 ```

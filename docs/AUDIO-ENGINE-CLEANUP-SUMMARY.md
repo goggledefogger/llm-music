@@ -99,6 +99,7 @@ export const UnifiedTransportControls = () => {
 - **Immediate Response**: All parameter changes apply in real-time
 - **No Audio Dropouts**: Robust scheduling prevents interruptions
 - **Consistent Interface**: Unified transport controls across the app
+- **Gapless Edits**: Editing the ASCII pattern no longer pauses playback; the engine keeps time and reschedules seamlessly
 
 ## Critical Path Behaviors Tested
 
