@@ -227,6 +227,21 @@
     @apply text-xs;
   }
 
+  /* Mobile-specific ultra-compact utilities */
+  @media (max-width: 640px) {
+    .ultra-compact-padding {
+      @apply p-0.5;
+    }
+
+    .ultra-compact-spacing {
+      @apply space-y-0;
+    }
+
+    .ultra-compact-text {
+      @apply text-[10px];
+    }
+  }
+
   /* Responsive breakpoints */
   @media (min-width: 640px) {
     .responsive-text {
@@ -332,18 +347,18 @@
   /* Tablet responsive */
   @media (max-width: 1023px) and (min-width: 769px) {
     .visualization-panel {
-      @apply w-72;
+      @apply w-64 flex-shrink-0;
     }
     
     .chat-panel {
-      @apply w-56;
+      @apply w-48 flex-shrink-0;
     }
   }
 
   /* Mobile responsive */
   @media (max-width: 768px) {
-    .chat-pane {
-      @apply w-full border-l-0 border-t;
+    .editor-pane {
+      @apply w-full;
     }
     
     .visualization-panel {
@@ -352,6 +367,17 @@
     
     .chat-panel {
       @apply w-full border-l-0 border-t;
+    }
+  }
+
+  /* Small mobile responsive */
+  @media (max-width: 480px) {
+    .visualization-panel {
+      @apply w-full;
+    }
+    
+    .chat-panel {
+      @apply w-full;
     }
   }
 
@@ -383,11 +409,31 @@
 
   /* Visualization panel styles */
   .visualization-section {
-    @apply mb-4 last:mb-0;
+    @apply mb-2 sm:mb-4 last:mb-0 w-full min-w-0;
   }
 
   .visualization-section .collapsible-content {
-    @apply max-h-96 overflow-y-auto custom-scrollbar;
+    @apply max-h-64 sm:max-h-96 overflow-y-auto overflow-x-hidden custom-scrollbar;
+  }
+
+  /* Mobile visualization optimizations */
+  @media (max-width: 640px) {
+    .visualization-section {
+      @apply mb-1;
+    }
+
+    .visualization-section .collapsible-content {
+      @apply max-h-48;
+    }
+  }
+
+  /* Prevent horizontal overflow in visualization panel */
+  .visualization-panel {
+    @apply overflow-x-hidden;
+  }
+
+  .visualization-panel * {
+    @apply max-w-full;
   }
 
   /* Base visualization component styles */

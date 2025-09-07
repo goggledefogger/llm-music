@@ -28,14 +28,14 @@ export const EditorPage: React.FC = () => {
 
       {/* Visualization Panel */}
       <div className="visualization-panel border-l border-border bg-background-secondary">
-        <div className="h-full overflow-y-auto custom-scrollbar ultra-compact-padding">
+        <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar ultra-compact-padding">
           <VisualizationPanel
             pattern={parsedPattern}
             currentStep={currentStep}
             currentTime={audioState.currentTime}
             isPlaying={audioState.isPlaying}
             tempo={audioState.tempo}
-            className="h-auto"
+            className="h-auto w-full"
           />
         </div>
       </div>

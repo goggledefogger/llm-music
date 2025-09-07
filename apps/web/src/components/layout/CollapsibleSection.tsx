@@ -43,13 +43,13 @@ export const CollapsibleSection: React.FC<CollapsibleSectionProps> = ({
         onClick={toggleExpanded}
         className={`w-full flex items-center justify-between ultra-compact-padding text-left collapsible-header ${headerClassName}`}
       >
-        <div className="flex items-center space-x-2">
-          {icon && <span className="text-sm">{icon}</span>}
+        <div className="flex items-center space-x-1 sm:space-x-2">
+          {icon && <span className="text-xs sm:text-sm">{icon}</span>}
           <h3 className="ultra-compact-text font-semibold">{title}</h3>
         </div>
         <div className={`transform transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>
           <svg
-            className="w-5 h-5"
+            className="w-4 h-4 sm:w-5 sm:h-5"
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"

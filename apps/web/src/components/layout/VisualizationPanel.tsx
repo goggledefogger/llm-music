@@ -1,6 +1,13 @@
 import React, { useState } from 'react';
 import { CollapsibleSection } from './CollapsibleSection';
-import { StepSequencerGrid, PatternAnalysis, PlayheadIndicator, WaveformDisplay } from '../visualizations';
+import { 
+  StepSequencerGrid, 
+  QuickStatsBar, 
+  PatternAnalysis, 
+  AudioEffects,
+  PlayheadIndicator, 
+  WaveformDisplay 
+} from '../visualizations';
 import { ParsedPattern } from '../../types/app';
 
 interface VisualizationPanelProps {
@@ -21,9 +28,11 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   className = ''
 }) => {
   const [expandedSections, setExpandedSections] = useState({
-    stepSequencer: true, // Default to expanded as it's most important
-    patternAnalysis: false,
-    audioVisualization: false
+    stepSequencer: true,    // Always visible - primary visualization
+    quickStats: true,       // Always visible - essential metrics
+    audioWaveform: true,    // Always visible - playback feedback
+    patternAnalysis: false, // Expandable - detailed breakdowns
+    audioEffects: false     // Collapsible - advanced audio processing
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -34,8 +43,8 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
   };
 
   return (
-    <div className={`ultra-compact-spacing ${className}`}>
-      {/* Step Sequencer Grid */}
+    <div className={`ultra-compact-spacing w-full min-w-0 ${className}`}>
+      {/* 1. Step Sequencer - Most Used (Primary Tool) */}
       <div className="visualization-section">
         <CollapsibleSection
           title="Step Sequencer"
@@ -52,29 +61,13 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
         </CollapsibleSection>
       </div>
 
-      {/* Pattern Analysis */}
+      {/* 2. Audio Waveform - Real-time Feedback (Second Most Used) */}
       <div className="visualization-section">
         <CollapsibleSection
-          title="Pattern Analysis"
-          icon="📊"
-          isExpanded={expandedSections.patternAnalysis}
-          onToggle={() => toggleSection('patternAnalysis')}
-          className="h-auto"
-        >
-          <PatternAnalysis
-            pattern={pattern}
-            className="h-auto"
-          />
-        </CollapsibleSection>
-      </div>
-
-      {/* Audio Visualizations */}
-      <div className="visualization-section">
-        <CollapsibleSection
-          title="Audio Visualizations"
+          title="Audio Waveform"
           icon="🎧"
-          isExpanded={expandedSections.audioVisualization}
-          onToggle={() => toggleSection('audioVisualization')}
+          isExpanded={expandedSections.audioWaveform}
+          onToggle={() => toggleSection('audioWaveform')}
           className="h-auto"
         >
           <div className="ultra-compact-spacing">
@@ -93,6 +86,54 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
               className="h-auto"
             />
           </div>
+        </CollapsibleSection>
+      </div>
+
+      {/* 3. Audio Effects - EQ and Processing (Frequently Used During Creation) */}
+      <div className="visualization-section">
+        <CollapsibleSection
+          title="Audio Effects"
+          icon="🎛️"
+          isExpanded={expandedSections.audioEffects}
+          onToggle={() => toggleSection('audioEffects')}
+          className="h-auto"
+        >
+          <AudioEffects
+            pattern={pattern}
+            className="h-auto"
+          />
+        </CollapsibleSection>
+      </div>
+
+      {/* 4. Quick Stats - Quick Reference */}
+      <div className="visualization-section">
+        <CollapsibleSection
+          title="Quick Stats"
+          icon="📊"
+          isExpanded={expandedSections.quickStats}
+          onToggle={() => toggleSection('quickStats')}
+          className="h-auto"
+        >
+          <QuickStatsBar
+            pattern={pattern}
+            className="h-auto"
+          />
+        </CollapsibleSection>
+      </div>
+
+      {/* 5. Pattern Analysis - Detailed Analysis (When Needed) */}
+      <div className="visualization-section">
+        <CollapsibleSection
+          title="Pattern Analysis"
+          icon="📈"
+          isExpanded={expandedSections.patternAnalysis}
+          onToggle={() => toggleSection('patternAnalysis')}
+          className="h-auto"
+        >
+          <PatternAnalysis
+            pattern={pattern}
+            className="h-auto"
+          />
         </CollapsibleSection>
       </div>
     </div>

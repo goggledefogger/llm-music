@@ -5,6 +5,7 @@ export { BaseVisualization } from './BaseVisualization';
 export { StepSequencerGrid } from './editor/StepSequencerGrid';
 
 // Audio visualizations
+export { AudioEffects } from './audio/AudioEffects';
 export { PlayheadIndicator } from './audio/PlayheadIndicator';
 export { WaveformDisplay } from './audio/WaveformDisplay';
 
@@ -14,3 +15,6 @@ export { PatternAnalysis } from './ai/PatternAnalysis';
 
 // Pattern visualizations
 export { PatternThumbnail } from './patterns/PatternThumbnail';
+
+// Quick stats
+export { QuickStatsBar } from './QuickStatsBar';

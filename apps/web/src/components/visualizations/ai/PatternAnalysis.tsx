@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { ParsedPattern } from '../../../types/app';
 import { BaseVisualization } from '../BaseVisualization';
-import { EQDisplay } from '../audio/EQDisplay';
 
 interface PatternAnalysisProps {
   pattern: ParsedPattern | null;
@@ -239,10 +238,6 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
         </div>
       </div>
 
-      {/* EQ Settings */}
-      {pattern.eqModules && Object.keys(pattern.eqModules).length > 0 && (
-        <EQDisplay eqModules={pattern.eqModules} />
-      )}
     </BaseVisualization>
   );
 };
