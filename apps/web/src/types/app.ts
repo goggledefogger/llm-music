@@ -61,6 +61,8 @@ export interface AppActions {
   // Pattern actions
   updatePattern: (pattern: string) => void;
   setCursorPosition: (position: number) => void;
+  loadPattern: (patternId: string) => Promise<void>;
+  loadPatternContent: (content: string) => void;
 
   // Audio actions
   initializeAudio: () => Promise<void>;

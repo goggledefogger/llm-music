@@ -66,3 +66,11 @@ export const useUI = () => {
     setTheme: actions.setTheme
   };
 };
+
+export const usePatternLoader = () => {
+  const { actions } = useApp();
+  return {
+    loadPattern: actions.loadPattern,
+    loadPatternContent: actions.loadPatternContent
+  };
+};

@@ -3,6 +3,7 @@ import { useState, useCallback, useEffect } from 'react';
 import { usePatternEditor } from './usePatternEditor';
 import { useAudioEngine } from './useAudioEngine';
 import { AppState, AppActions, UIState } from '../types/app';
+import { PatternService } from '../services/patternService';
 
 export const useAppState = () => {
   // Individual hooks
@@ -39,11 +40,37 @@ export const useAppState = () => {
     ui
   };
 
+  // Pattern loading functionality
+  const loadPattern = useCallback(async (patternId: string) => {
+    try {
+      const pattern = PatternService.getPatternById(patternId);
+      if (!pattern) {
+        throw new Error(`Pattern with ID ${patternId} not found`);
+      }
+      
+      // Load the pattern content into the editor
+      patternEditor.updateContent(pattern.content);
+      
+      // Switch to editor tab to show the loaded pattern
+      setUI(prev => ({ ...prev, activeTab: 'editor' }));
+    } catch (error) {
+      console.error('Error loading pattern:', error);
+      throw error;
+    }
+  }, [patternEditor.updateContent]);
+
+  const loadPatternContent = useCallback((content: string) => {
+    patternEditor.updateContent(content);
+    setUI(prev => ({ ...prev, activeTab: 'editor' }));
+  }, [patternEditor.updateContent]);
+
   // Combined actions
   const actions: AppActions = {
     // Pattern actions
     updatePattern: patternEditor.updateContent,
     setCursorPosition: patternEditor.updateCursorPosition,
+    loadPattern,
+    loadPatternContent,
 
     // Audio actions
     initializeAudio: audioEngine.initialize,
