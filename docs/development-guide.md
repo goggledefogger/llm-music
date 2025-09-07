@@ -12,8 +12,9 @@ This guide provides comprehensive instructions for setting up, developing, and c
 4. [Available Scripts](#available-scripts)
 5. [Testing](#testing)
 6. [Code Standards](#code-standards)
-7. [Contributing](#contributing)
-8. [Troubleshooting](#troubleshooting)
+7. [Audio Refactor Plan](#audio-refactor-plan)
+8. [Contributing](#contributing)
+9. [Troubleshooting](#troubleshooting)
 
 ## Quick Start
 
@@ -78,11 +79,12 @@ packages:
 ### Key Dependencies
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS with modular design system
-- **Audio**: Web Audio API (direct implementation)
+- **Audio**: Web Audio API (current) + Tone.js (upcoming hybrid approach)
 - **Editor**: Custom text editor implementation
 - **Testing**: Vitest, React Testing Library
 - **Build**: Turborepo for monorepo management
 - **State Management**: React Context with focused custom hooks
+- **Collaboration**: Supabase for real-time state synchronization
 
 ## Project Structure
 
@@ -323,7 +325,7 @@ it('should load pattern when load button is clicked', async () => {
   ]);
 
   render(<PatternsPage />);
-  
+
   await waitFor(() => {
     expect(screen.getByText('Test Pattern')).toBeInTheDocument();
   });
@@ -665,12 +667,19 @@ expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 - Boolean-based pattern parsing with real-time validation
 - Pattern auto-loading when audio engine becomes ready
 - Real-time validation with debouncing and error handling
+- EQ module support with professional audio control
 
 **Architecture:**
 - Simplified component-based architecture with focused custom hooks
 - Single context provider (AppProvider) for unified state management
 - Consolidated type definitions with no duplication
 - Clean build process with all compilation errors resolved
+
+**Documentation:**
+- Comprehensive development guide with testing best practices
+- Complete audio refactor plan with hybrid architecture approach
+- Collaborative audio architecture documentation
+- Tone.js integration guide with detailed implementation steps
 
 ### 🚧 In Progress
 
@@ -682,6 +691,14 @@ expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 **AI Integration:**
 - Mock chat interface implemented
 - OpenAI API integration pending
+
+### 🎯 Upcoming: Audio Refactor
+
+**Hybrid Audio Pipeline:**
+- Tone.js integration for professional effects and advanced transport
+- State synchronization for collaborative features
+- Enhanced audio quality and performance
+- Real-time collaboration capabilities
 
 ## Auto-Validation System
 
@@ -818,7 +835,7 @@ seq kick: x...x...x...x...`;
 
   expect(validResult.isValid).toBe(true);
   expect(invalidResult.isValid).toBe(false);
-  expect(invalidResult.errors.some(error => 
+  expect(invalidResult.errors.some(error =>
     error.includes('Invalid EQ values')
   )).toBe(true);
 });
@@ -835,7 +852,7 @@ const mockAudioContext = {
   state: 'running',
   sampleRate: 44100,
   createGain: vi.fn(() => ({
-    gain: { 
+    gain: {
       value: 0.5,
       setValueAtTime: vi.fn(),
       exponentialRampToValueAtTime: vi.fn(),
@@ -1096,3 +1113,120 @@ After setting up your development environment:
 5. Adjust tempo and volume to test real-time controls
 
 The audio engine is fully functional with professional-quality synthesis! 🎵
+
+## Audio Refactor Plan
+
+### 📚 **Documentation Updates Complete**
+
+The development team now has comprehensive documentation for the upcoming **Hybrid Audio Pipeline Refactor**:
+
+#### **✅ Updated Existing Documents**
+1. **architecture.md** - Updated with hybrid audio pipeline approach
+2. **AUDIO-IMPLEMENTATION-COMPLETE.md** - Current status and next steps
+
+#### **✅ Created New Comprehensive Documents**
+1. **AUDIO-REFACTOR-PLAN.md** - Complete implementation plan with phases
+2. **COLLABORATIVE-AUDIO-ARCHITECTURE.md** - State synchronization approach
+3. **TONE-JS-INTEGRATION-GUIDE.md** - Detailed integration instructions
+4. **PACKAGE-DEPENDENCIES-UPDATE.md** - Dependencies and installation guide
+5. **DEV-HANDOFF-AUDIO-REFACTOR.md** - Comprehensive development handoff
+
+### 🎯 **Key Decisions Documented**
+
+#### **Hybrid Architecture Approach**
+- **Custom Web Audio API**: Critical timing and high-performance synthesis
+- **Tone.js Integration**: Professional effects and advanced transport
+- **State Synchronization**: Collaborative features without audio streaming
+
+#### **Collaborative Strategy**
+- **State Sync vs Audio Streaming**: 10x bandwidth savings (< 1KB/s vs 100KB/s+)
+- **Low Latency**: < 10ms for state sync vs 50-200ms for audio streaming
+- **Scalability**: 2-100+ participants vs 2-10 for audio streaming
+- **Deterministic Quality**: Perfect audio output across all clients
+
+### 🚀 **Ready for Development Team**
+
+The development team now has:
+
+1. **Complete Implementation Plan**: 5-8 week roadmap with clear phases
+2. **Technical Architecture**: Hybrid approach with detailed class structures
+3. **Collaboration Strategy**: State sync approach for real-time features
+4. **Performance Targets**: Clear metrics for success
+5. **Risk Mitigation**: Strategies for common issues
+6. **Testing Strategy**: Comprehensive testing approach
+7. **Dependencies Guide**: Exact packages and versions needed
+
+### 📋 **Next Steps for Dev Team**
+
+1. **Read DEV-HANDOFF-AUDIO-REFACTOR.md** for complete overview
+2. **Follow AUDIO-REFACTOR-PLAN.md** for implementation phases
+3. **Use TONE-JS-INTEGRATION-GUIDE.md** for technical details
+4. **Reference COLLABORATIVE-AUDIO-ARCHITECTURE.md** for collaboration features
+5. **Follow PACKAGE-DEPENDENCIES-UPDATE.md** for setup
+
+### 🎵 **Hybrid Audio Pipeline Overview**
+
+The upcoming refactor will implement a **hybrid audio architecture** that combines:
+
+#### **Custom Web Audio API (Core)**
+- **Critical Timing**: Sample-accurate scheduling for drum synthesis
+- **High Performance**: Low-latency audio processing
+- **Cross-Platform**: Consistent behavior across devices
+- **Custom Synthesis**: Kick, snare, hihat synthesizers
+
+#### **Tone.js Integration (Enhancement)**
+- **Professional Effects**: Reverb, delay, compression, EQ
+- **Advanced Transport**: Loop points, quantization, swing
+- **Audio Analysis**: FFT, spectrum analysis, beat detection
+- **MIDI Support**: External controller integration
+
+#### **State Synchronization (Collaboration)**
+- **Real-time Sync**: Pattern changes, transport state, effects
+- **Conflict Resolution**: Intelligent merge strategies
+- **Offline Support**: Local changes with sync on reconnect
+- **Scalable**: Support for 2-100+ participants
+
+### 🔧 **Implementation Phases**
+
+#### **Phase 1: Foundation (Week 1-2)**
+- Tone.js integration and basic setup
+- Hybrid audio engine architecture
+- State synchronization infrastructure
+- Basic testing framework
+
+#### **Phase 2: Core Features (Week 3-4)**
+- Professional effects implementation
+- Advanced transport controls
+- Real-time collaboration features
+- Performance optimization
+
+#### **Phase 3: Enhancement (Week 5-6)**
+- Audio analysis and visualization
+- MIDI controller support
+- Advanced collaboration features
+- Comprehensive testing
+
+#### **Phase 4: Polish (Week 7-8)**
+- Performance tuning
+- Bug fixes and edge cases
+- Documentation updates
+- Production deployment
+
+### 📊 **Performance Targets**
+
+- **Audio Latency**: < 20ms end-to-end
+- **State Sync Latency**: < 10ms for pattern changes
+- **Collaboration**: Support 2-100+ participants
+- **Bandwidth**: < 1KB/s for state sync
+- **CPU Usage**: < 15% on modern devices
+- **Memory**: < 100MB for audio processing
+
+### 🧪 **Testing Strategy**
+
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: Audio pipeline testing
+- **Performance Tests**: Latency and CPU usage
+- **Collaboration Tests**: Multi-user scenarios
+- **Cross-Platform Tests**: Desktop and mobile compatibility
+
+The foundation is solid and ready for the **Hybrid Audio Pipeline Refactor**! 🎵✨

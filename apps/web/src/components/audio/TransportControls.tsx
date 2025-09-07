@@ -16,15 +16,15 @@ export const TransportControls: React.FC = () => {
     }
 
     if (audioState.isPlaying) {
-      pause();
+      pause(); // Immediate response
     } else {
-      play();
+      play(); // Immediate response
     }
   };
 
   const handleStop = () => {
     if (audioState.isInitialized) {
-      stop();
+      stop(); // Immediate response
     }
   };
 
@@ -44,7 +44,7 @@ export const TransportControls: React.FC = () => {
 
   // Convert dB volume back to 0-100 for display
   const displayVolume = Math.round(((audioState.volume + 60) / 60) * 100);
-  const displayTime = Math.floor(audioState.currentTime);
+  const displayTime = audioState.currentTime;
 
   return (
     <div className="p-4">
@@ -114,9 +114,21 @@ export const TransportControls: React.FC = () => {
           </div>
 
           <div className="flex items-center space-x-2">
-            <span className="text-sm text-foreground-muted">Time:</span>
+            <span className="text-sm text-foreground-muted">Position:</span>
             <span className="text-sm font-mono">
-              {Math.floor(displayTime / 60)}:{(displayTime % 60).toString().padStart(2, '0')}
+              {Math.floor(displayTime / 60)}:{(displayTime % 60).toFixed(1).padStart(4, '0')}
+            </span>
+          </div>
+
+          {/* Status Indicator */}
+          <div className="flex items-center space-x-2">
+            <div className={`w-2 h-2 rounded-full ${
+              audioState.isPlaying ? 'bg-green-500' :
+              audioState.isPaused ? 'bg-yellow-500' : 'bg-gray-500'
+            }`} />
+            <span className="text-xs text-foreground-muted">
+              {audioState.isPlaying ? 'Playing' :
+               audioState.isPaused ? 'Paused' : 'Stopped'}
             </span>
           </div>
         </div>

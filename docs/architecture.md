@@ -397,19 +397,25 @@ components:
 - Consistent spacing system (3 levels: responsive, compact, ultra-compact)
 - Single source of truth for all styling decisions
 
-### Audio Engine
+### Audio Engine (Hybrid Architecture)
 
-**Responsibility:** Real-time audio processing and synthesis
+**Responsibility:** Real-time audio processing and synthesis with collaborative capabilities
 
 **Key Interfaces:**
 - Pattern Parser for DSL interpretation
-- Synthesizer API for sound generation
-- Effects API for audio processing
-- Transport API for playback control
+- Custom Synthesizer API for high-performance sound generation
+- Tone.js Effects API for professional audio processing
+- Tone.js Transport API for advanced playback control
+- State Synchronization API for collaborative features
 
-**Dependencies:** Web Audio API, Tone.js, Custom DSL Parser
+**Dependencies:** Web Audio API (native), Tone.js (v14.7.77), Custom DSL Parser, Socket.io
 
-**Technology Stack:** TypeScript, Web Audio API, Tone.js
+**Technology Stack:** TypeScript, Web Audio API (native), Tone.js (hybrid), WebSocket (state sync)
+
+**Architecture Decision:** Hybrid approach combining:
+- **Custom Web Audio API**: For critical timing and high-performance synthesis
+- **Tone.js**: For professional effects, transport, and complex timing
+- **State Synchronization**: For collaborative features (no audio streaming)
 
 ### AI Service
 
@@ -597,13 +603,13 @@ CREATE POLICY "Users can update own patterns" ON patterns FOR UPDATE USING (auth
 CREATE POLICY "Users can delete own patterns" ON patterns FOR DELETE USING (auth.uid() = user_id);
 ```
 
-## Audio Engine Implementation
+## Audio Engine Implementation (Hybrid Architecture)
 
 ### Current Audio Engine Status
 
-The audio engine has been fully implemented with Web Audio API and provides:
+The audio engine has been fully implemented with Web Audio API and is ready for hybrid refactor:
 
-**✅ Completed Features:**
+**✅ Completed Features (Phase 1):**
 - **Audio Context Management**: Proper initialization with user gesture handling
 - **Pattern Scheduling**: Sample-accurate timing with Web Audio API scheduling
 - **Audio Synthesis**: Three synthesizers implemented:
@@ -629,17 +635,36 @@ The audio engine has been fully implemented with Web Audio API and provides:
 - **No Audio Dropouts**: Robust scheduling prevents audio interruptions
 - **Continuous Playback**: Fixed sequencer loop scheduling for seamless playback
 
-### Audio Engine Architecture
+### Next Phase: Hybrid Refactor
+
+**🚀 Planned Enhancements (Phase 2):**
+- **Tone.js Integration**: Professional effects and advanced transport
+- **Modular Effects Chain**: Serial and parallel effect routing
+- **Complex Timing**: Time signatures, polyrhythms, swing
+- **Collaborative Features**: State synchronization for live jamming
+- **Advanced Synthesis**: Expandable synthesizer system
+
+### Hybrid Audio Engine Architecture
 
 ```typescript
-// Audio Engine Class Structure
-export class AudioEngine {
+// Hybrid Audio Engine Class Structure
+export class HybridAudioEngine {
+  // Core Audio Context (Web Audio API)
   private audioContext: AudioContext | null = null;
   private gainNode: GainNode | null = null;
+
+  // Tone.js Integration
+  private toneTransport: Tone.Transport;
+  private effectsChain: Tone.EffectsChain;
+  private masterEffects: Tone.EffectsChain;
+
+  // Custom Synthesis (Web Audio API)
+  private customSynthesizers: Map<string, CustomSynthesizer>;
   private scheduledEvents: number[] = [];
-  private startTime: number = 0;
-  private currentStep: number = 0;
-  private stepInterval: number = 0;
+
+  // Collaboration
+  private stateSync: StateSyncManager;
+  private sharedState: SharedAudioState;
 
   // Core Methods
   initialize(): Promise<void>
@@ -649,6 +674,16 @@ export class AudioEngine {
   stop(): void
   setTempo(tempo: number): void
   setVolume(volume: number): void
+
+  // Effects Methods
+  addEffect(effect: Tone.Effect, instrument?: string): void
+  removeEffect(effectId: string): void
+  setEffectParameter(effectId: string, param: string, value: number): void
+
+  // Collaboration Methods
+  joinSession(sessionId: string): void
+  leaveSession(): void
+  syncState(state: SharedAudioState): void
 
   // Private Methods
   private schedulePattern(): void
@@ -723,7 +758,7 @@ private schedulePattern(): void {
 
   for (let loop = 0; loop < loopsToSchedule; loop++) {
     const loopStartTime = this.startTime + (loop * loopDuration);
-    
+
     // Only schedule if the loop start time is in the future
     if (loopStartTime >= currentTime) {
       // Schedule the entire pattern loop
@@ -952,7 +987,7 @@ eq snare: low=-1 mid=2 high=1
 
 **EQ Module Properties:**
 - **Low**: Bass frequencies (typically 20Hz - 250Hz)
-- **Mid**: Midrange frequencies (typically 250Hz - 4kHz)  
+- **Mid**: Midrange frequencies (typically 250Hz - 4kHz)
 - **High**: Treble frequencies (typically 4kHz - 20kHz)
 - **Range**: -3 to +3 (automatically clamped)
 - **Precision**: Integer values only for simplicity

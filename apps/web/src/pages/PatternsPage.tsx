@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { PatternThumbnail } from '../components/visualizations';
-import { ParsedPattern } from '../types/app';
+// import { ParsedPattern } from '../types/app'; // Not used in this component
 import { PatternService, StoredPattern } from '../services/patternService';
 import { usePatternLoader } from '../contexts/AppContext';
 
@@ -18,10 +18,10 @@ export const PatternsPage: React.FC = () => {
       try {
         setLoading(true);
         setError(null);
-        
+
         // Initialize storage with sample patterns if empty
         PatternService.initializeStorage();
-        
+
         // Get all stored patterns
         const storedPatterns = PatternService.getStoredPatterns();
         setPatterns(storedPatterns);
@@ -67,8 +67,8 @@ export const PatternsPage: React.FC = () => {
         <div className="bg-red-50 border border-red-200 rounded-lg p-6">
           <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Patterns</h2>
           <p className="text-red-600">{error}</p>
-          <button 
-            onClick={() => window.location.reload()} 
+          <button
+            onClick={() => window.location.reload()}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Retry
@@ -80,13 +80,13 @@ export const PatternsPage: React.FC = () => {
 
   // Filter patterns based on search and category
   const filteredPatterns = patterns.filter(pattern => {
-    const matchesSearch = searchQuery === '' || 
+    const matchesSearch = searchQuery === '' ||
       pattern.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       pattern.category.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesCategory = selectedCategory === 'all' || 
+
+    const matchesCategory = selectedCategory === 'all' ||
       pattern.category.toLowerCase() === selectedCategory.toLowerCase();
-    
+
     return matchesSearch && matchesCategory;
   });
 
@@ -138,7 +138,7 @@ export const PatternsPage: React.FC = () => {
           <div className="text-6xl mb-4">🎵</div>
           <h3 className="text-xl font-semibold mb-2">No patterns found</h3>
           <p className="text-foreground-secondary">
-            {searchQuery || selectedCategory !== 'all' 
+            {searchQuery || selectedCategory !== 'all'
               ? 'Try adjusting your search or filter criteria.'
               : 'No patterns are available at the moment.'
             }

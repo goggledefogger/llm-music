@@ -2,15 +2,15 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { usePatternEditor } from './usePatternEditor';
-import { useAudioEngine } from './useAudioEngine';
+import { useUnifiedAudioEngine } from './useUnifiedAudioEngine';
 import { AppState, AppActions, UIState } from '../types/app';
 import { PatternService } from '../services/patternService';
 
 export const useAppState = () => {
   // Individual hooks
   const patternEditor = usePatternEditor();
-  const audioEngine = useAudioEngine();
-  
+  const audioEngine = useUnifiedAudioEngine();
+
   // Use navigate hook with error handling for tests
   let navigate: (path: string) => void;
   try {
@@ -59,10 +59,10 @@ export const useAppState = () => {
       if (!pattern) {
         throw new Error(`Pattern with ID ${patternId} not found`);
       }
-      
+
       // Load the pattern content into the editor
       patternEditor.updateContent(pattern.content);
-      
+
       // Navigate to the editor page to show the loaded pattern
       navigate('/editor');
     } catch (error) {

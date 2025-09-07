@@ -2,7 +2,7 @@ import React from 'react';
 import { EQModule } from '../../../types/app';
 
 interface EQDisplayProps {
-  eqModules: { [name: string]: EQModule };
+  eqModules?: { [name: string]: EQModule };
   className?: string;
 }
 

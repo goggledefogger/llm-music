@@ -1,26 +1,28 @@
-// Simplified audio engine hook (replaces the old complex one)
+// Hybrid Audio Engine Hook - Combines Web Audio API with Tone.js
 import { useState, useCallback, useEffect } from 'react';
-import { audioEngine } from '../services/audioEngine';
-import { AudioState } from '../types/app';
+import { hybridAudioEngine, HybridAudioState } from '../services/hybridAudioEngine';
 
-export const useAudioEngine = () => {
-  const [state, setState] = useState<AudioState>({
+export const useHybridAudioEngine = () => {
+  const [state, setState] = useState<HybridAudioState>({
     isInitialized: false,
     isPlaying: false,
     isPaused: false,
     tempo: 120,
     volume: -6,
     currentTime: 0,
-    error: null
+    error: null,
+    effectsEnabled: false,
+    collaborationEnabled: false,
+    audioQuality: 'high'
   });
 
-  // Initialize audio engine
+  // Initialize hybrid audio engine
   const initialize = useCallback(async () => {
-    const engineState = audioEngine.getState();
+    const engineState = hybridAudioEngine.getState();
     if (engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...engineState,
         error: null
       }));
       return;
@@ -28,14 +30,16 @@ export const useAudioEngine = () => {
 
     try {
       setState(prev => ({ ...prev, error: null }));
-      await audioEngine.initialize();
+      await hybridAudioEngine.initialize();
+
+      const newState = hybridAudioEngine.getState();
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...newState,
         error: null
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize audio';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize hybrid audio engine';
       setState(prev => ({
         ...prev,
         error: errorMessage
@@ -45,18 +49,18 @@ export const useAudioEngine = () => {
 
   // Auto-initialize on first user interaction
   useEffect(() => {
-    const engineState = audioEngine.getState();
+    const engineState = hybridAudioEngine.getState();
     if (engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...engineState,
         error: null
       }));
       return;
     }
 
     const handleUserInteraction = async () => {
-      const currentEngineState = audioEngine.getState();
+      const currentEngineState = hybridAudioEngine.getState();
       if (!currentEngineState.isInitialized && !state.error) {
         await initialize();
       }
@@ -78,33 +82,28 @@ export const useAudioEngine = () => {
     };
   }, [state.error, initialize]);
 
-  // Immediate state updates (no polling)
+  // Update state from engine
   const updateState = useCallback(() => {
-    const engineState = audioEngine.getState();
+    const engineState = hybridAudioEngine.getState();
     setState(prev => ({
       ...prev,
-      isInitialized: engineState.isInitialized,
-      isPlaying: engineState.isPlaying,
-      isPaused: engineState.isPaused,
-      tempo: engineState.tempo,
-      currentTime: engineState.currentTime,
-      volume: engineState.volume
+      ...engineState
     }));
   }, []);
 
-  // Audio control functions with immediate state updates
+  // Audio control functions
   const play = useCallback(() => {
     if (!state.isInitialized) {
       setState(prev => ({
         ...prev,
-        error: 'Audio engine not initialized'
+        error: 'Hybrid audio engine not initialized'
       }));
       return;
     }
 
     try {
-      audioEngine.play();
-      updateState(); // Immediate UI update
+      hybridAudioEngine.play();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to play';
       setState(prev => ({
@@ -116,8 +115,8 @@ export const useAudioEngine = () => {
 
   const pause = useCallback(() => {
     try {
-      audioEngine.pause();
-      updateState(); // Immediate UI update
+      hybridAudioEngine.pause();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to pause';
       setState(prev => ({
@@ -129,8 +128,8 @@ export const useAudioEngine = () => {
 
   const stop = useCallback(() => {
     try {
-      audioEngine.stop();
-      updateState(); // Immediate UI update
+      hybridAudioEngine.stop();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to stop';
       setState(prev => ({
@@ -142,7 +141,7 @@ export const useAudioEngine = () => {
 
   const setTempo = useCallback((tempo: number) => {
     try {
-      audioEngine.setTempo(tempo);
+      hybridAudioEngine.setTempo(tempo);
       setState(prev => ({
         ...prev,
         tempo
@@ -158,7 +157,7 @@ export const useAudioEngine = () => {
 
   const setVolume = useCallback((volume: number) => {
     try {
-      audioEngine.setVolume(volume);
+      hybridAudioEngine.setVolume(volume);
       setState(prev => ({
         ...prev,
         volume
@@ -173,17 +172,17 @@ export const useAudioEngine = () => {
   }, []);
 
   const loadPattern = useCallback((pattern: string) => {
-    const engineState = audioEngine.getState();
+    const engineState = hybridAudioEngine.getState();
     if (!engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        error: 'Audio engine not initialized'
+        error: 'Hybrid audio engine not initialized'
       }));
       return;
     }
 
     try {
-      audioEngine.loadPattern(pattern);
+      hybridAudioEngine.loadPattern(pattern);
       setState(prev => ({
         ...prev,
         error: null
@@ -197,7 +196,39 @@ export const useAudioEngine = () => {
     }
   }, []);
 
-  // High-frequency updates only when playing
+  // Effect control functions
+  const setEffectEnabled = useCallback((effectId: string, enabled: boolean) => {
+    try {
+      hybridAudioEngine.setEffectEnabled(effectId, enabled);
+      updateState();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to toggle effect';
+      setState(prev => ({
+        ...prev,
+        error: errorMessage
+      }));
+    }
+  }, [updateState]);
+
+  const setEffectWet = useCallback((effectId: string, wet: number) => {
+    try {
+      hybridAudioEngine.setEffectWet(effectId, wet);
+      updateState();
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'Failed to set effect wet level';
+      setState(prev => ({
+        ...prev,
+        error: errorMessage
+      }));
+    }
+  }, [updateState]);
+
+  // Get performance metrics
+  const getPerformanceMetrics = useCallback(() => {
+    return hybridAudioEngine.getPerformanceMetrics();
+  }, []);
+
+  // High-frequency updates when playing
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -220,6 +251,9 @@ export const useAudioEngine = () => {
     stop,
     setTempo,
     setVolume,
-    loadPattern
+    loadPattern,
+    setEffectEnabled,
+    setEffectWet,
+    getPerformanceMetrics
   };
 };

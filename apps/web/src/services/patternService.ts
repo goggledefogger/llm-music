@@ -1,5 +1,5 @@
 // Pattern service for managing pattern storage and retrieval
-import { STORAGE_CONSTANTS, Pattern } from '@ascii-sequencer/shared';
+import { STORAGE_CONSTANTS } from '@ascii-sequencer/shared';
 import { ParsedPattern } from '../types/app';
 
 export interface StoredPattern {
@@ -25,7 +25,7 @@ export class PatternService {
     try {
       const stored = localStorage.getItem(this.STORAGE_KEY);
       if (!stored) return [];
-      
+
       const patterns = JSON.parse(stored);
       // Convert date strings back to Date objects
       return patterns.map((pattern: any) => ({
@@ -64,7 +64,7 @@ export class PatternService {
   static savePattern(pattern: Omit<StoredPattern, 'id' | 'createdAt' | 'updatedAt'>): StoredPattern {
     const patterns = this.getStoredPatterns();
     const now = new Date();
-    
+
     const newPattern: StoredPattern = {
       ...pattern,
       id: this.generateId(),
@@ -83,7 +83,7 @@ export class PatternService {
   static updatePattern(id: string, updates: Partial<Omit<StoredPattern, 'id' | 'createdAt'>>): StoredPattern | null {
     const patterns = this.getStoredPatterns();
     const index = patterns.findIndex(pattern => pattern.id === id);
-    
+
     if (index === -1) return null;
 
     const updatedPattern: StoredPattern = {
@@ -103,7 +103,7 @@ export class PatternService {
   static deletePattern(id: string): boolean {
     const patterns = this.getStoredPatterns();
     const filteredPatterns = patterns.filter(pattern => pattern.id !== id);
-    
+
     if (filteredPatterns.length === patterns.length) {
       return false; // Pattern not found
     }
@@ -126,8 +126,8 @@ export class PatternService {
   static searchPatterns(query: string): StoredPattern[] {
     const patterns = this.getStoredPatterns();
     const lowerQuery = query.toLowerCase();
-    
-    return patterns.filter(pattern => 
+
+    return patterns.filter(pattern =>
       pattern.name.toLowerCase().includes(lowerQuery) ||
       pattern.content.toLowerCase().includes(lowerQuery) ||
       pattern.category.toLowerCase().includes(lowerQuery)

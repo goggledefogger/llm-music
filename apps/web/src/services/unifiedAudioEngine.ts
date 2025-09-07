@@ -1,42 +1,67 @@
-// Basic audio engine for ASCII Generative Sequencer
-import { ParsedPattern } from '../types/app';
+// Unified Audio Engine - Real-time everything, no pre-calculation
+import { ParsedPattern, UnifiedAudioState } from '../types/app';
 import { PatternParser } from './patternParser';
 
-export class AudioEngine {
-  private static instance: AudioEngine | null = null;
+export interface ParameterUpdate {
+  type: ParameterType;
+  value: any;
+  timestamp: number;
+}
+
+type ParameterType = 'tempo' | 'sequence' | 'effects' | 'eq' | 'volume';
+
+/**
+ * Unified Audio Engine - Real-time everything, no pre-calculation
+ *
+ * Key Principles:
+ * 1. Real-time parameter updates - No waiting for next loop
+ * 2. Unified parameter interface - Single way to update any parameter
+ * 3. No pre-calculation - Everything computed on-demand
+ * 4. Clean separation of concerns
+ */
+export class UnifiedAudioEngine {
+  private static instance: UnifiedAudioEngine | null = null;
+
+  // Core state
   private isInitialized = false;
   private isPlaying = false;
   private isPaused = false;
   private currentPattern: ParsedPattern | null = null;
+
+  // Audio context and nodes
   private audioContext: AudioContext | null = null;
-  private gainNode: GainNode | null = null;
   private masterGain: GainNode | null = null;
-  private scheduledEvents: number[] = [];
+  private volumeGain: GainNode | null = null;
+
+  // Real-time timing system (no pre-calculation)
+  private startTime: number = 0;
+  private pausePosition: number = 0;
+
+  // Audio sources and scheduling
   private activeOscillators: OscillatorNode[] = [];
   private activeNoiseSources: AudioBufferSourceNode[] = [];
-  private startTime: number = 0;
-  // private currentPosition: number = 0; // Not used in basic engine
-  private pausePosition: number = 0;
-  private stepInterval: number = 0;
-  private loopDuration: number = 0;
+  private scheduledEvents: number[] = [];
+
+  // Real-time parameter system
+  private parameterHistory: ParameterUpdate[] = [];
+  private maxParameterHistory = 100;
 
   private constructor() {
-    // Constructor is now minimal - initialization happens in initialize()
+    // Constructor is minimal - initialization happens in initialize()
   }
 
   /**
-   * Get the singleton instance of AudioEngine
+   * Get the singleton instance
    */
-  public static getInstance(): AudioEngine {
-    if (!AudioEngine.instance) {
-      AudioEngine.instance = new AudioEngine();
+  public static getInstance(): UnifiedAudioEngine {
+    if (!UnifiedAudioEngine.instance) {
+      UnifiedAudioEngine.instance = new UnifiedAudioEngine();
     }
-    return AudioEngine.instance;
+    return UnifiedAudioEngine.instance;
   }
 
   /**
-   * Initialize the audio engine
-   * Must be called after a user gesture
+   * Initialize the unified audio engine
    */
   async initialize(): Promise<void> {
     if (this.isInitialized) {
@@ -44,61 +69,57 @@ export class AudioEngine {
     }
 
     try {
+      console.log('Initializing Unified Audio Engine...');
+
       // Create AudioContext
       this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
 
-      // Create master gain node for immediate audio control
+      // Create audio graph
       this.masterGain = this.audioContext.createGain();
       this.masterGain.gain.value = 1.0;
 
-      // Create gain node for volume control
-      this.gainNode = this.audioContext.createGain();
-      this.gainNode.gain.value = 0.5; // Start at -6dB equivalent
+      this.volumeGain = this.audioContext.createGain();
+      this.volumeGain.gain.value = 0.5; // Start at -6dB equivalent
 
-      // Connect: masterGain -> gainNode -> destination
-      this.masterGain.connect(this.gainNode);
-      this.gainNode.connect(this.audioContext.destination);
+      // Connect: masterGain -> volumeGain -> destination
+      this.masterGain.connect(this.volumeGain);
+      this.volumeGain.connect(this.audioContext.destination);
 
-      // Resume context if suspended (required for user gesture)
+      // Resume context if suspended
       if (this.audioContext.state === 'suspended') {
         await this.audioContext.resume();
       }
 
       this.isInitialized = true;
-      console.log('Audio engine initialized successfully');
+      console.log('Unified Audio Engine initialized successfully');
     } catch (error) {
-      console.error('Failed to initialize audio engine:', error);
-      throw new Error('Failed to initialize audio engine');
+      console.error('Failed to initialize unified audio engine:', error);
+      throw new Error('Failed to initialize unified audio engine');
     }
   }
 
   /**
-   * Load and parse a pattern
+   * Load and parse a pattern with real-time updates
    */
   loadPattern(patternString: string): void {
     try {
       const newPattern = PatternParser.parse(patternString);
-      const wasPlaying = this.isPlaying;
-
-      // Store previous pattern for comparison
+      // const wasPlaying = this.isPlaying; // Not needed for unified engine
       const previousPattern = this.currentPattern;
+
       this.currentPattern = newPattern;
+
+      // Apply real-time updates
+      this.updateParameter('sequence', newPattern);
 
       // Apply tempo changes in real-time
       if (newPattern.tempo && (!previousPattern || previousPattern.tempo !== newPattern.tempo)) {
-        console.log(`Tempo updated to ${newPattern.tempo} BPM`);
-
-        // Apply real-time tempo change if currently playing
-        if (wasPlaying && this.audioContext) {
-          this.applyRealTimeTempoChange(previousPattern?.tempo || 120, newPattern.tempo);
-        }
+        this.updateParameter('tempo', newPattern.tempo);
       }
 
       // Apply EQ changes in real-time
       if (newPattern.eqModules && Object.keys(newPattern.eqModules).length > 0) {
-        console.log('EQ settings detected:', newPattern.eqModules);
-        // Note: Basic AudioEngine doesn't have EQ processing yet
-        // This is a placeholder for future EQ implementation
+        this.updateParameter('eq', newPattern.eqModules);
       }
 
       console.log('Pattern loaded with real-time updates:', this.currentPattern);
@@ -109,7 +130,7 @@ export class AudioEngine {
   }
 
   /**
-   * SMART RESUME - Continues from exact pause position
+   * Play the pattern
    */
   play(): void {
     if (!this.isInitialized || !this.audioContext) {
@@ -125,27 +146,18 @@ export class AudioEngine {
     }
 
     try {
-      const timestamp = new Date().toISOString();
-      console.log(`[${timestamp}] Starting playback - tempo: ${this.currentPattern.tempo}, totalSteps: ${this.currentPattern.totalSteps}`);
+      console.log('Starting unified playback...');
 
-      // Clear any existing scheduled events
+      // Clear any existing scheduled events and audio sources
       this.clearScheduledEvents();
-
-      // Calculate step interval based on tempo
-      const stepsPerBeat = 4; // 16th notes
-      const beatsPerMinute = this.currentPattern.tempo;
-      const secondsPerBeat = 60 / beatsPerMinute;
-      this.stepInterval = secondsPerBeat / stepsPerBeat;
-      this.loopDuration = this.currentPattern.totalSteps * this.stepInterval;
+      this.stopAllAudio();
 
       // Calculate start time based on pause position
       if (this.isPaused) {
-        // Resume from pause position - set startTime to make current position = pausePosition
         this.startTime = this.audioContext.currentTime - this.pausePosition;
         this.isPaused = false;
         console.log(`Resuming from position: ${this.pausePosition.toFixed(3)}s`);
       } else {
-        // Start from beginning
         this.startTime = this.audioContext.currentTime;
         this.pausePosition = 0;
         console.log('Starting from beginning');
@@ -156,13 +168,11 @@ export class AudioEngine {
         this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
       }
 
-      console.log(`[${timestamp}] Calculated stepInterval: ${this.stepInterval.toFixed(3)}s, startTime: ${this.startTime.toFixed(3)}`);
-
-      // Start the scheduler
+      // Start scheduling
       this.schedulePattern();
 
       this.isPlaying = true;
-      console.log(`[${timestamp}] Playback started successfully`);
+      console.log('Unified playback started');
     } catch (error) {
       console.error('Failed to start playback:', error);
       throw new Error('Failed to start playback');
@@ -170,7 +180,7 @@ export class AudioEngine {
   }
 
   /**
-   * IMMEDIATE PAUSE - Stops audio instantly, remembers position
+   * Pause playback
    */
   pause(): void {
     if (!this.isPlaying) return;
@@ -179,18 +189,18 @@ export class AudioEngine {
     if (this.audioContext && this.startTime > 0) {
       this.pausePosition = this.audioContext.currentTime - this.startTime;
       // Keep position within loop bounds
-      if (this.loopDuration > 0) {
-        this.pausePosition = this.pausePosition % this.loopDuration;
+      const loopDuration = this.getLoopDuration();
+      if (loopDuration > 0) {
+        this.pausePosition = this.pausePosition % loopDuration;
       }
     }
 
-    // IMMEDIATELY stop all audio
+    // Stop all audio immediately
     this.stopAllAudio();
 
     // Clear scheduling
     this.clearScheduledEvents();
 
-    // Update state
     this.isPlaying = false;
     this.isPaused = true;
 
@@ -198,20 +208,24 @@ export class AudioEngine {
   }
 
   /**
-   * IMMEDIATE STOP - Stops audio instantly, resets position
+   * Stop playback and reset
    */
   stop(): void {
-    // IMMEDIATELY stop all audio
+    // Stop all audio immediately
     this.stopAllAudio();
 
     // Clear scheduling
     this.clearScheduledEvents();
 
-    // Reset position (currentPosition removed)
+    // Reset position
     this.pausePosition = 0;
     this.startTime = 0;
 
-    // Update state
+    // Restore master gain
+    if (this.masterGain && this.audioContext) {
+      this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
+    }
+
     this.isPlaying = false;
     this.isPaused = false;
 
@@ -219,20 +233,109 @@ export class AudioEngine {
   }
 
   /**
-   * Set tempo with real-time adjustment
+   * UNIFIED PARAMETER UPDATE INTERFACE
+   * This is the single way to update ANY parameter in real-time
    */
-  setTempo(tempo: number): void {
-    const clampedTempo = Math.max(60, Math.min(200, tempo));
+  updateParameter(type: ParameterType, value: any): void {
+    const update: ParameterUpdate = {
+      type,
+      value,
+      timestamp: this.audioContext?.currentTime || 0
+    };
 
-    if (this.currentPattern) {
-      const oldTempo = this.currentPattern.tempo;
-      this.currentPattern.tempo = clampedTempo;
-
-      // Apply real-time tempo change if currently playing
-      if (this.isPlaying && this.audioContext) {
-        this.applyRealTimeTempoChange(oldTempo, clampedTempo);
-      }
+    // Store parameter update in history
+    this.parameterHistory.push(update);
+    if (this.parameterHistory.length > this.maxParameterHistory) {
+      this.parameterHistory.shift();
     }
+
+    console.log(`[Unified] Updating ${type}:`, value);
+
+    // Apply the parameter update
+    switch (type) {
+      case 'tempo':
+        this.applyTempoUpdate(value);
+        break;
+      case 'sequence':
+        this.applySequenceUpdate(value);
+        break;
+      case 'effects':
+        this.applyEffectsUpdate(value);
+        break;
+      case 'eq':
+        this.applyEQUpdate(value);
+        break;
+      case 'volume':
+        this.applyVolumeUpdate(value);
+        break;
+      default:
+        console.warn(`[Unified] Unknown parameter type: ${type}`);
+    }
+  }
+
+  /**
+   * Apply tempo update in real-time
+   */
+  private applyTempoUpdate(newTempo: number): void {
+    if (!this.currentPattern) return;
+
+    const oldTempo = this.currentPattern.tempo;
+    this.currentPattern.tempo = newTempo;
+
+    console.log(`[Unified] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
+
+    // Apply real-time tempo change if currently playing
+    if (this.isPlaying && this.audioContext) {
+      this.applyRealTimeTempoChange(oldTempo, newTempo);
+    }
+  }
+
+  /**
+   * Apply sequence update in real-time
+   */
+  private applySequenceUpdate(newPattern: ParsedPattern): void {
+    const oldPattern = this.currentPattern;
+    this.currentPattern = newPattern;
+
+    console.log(`[Unified] Sequence updated - ${Object.keys(newPattern.instruments).length} instruments`);
+
+    // Apply real-time sequence change if currently playing
+    if (this.isPlaying && this.audioContext) {
+      this.applyRealTimeSequenceChange(oldPattern, newPattern);
+    }
+  }
+
+  /**
+   * Apply effects update in real-time
+   */
+  private applyEffectsUpdate(effectsConfig: any): void {
+    console.log(`[Unified] Effects updated:`, effectsConfig);
+    // TODO: Implement effects system
+  }
+
+  /**
+   * Apply EQ update in real-time
+   */
+  private applyEQUpdate(eqConfig: any): void {
+    console.log(`[Unified] EQ updated:`, eqConfig);
+    // TODO: Implement EQ system
+  }
+
+  /**
+   * Apply volume update in real-time
+   */
+  private applyVolumeUpdate(volume: number): void {
+    if (!this.volumeGain) return;
+
+    // Convert dB to linear gain (volume is in dB, -60 to 0)
+    const clampedVolume = Math.max(-60, Math.min(0, volume));
+    const linearGain = Math.pow(10, clampedVolume / 20);
+
+    if (this.audioContext) {
+      this.volumeGain.gain.setValueAtTime(linearGain, this.audioContext.currentTime);
+    }
+
+    console.log(`[Unified] Volume updated to ${volume} dB (${linearGain.toFixed(3)} linear)`);
   }
 
   /**
@@ -241,19 +344,13 @@ export class AudioEngine {
   private applyRealTimeTempoChange(oldTempo: number, newTempo: number): void {
     if (!this.audioContext || !this.currentPattern) return;
 
-    console.log(`[RealTime] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
-
     // Calculate tempo ratio for timing adjustment
     const tempoRatio = newTempo / oldTempo;
     const currentTime = this.audioContext.currentTime;
     const elapsedTime = currentTime - this.startTime;
 
     // Adjust start time to maintain current position with new tempo
-    // This ensures the sequence continues from the same musical position
     this.startTime = currentTime - (elapsedTime / tempoRatio);
-
-    // Recalculate timing parameters
-    this.recalculateTiming();
 
     // Clear existing scheduled events to prevent multiple copies
     this.clearScheduledEvents();
@@ -269,83 +366,47 @@ export class AudioEngine {
     // Immediately reschedule from current position with new tempo
     this.schedulePattern();
 
-    console.log(`[RealTime] Timing adjusted - tempo ratio: ${tempoRatio.toFixed(3)}`);
-    console.log(`[RealTime] New stepInterval: ${this.stepInterval.toFixed(3)}s`);
+    console.log(`[Unified] Timing adjusted - tempo ratio: ${tempoRatio.toFixed(3)}`);
   }
 
   /**
-   * Recalculate timing parameters for real-time tempo changes
+   * Apply real-time sequence change
    */
-  private recalculateTiming(): void {
-    if (!this.currentPattern || !this.audioContext) return;
+  private applyRealTimeSequenceChange(_oldPattern: ParsedPattern | null, _newPattern: ParsedPattern): void {
+    if (!this.audioContext) return;
 
-    const stepsPerBeat = 4; // 16th notes
-    const beatsPerMinute = this.currentPattern.tempo;
-    const secondsPerBeat = 60 / beatsPerMinute;
-    this.stepInterval = secondsPerBeat / stepsPerBeat;
-    this.loopDuration = this.currentPattern.totalSteps * this.stepInterval;
+    console.log(`[Unified] Sequence adjusted for pattern change`);
 
-    console.log(`Timing recalculated: stepInterval=${this.stepInterval.toFixed(3)}s, loopDuration=${this.loopDuration.toFixed(3)}s`);
-  }
+    // Clear existing scheduled events
+    this.clearScheduledEvents();
 
-  /**
-   * Set volume
-   */
-  setVolume(volume: number): void {
-    if (!this.gainNode) return;
+    // Stop all currently playing audio
+    this.stopAllAudio();
 
-    // Convert dB to linear gain (volume is in dB, -60 to 0)
-    const clampedVolume = Math.max(-60, Math.min(0, volume));
-    const linearGain = Math.pow(10, clampedVolume / 20);
-    this.gainNode.gain.value = linearGain;
-  }
-
-  /**
-   * IMMEDIATE AUDIO STOPPING - Stops all currently playing audio
-   */
-  private stopAllAudio(): void {
-    // Stop all active oscillators immediately
-    this.activeOscillators.forEach(osc => {
-      try {
-        osc.stop();
-        osc.disconnect();
-      } catch (e) {
-        // Oscillator might already be stopped
-      }
-    });
-    this.activeOscillators = [];
-
-    // Stop all active noise sources immediately
-    this.activeNoiseSources.forEach(source => {
-      try {
-        source.stop();
-        source.disconnect();
-      } catch (e) {
-        // Source might already be stopped
-      }
-    });
-    this.activeNoiseSources = [];
-
-    // Use master gain for immediate volume cut
-    if (this.masterGain && this.audioContext) {
-      this.masterGain.gain.setValueAtTime(0, this.audioContext.currentTime);
+    // Restore master gain
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
     }
+
+    // Immediately reschedule with new pattern
+    this.schedulePattern();
   }
 
   /**
-   * Get current state with real-time position calculation
+   * Get current state with real-time calculations
    */
-  getState() {
+  getState(): UnifiedAudioState {
     const tempo = this.currentPattern?.tempo || 120;
-    const volume = this.gainNode ? 20 * Math.log10(this.gainNode.gain.value) : -6;
+    const volume = this.volumeGain ? 20 * Math.log10(this.volumeGain.gain.value) : -6;
 
     // Calculate real-time position
     let currentTime = 0;
     if (this.audioContext && this.isPlaying && this.startTime > 0) {
       currentTime = this.audioContext.currentTime - this.startTime;
       // Keep within loop bounds
-      if (this.loopDuration > 0) {
-        currentTime = currentTime % this.loopDuration;
+      const loopDuration = this.getLoopDuration();
+      if (loopDuration > 0) {
+        currentTime = currentTime % loopDuration;
       }
     } else if (this.isPaused) {
       currentTime = this.pausePosition;
@@ -358,35 +419,49 @@ export class AudioEngine {
       tempo,
       currentTime,
       volume,
-      error: null // Audio engine doesn't track errors in state, they're handled by the hook
+      error: null,
+      effectsEnabled: false, // TODO: Implement effects
+      audioQuality: 'high'
     };
   }
 
+  /**
+   * Real-time timing calculations (no pre-calculation)
+   */
+  private getStepInterval(): number {
+    if (!this.currentPattern) return 0;
+    const stepsPerBeat = 4; // 16th notes
+    const beatsPerMinute = this.currentPattern.tempo;
+    const secondsPerBeat = 60 / beatsPerMinute;
+    return secondsPerBeat / stepsPerBeat;
+  }
 
-  // Synthesizer methods will be implemented later
+  private getLoopDuration(): number {
+    if (!this.currentPattern) return 0;
+    return this.currentPattern.totalSteps * this.getStepInterval();
+  }
+
+  // getCurrentStep method removed - not currently used
 
   /**
-   * Schedule pattern playback
+   * Schedule pattern playback with real-time timing
    */
   private schedulePattern(): void {
     if (!this.audioContext || !this.currentPattern) return;
 
+    const timestamp = new Date().toISOString();
     const totalSteps = this.currentPattern.totalSteps;
     const currentTime = this.audioContext.currentTime;
-    const timestamp = new Date().toISOString();
+    const stepInterval = this.getStepInterval();
+    const loopDuration = this.getLoopDuration();
 
-    console.log(`[${timestamp}] schedulePattern called - currentTime: ${currentTime.toFixed(3)}, startTime: ${this.startTime.toFixed(3)}`);
+    // Schedule multiple loops ahead
+    const loopsToSchedule = 4;
 
-    // Schedule multiple loops ahead to ensure continuous playback
-    const loopsToSchedule = 4; // Schedule 4 loops ahead
-    const loopDuration = totalSteps * this.stepInterval;
-
-    console.log(`[${timestamp}] Scheduling ${loopsToSchedule} loops, loopDuration: ${loopDuration.toFixed(3)}s, stepInterval: ${this.stepInterval.toFixed(3)}s`);
-
-    // Calculate current position within the loop
+    // Calculate current position
     const currentPosition = currentTime - this.startTime;
     const currentLoop = Math.floor(currentPosition / loopDuration);
-    const currentStepInLoop = Math.floor((currentPosition % loopDuration) / this.stepInterval);
+    const currentStepInLoop = Math.floor((currentPosition % loopDuration) / stepInterval);
 
     console.log(`[${timestamp}] Current position: ${currentPosition.toFixed(3)}s, loop: ${currentLoop}, step: ${currentStepInLoop}`);
 
@@ -395,7 +470,7 @@ export class AudioEngine {
       const loopStartTime = this.startTime + (loop * loopDuration);
 
       // Only schedule if the loop start time is in the future or very close to now
-      if (loopStartTime >= currentTime - 0.1) { // Allow 100ms lookahead for immediate scheduling
+      if (loopStartTime >= currentTime - 0.1) { // Allow 100ms lookahead
         console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
 
         // Determine which steps to schedule in this loop
@@ -404,67 +479,62 @@ export class AudioEngine {
 
         // If this is the current loop, start from the current step
         if (loop === currentLoop) {
-          // Calculate the actual step we should start from based on the current time
           const timeInCurrentLoop = currentTime - loopStartTime;
-          const actualCurrentStep = Math.floor(timeInCurrentLoop / this.stepInterval);
+          const actualCurrentStep = Math.floor(timeInCurrentLoop / stepInterval);
           startStep = Math.max(0, actualCurrentStep);
           console.log(`[${timestamp}] Current loop ${loop}, time in loop: ${timeInCurrentLoop.toFixed(3)}s, starting from step ${startStep}`);
         }
 
         // Schedule steps in this loop
         for (let step = startStep; step < endStep; step++) {
-          const stepTime = loopStartTime + (step * this.stepInterval);
+          const stepTime = loopStartTime + (step * stepInterval);
 
           // Only schedule if the step time is in the future
           if (stepTime >= currentTime) {
             // Check each instrument for hits at this step
             Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-              if (instrumentData.steps[step] === true) {
-                console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}`);
+              // Use modulo to loop the pattern steps if totalSteps > pattern length
+              const patternStep = step % instrumentData.steps.length;
+              if (instrumentData.steps[patternStep] === true) {
+                console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step} (pattern step ${patternStep}), time ${stepTime.toFixed(3)}`);
                 this.scheduleInstrumentHit(instrumentName, stepTime);
               }
             });
           }
         }
-      } else {
-        console.log(`[${timestamp}] Skipping loop ${loop} at time ${loopStartTime.toFixed(3)} (in the past)`);
       }
     }
 
-    // Schedule the next batch of loops - schedule when we're halfway through the current batch
+    // Schedule the next batch of loops
     const nextSchedulingTime = this.startTime + ((currentLoop + Math.floor(loopsToSchedule / 2)) * loopDuration);
     const timeoutDelay = Math.max(0, (nextSchedulingTime - this.audioContext.currentTime) * 1000);
 
     console.log(`[${timestamp}] Next scheduling at ${nextSchedulingTime.toFixed(3)}, timeout delay: ${timeoutDelay.toFixed(0)}ms`);
 
-    // Only schedule timeout if delay is reasonable (avoid immediate timeouts)
+    // Only schedule timeout if delay is reasonable
     if (timeoutDelay > 10) {
       const timeoutId = window.setTimeout(() => {
         if (this.isPlaying) {
           const callbackTimestamp = new Date().toISOString();
           console.log(`[${callbackTimestamp}] Scheduling callback triggered, continuing from ${nextSchedulingTime.toFixed(3)}`);
-          // Don't update startTime - just continue scheduling from current position
           this.schedulePattern();
         }
       }, timeoutDelay);
 
       this.scheduledEvents.push(timeoutId);
-    } else {
-      console.log(`[${timestamp}] Skipping timeout scheduling (delay too short: ${timeoutDelay.toFixed(0)}ms)`);
     }
   }
 
   /**
-   * Schedule an instrument hit with immediate stop capability
+   * Schedule an instrument hit
    */
   private scheduleInstrumentHit(instrumentName: string, time: number): void {
     if (!this.audioContext || !this.masterGain) return;
 
     const oscillator = this.audioContext.createOscillator();
     const envelope = this.audioContext.createGain();
-    let noise: AudioBufferSourceNode | null = null;
 
-    // Connect: oscillator -> envelope -> masterGain -> gainNode -> destination
+    // Connect: oscillator -> envelope -> masterGain -> volumeGain -> destination
     oscillator.connect(envelope);
     envelope.connect(this.masterGain);
 
@@ -491,7 +561,7 @@ export class AudioEngine {
         for (let i = 0; i < bufferSize; i++) {
           output[i] = Math.random() * 2 - 1;
         }
-        noise = this.audioContext.createBufferSource();
+        const noise = this.audioContext.createBufferSource();
         noise.buffer = buffer;
         noise.connect(envelope);
 
@@ -524,19 +594,44 @@ export class AudioEngine {
         break;
     }
 
-    // Auto-cleanup when audio ends (only in real browser environment)
+    // Auto-cleanup when audio ends
     if (typeof oscillator.addEventListener === 'function') {
       const cleanup = () => {
         this.activeOscillators = this.activeOscillators.filter(osc => osc !== oscillator);
-        if (noise) {
-          this.activeNoiseSources = this.activeNoiseSources.filter(source => source !== noise);
-        }
       };
-
       oscillator.addEventListener('ended', cleanup);
-      if (noise && typeof noise.addEventListener === 'function') {
-        noise.addEventListener('ended', cleanup);
+    }
+  }
+
+  /**
+   * Stop all audio immediately
+   */
+  private stopAllAudio(): void {
+    // Stop all active oscillators immediately
+    this.activeOscillators.forEach(osc => {
+      try {
+        osc.stop();
+        osc.disconnect();
+      } catch (e) {
+        // Oscillator might already be stopped
       }
+    });
+    this.activeOscillators = [];
+
+    // Stop all active noise sources immediately
+    this.activeNoiseSources.forEach(source => {
+      try {
+        source.stop();
+        source.disconnect();
+      } catch (e) {
+        // Source might already be stopped
+      }
+    });
+    this.activeNoiseSources = [];
+
+    // Use master gain for immediate volume cut
+    if (this.masterGain && this.audioContext) {
+      this.masterGain.gain.setValueAtTime(0, this.audioContext.currentTime);
     }
   }
 
@@ -549,13 +644,20 @@ export class AudioEngine {
   }
 
   /**
+   * Get parameter history for debugging
+   */
+  getParameterHistory(): ParameterUpdate[] {
+    return [...this.parameterHistory];
+  }
+
+  /**
    * Cleanup
    */
   dispose(): void {
     this.stop();
-    // Cleanup will be implemented when synthesizers are added
+    this.isInitialized = false;
   }
 }
 
 // Export singleton instance
-export const audioEngine = AudioEngine.getInstance();
+export const unifiedAudioEngine = UnifiedAudioEngine.getInstance();

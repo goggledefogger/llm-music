@@ -15,7 +15,7 @@ export interface ParsedPattern {
       name: string;
     };
   };
-  eqModules: {
+  eqModules?: {
     [moduleName: string]: EQModule;
   };
   totalSteps: number;
@@ -32,10 +32,38 @@ export interface ValidationResult {
 export interface AudioState {
   isInitialized: boolean;
   isPlaying: boolean;
+  isPaused: boolean;
   tempo: number;
   volume: number;
   currentTime: number;
   error: string | null;
+}
+
+export interface HybridAudioState {
+  isInitialized: boolean;
+  isPlaying: boolean;
+  isPaused: boolean;
+  tempo: number;
+  volume: number;
+  currentTime: number;
+  error: string | null;
+  // Hybrid-specific state
+  effectsEnabled: boolean;
+  collaborationEnabled: boolean;
+  audioQuality: 'low' | 'medium' | 'high';
+}
+
+export interface UnifiedAudioState {
+  isInitialized: boolean;
+  isPlaying: boolean;
+  isPaused: boolean;
+  tempo: number;
+  volume: number;
+  currentTime: number;
+  error: string | null;
+  // Unified-specific state
+  effectsEnabled: boolean;
+  audioQuality: 'low' | 'medium' | 'high';
 }
 
 export interface UIState {
@@ -50,8 +78,8 @@ export interface AppState {
   parsedPattern: ParsedPattern | null;
   validation: ValidationResult | null;
 
-  // Audio state
-  audio: AudioState;
+  // Audio state - using unified audio state
+  audio: UnifiedAudioState;
 
   // UI state
   ui: UIState;

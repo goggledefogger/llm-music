@@ -1,26 +1,28 @@
-// Simplified audio engine hook (replaces the old complex one)
+// Unified Audio Engine Hook - Real-time everything, no pre-calculation
 import { useState, useCallback, useEffect } from 'react';
-import { audioEngine } from '../services/audioEngine';
-import { AudioState } from '../types/app';
+import { unifiedAudioEngine } from '../services/unifiedAudioEngine';
+import { UnifiedAudioState } from '../types/app';
 
-export const useAudioEngine = () => {
-  const [state, setState] = useState<AudioState>({
+export const useUnifiedAudioEngine = () => {
+  const [state, setState] = useState<UnifiedAudioState>({
     isInitialized: false,
     isPlaying: false,
     isPaused: false,
     tempo: 120,
     volume: -6,
     currentTime: 0,
-    error: null
+    error: null,
+    effectsEnabled: false,
+    audioQuality: 'high'
   });
 
-  // Initialize audio engine
+  // Initialize unified audio engine
   const initialize = useCallback(async () => {
-    const engineState = audioEngine.getState();
+    const engineState = unifiedAudioEngine.getState();
     if (engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...engineState,
         error: null
       }));
       return;
@@ -28,14 +30,16 @@ export const useAudioEngine = () => {
 
     try {
       setState(prev => ({ ...prev, error: null }));
-      await audioEngine.initialize();
+      await unifiedAudioEngine.initialize();
+
+      const newState = unifiedAudioEngine.getState();
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...newState,
         error: null
       }));
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize audio';
+      const errorMessage = error instanceof Error ? error.message : 'Failed to initialize unified audio engine';
       setState(prev => ({
         ...prev,
         error: errorMessage
@@ -45,18 +49,18 @@ export const useAudioEngine = () => {
 
   // Auto-initialize on first user interaction
   useEffect(() => {
-    const engineState = audioEngine.getState();
+    const engineState = unifiedAudioEngine.getState();
     if (engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        isInitialized: true,
+        ...engineState,
         error: null
       }));
       return;
     }
 
     const handleUserInteraction = async () => {
-      const currentEngineState = audioEngine.getState();
+      const currentEngineState = unifiedAudioEngine.getState();
       if (!currentEngineState.isInitialized && !state.error) {
         await initialize();
       }
@@ -78,33 +82,28 @@ export const useAudioEngine = () => {
     };
   }, [state.error, initialize]);
 
-  // Immediate state updates (no polling)
+  // Update state from engine
   const updateState = useCallback(() => {
-    const engineState = audioEngine.getState();
+    const engineState = unifiedAudioEngine.getState();
     setState(prev => ({
       ...prev,
-      isInitialized: engineState.isInitialized,
-      isPlaying: engineState.isPlaying,
-      isPaused: engineState.isPaused,
-      tempo: engineState.tempo,
-      currentTime: engineState.currentTime,
-      volume: engineState.volume
+      ...engineState
     }));
   }, []);
 
-  // Audio control functions with immediate state updates
+  // Audio control functions
   const play = useCallback(() => {
     if (!state.isInitialized) {
       setState(prev => ({
         ...prev,
-        error: 'Audio engine not initialized'
+        error: 'Unified audio engine not initialized'
       }));
       return;
     }
 
     try {
-      audioEngine.play();
-      updateState(); // Immediate UI update
+      unifiedAudioEngine.play();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to play';
       setState(prev => ({
@@ -116,8 +115,8 @@ export const useAudioEngine = () => {
 
   const pause = useCallback(() => {
     try {
-      audioEngine.pause();
-      updateState(); // Immediate UI update
+      unifiedAudioEngine.pause();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to pause';
       setState(prev => ({
@@ -129,8 +128,8 @@ export const useAudioEngine = () => {
 
   const stop = useCallback(() => {
     try {
-      audioEngine.stop();
-      updateState(); // Immediate UI update
+      unifiedAudioEngine.stop();
+      updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to stop';
       setState(prev => ({
@@ -140,50 +139,41 @@ export const useAudioEngine = () => {
     }
   }, [updateState]);
 
-  const setTempo = useCallback((tempo: number) => {
+  // Unified parameter update interface
+  const updateParameter = useCallback((type: 'tempo' | 'sequence' | 'effects' | 'eq' | 'volume', value: any) => {
     try {
-      audioEngine.setTempo(tempo);
-      setState(prev => ({
-        ...prev,
-        tempo
-      }));
+      unifiedAudioEngine.updateParameter(type, value);
+      updateState();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to set tempo';
+      const errorMessage = error instanceof Error ? error.message : `Failed to update ${type}`;
       setState(prev => ({
         ...prev,
         error: errorMessage
       }));
     }
-  }, []);
+  }, [updateState]);
+
+  // Convenience methods for common parameters
+  const setTempo = useCallback((tempo: number) => {
+    updateParameter('tempo', tempo);
+  }, [updateParameter]);
 
   const setVolume = useCallback((volume: number) => {
-    try {
-      audioEngine.setVolume(volume);
-      setState(prev => ({
-        ...prev,
-        volume
-      }));
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to set volume';
-      setState(prev => ({
-        ...prev,
-        error: errorMessage
-      }));
-    }
-  }, []);
+    updateParameter('volume', volume);
+  }, [updateParameter]);
 
   const loadPattern = useCallback((pattern: string) => {
-    const engineState = audioEngine.getState();
+    const engineState = unifiedAudioEngine.getState();
     if (!engineState.isInitialized) {
       setState(prev => ({
         ...prev,
-        error: 'Audio engine not initialized'
+        error: 'Unified audio engine not initialized'
       }));
       return;
     }
 
     try {
-      audioEngine.loadPattern(pattern);
+      unifiedAudioEngine.loadPattern(pattern);
       setState(prev => ({
         ...prev,
         error: null
@@ -197,7 +187,12 @@ export const useAudioEngine = () => {
     }
   }, []);
 
-  // High-frequency updates only when playing
+  // Get parameter history for debugging
+  const getParameterHistory = useCallback(() => {
+    return unifiedAudioEngine.getParameterHistory();
+  }, []);
+
+  // High-frequency updates when playing
   useEffect(() => {
     let interval: NodeJS.Timeout;
 
@@ -218,8 +213,10 @@ export const useAudioEngine = () => {
     play,
     pause,
     stop,
+    updateParameter,
     setTempo,
     setVolume,
-    loadPattern
+    loadPattern,
+    getParameterHistory
   };
 };

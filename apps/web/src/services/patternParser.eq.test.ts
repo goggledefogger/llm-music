@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { PatternParser } from './patternParser';
-import { EQModule } from '../types/app';
+// import { EQModule } from '../types/app'; // Not used in this test file
 
 describe('PatternParser - EQ Module Support', () => {
   it('should parse EQ modules with valid syntax', () => {
@@ -17,19 +17,19 @@ seq snare: ....x.......x...`;
     const result = PatternParser.parse(pattern);
 
     expect(result.eqModules).toBeDefined();
-    expect(result.eqModules.master).toEqual({
+    expect(result.eqModules!.master).toEqual({
       name: 'master',
       low: 0,
       mid: 0,
       high: 0
     });
-    expect(result.eqModules.kick).toEqual({
+    expect(result.eqModules!.kick).toEqual({
       name: 'kick',
       low: 2,
       mid: -1,
       high: 1
     });
-    expect(result.eqModules.snare).toEqual({
+    expect(result.eqModules!.snare).toEqual({
       name: 'snare',
       low: -2,
       mid: 3,
@@ -44,7 +44,7 @@ eq test: low=5 mid=-10 high=0`;
 
     const result = PatternParser.parse(pattern);
 
-    expect(result.eqModules.test).toEqual({
+    expect(result.eqModules!.test).toEqual({
       name: 'test',
       low: 3,    // Clamped from 5
       mid: -3,   // Clamped from -10
@@ -63,10 +63,10 @@ seq kick: x...x...x...x...`;
     const result = PatternParser.parse(pattern);
 
     // Invalid EQ should be ignored
-    expect(result.eqModules.invalid).toBeUndefined();
-    
+    expect(result.eqModules!.invalid).toBeUndefined();
+
     // Valid EQ should be parsed
-    expect(result.eqModules.valid).toEqual({
+    expect(result.eqModules!.valid).toEqual({
       name: 'valid',
       low: 1,
       mid: 2,
@@ -90,7 +90,7 @@ seq kick: x...x...x...x...`;
     expect(validResult.errors).toHaveLength(0);
 
     expect(invalidResult.isValid).toBe(false);
-    expect(invalidResult.errors.some(error => 
+    expect(invalidResult.errors.some(error =>
       error.includes('Invalid EQ values') && error.includes('invalid')
     )).toBe(true);
   });
@@ -104,7 +104,7 @@ seq snare: ....x.......x...`;
     const result = PatternParser.parse(pattern);
 
     expect(result.eqModules).toBeDefined();
-    expect(Object.keys(result.eqModules)).toHaveLength(0);
+    expect(Object.keys(result.eqModules || {})).toHaveLength(0);
   });
 
   it('should support multiple EQ modules for different instruments', () => {
@@ -121,10 +121,10 @@ seq hihat: x.x.x.x.x.x.x.x.`;
 
     const result = PatternParser.parse(pattern);
 
-    expect(Object.keys(result.eqModules)).toHaveLength(4);
-    expect(result.eqModules.master).toBeDefined();
-    expect(result.eqModules.kick).toBeDefined();
-    expect(result.eqModules.snare).toBeDefined();
-    expect(result.eqModules.hihat).toBeDefined();
+    expect(Object.keys(result.eqModules || {})).toHaveLength(4);
+    expect(result.eqModules!.master).toBeDefined();
+    expect(result.eqModules!.kick).toBeDefined();
+    expect(result.eqModules!.snare).toBeDefined();
+    expect(result.eqModules!.hihat).toBeDefined();
   });
 });
