@@ -2,85 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { render } from '../test/testUtils';
 import { EditorPage } from './EditorPage';
+import { mockTone } from '../test/sharedMocks';
 
 // Mock Tone.js to avoid import issues in tests
-vi.mock('tone', () => ({
-  default: {
-    start: vi.fn().mockResolvedValue(undefined),
-    getTransport: vi.fn(() => ({
-      bpm: { value: 120 },
-      start: vi.fn(),
-      stop: vi.fn(),
-      pause: vi.fn(),
-      clear: vi.fn(),
-      schedule: vi.fn(),
-      unschedule: vi.fn()
-    })),
-    MembraneSynth: vi.fn(() => ({
-      connect: vi.fn(),
-      triggerAttackRelease: vi.fn(),
-      dispose: vi.fn()
-    })),
-    NoiseSynth: vi.fn(() => ({
-      connect: vi.fn(),
-      triggerAttackRelease: vi.fn(),
-      dispose: vi.fn()
-    })),
-    MetalSynth: vi.fn(() => ({
-      connect: vi.fn(),
-      triggerAttackRelease: vi.fn(),
-      dispose: vi.fn()
-    })),
-    Volume: vi.fn(() => ({
-      connect: vi.fn(),
-      toDestination: vi.fn(),
-      dispose: vi.fn()
-    }))
-  },
-  start: vi.fn().mockResolvedValue(undefined),
-  getTransport: vi.fn(() => ({
-    bpm: { value: 120 },
-    start: vi.fn(),
-    stop: vi.fn(),
-    pause: vi.fn(),
-    clear: vi.fn(),
-    schedule: vi.fn(),
-    unschedule: vi.fn()
-  })),
-  MembraneSynth: vi.fn(() => ({
-    connect: vi.fn(),
-    triggerAttackRelease: vi.fn(),
-    dispose: vi.fn()
-  })),
-  NoiseSynth: vi.fn(() => ({
-    connect: vi.fn(),
-    triggerAttackRelease: vi.fn(),
-    dispose: vi.fn()
-  })),
-  MetalSynth: vi.fn(() => ({
-    connect: vi.fn(),
-    triggerAttackRelease: vi.fn(),
-    dispose: vi.fn()
-  })),
-  Volume: vi.fn(() => ({
-    connect: vi.fn(),
-    toDestination: vi.fn(),
-    dispose: vi.fn()
-  }))
-}));
-
-// Mock D3.js to avoid import issues in tests
-vi.mock('d3', () => ({
-  select: vi.fn(() => ({
-    append: vi.fn(() => ({
-      attr: vi.fn(() => ({
-        style: vi.fn(() => ({
-          text: vi.fn()
-        }))
-      }))
-    }))
-  }))
-}));
+vi.mock('tone', () => mockTone);
 
 describe('EditorPage', () => {
   beforeEach(() => {
