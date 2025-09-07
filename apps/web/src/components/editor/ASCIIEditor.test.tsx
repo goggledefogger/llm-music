@@ -20,7 +20,16 @@ describe('ASCIIEditor', () => {
   it('shows the default pattern content', () => {
     render(<ASCIIEditor />);
     const editor = screen.getByRole('textbox');
-    expect(editor).toHaveValue('TEMPO 120\n\nseq kick: x...x...x...x...\nseq snare: ....x.......x...\nseq hihat: x.x.x.x.x.x.x.x.');
+    expect(editor).toHaveValue(`TEMPO 120
+
+# EQ Settings
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=2 high=1
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.`);
   });
 
   it('auto-validates and shows valid status for correct patterns', async () => {
@@ -101,13 +110,23 @@ describe('ASCIIEditor', () => {
     render(<ASCIIEditor />);
     const editor = screen.getByRole('textbox');
 
-    // Check initial count
-    expect(screen.getByText(/Lines: 5/)).toBeInTheDocument();
+    // Check initial count (default pattern has 10 lines)
+    expect(screen.getByText(/Lines: 10/)).toBeInTheDocument();
 
     // Add a line
-    fireEvent.change(editor, { target: { value: 'TEMPO 120\n\nseq kick: x...x...\nseq snare: ....x...\nseq hihat: x.x.x.x.\nseq bass: x...x...' } });
+    fireEvent.change(editor, { target: { value: `TEMPO 120
 
-    expect(screen.getByText(/Lines: 6/)).toBeInTheDocument();
+# EQ Settings
+eq master: low=0 mid=0 high=0
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=2 high=1
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+seq bass: x...x...` } });
+
+    expect(screen.getByText(/Lines: 11/)).toBeInTheDocument();
   });
 
   it('disables editor during loading', async () => {
