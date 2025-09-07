@@ -257,6 +257,84 @@ eq kick: low=5 mid=invalid high=1  # Error: Invalid EQ values
 seq kick: x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...  # Warning: Too many steps
 ```
 
+## Pattern Loading System
+
+### Overview
+
+The ASCII Generative Sequencer includes a comprehensive pattern loading system that allows users to browse, search, filter, and load existing patterns from a pattern library. This system provides seamless integration between the pattern library and the editor.
+
+### Key Components
+
+#### PatternService
+```typescript
+// Complete pattern storage and retrieval system
+export class PatternService {
+  // Core storage operations
+  static getStoredPatterns(): StoredPattern[]
+  static savePattern(pattern: Omit<StoredPattern, 'id' | 'createdAt' | 'updatedAt'>): StoredPattern
+  static updatePattern(id: string, updates: Partial<StoredPattern>): StoredPattern | null
+  static deletePattern(id: string): boolean
+
+  // Search and filtering
+  static getPatternsByCategory(category: string): StoredPattern[]
+  static searchPatterns(query: string): StoredPattern[]
+  static getPatternById(id: string): StoredPattern | null
+
+  // Initialization
+  static initializeStorage(): void
+  static getSamplePatterns(): StoredPattern[]
+}
+```
+
+#### Pattern Loading Workflow
+1. **Browse Patterns**: Users navigate to the Patterns page to see all available patterns
+2. **Search & Filter**: Users can search by name/content and filter by category
+3. **Load Pattern**: Clicking "Load" instantly loads the pattern into the editor
+4. **Automatic Navigation**: User is automatically navigated to the editor page (`/editor`)
+5. **Editor Integration**: Pattern appears in ASCII editor with full audio integration
+
+#### Sample Patterns
+The system includes 6 pre-loaded sample patterns:
+- **Basic House Beat** (House) - 128 BPM, 3 instruments
+- **Minimal Techno** (Techno) - 130 BPM, 2 instruments
+- **Complex Breakbeat** (Breakbeat) - 140 BPM, 3 instruments
+- **Simple Rock** (Rock) - 120 BPM, 2 instruments
+- **Jungle Pattern** (Jungle) - 160 BPM, 3 instruments
+- **Ambient Drone** (Ambient) - 60 BPM, 2 instruments
+
+### Testing Pattern Loading
+
+```typescript
+// Test pattern loading functionality
+it('should load pattern when load button is clicked', async () => {
+  const { PatternService } = await import('../services/patternService');
+  (PatternService.getStoredPatterns as any).mockReturnValue([
+    {
+      id: 'test-1',
+      name: 'Test Pattern',
+      category: 'Test',
+      content: 'TEMPO 120\nseq kick: x...x...',
+      parsedPattern: { /* parsed data */ },
+      complexity: 0.5,
+      createdAt: new Date('2024-01-01'),
+      updatedAt: new Date('2024-01-01'),
+      isPublic: true
+    }
+  ]);
+
+  render(<PatternsPage />);
+  
+  await waitFor(() => {
+    expect(screen.getByText('Test Pattern')).toBeInTheDocument();
+  });
+
+  const loadButton = screen.getByText('Load');
+  fireEvent.click(loadButton);
+
+  expect(mockLoadPattern).toHaveBeenCalledWith('test-1');
+});
+```
+
 ## Testing
 
 ### Test Framework: Vitest

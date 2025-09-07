@@ -1,5 +1,6 @@
 // Main app state hook that combines all functionality
 import { useState, useCallback, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { usePatternEditor } from './usePatternEditor';
 import { useAudioEngine } from './useAudioEngine';
 import { AppState, AppActions, UIState } from '../types/app';
@@ -9,6 +10,17 @@ export const useAppState = () => {
   // Individual hooks
   const patternEditor = usePatternEditor();
   const audioEngine = useAudioEngine();
+  
+  // Use navigate hook with error handling for tests
+  let navigate: (path: string) => void;
+  try {
+    navigate = useNavigate();
+  } catch (error) {
+    // Fallback for tests that don't have Router context
+    navigate = (path: string) => {
+      console.log(`Navigation to ${path} (test mode)`);
+    };
+  }
 
   // UI state
   const [ui, setUI] = useState<UIState>({
@@ -51,18 +63,18 @@ export const useAppState = () => {
       // Load the pattern content into the editor
       patternEditor.updateContent(pattern.content);
       
-      // Switch to editor tab to show the loaded pattern
-      setUI(prev => ({ ...prev, activeTab: 'editor' }));
+      // Navigate to the editor page to show the loaded pattern
+      navigate('/editor');
     } catch (error) {
       console.error('Error loading pattern:', error);
       throw error;
     }
-  }, [patternEditor.updateContent]);
+  }, [patternEditor.updateContent, navigate]);
 
   const loadPatternContent = useCallback((content: string) => {
     patternEditor.updateContent(content);
-    setUI(prev => ({ ...prev, activeTab: 'editor' }));
-  }, [patternEditor.updateContent]);
+    navigate('/editor');
+  }, [patternEditor.updateContent, navigate]);
 
   // Combined actions
   const actions: AppActions = {

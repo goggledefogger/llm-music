@@ -1208,6 +1208,43 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
 ### Frontend Services Layer
 
+**Pattern Storage Service:**
+```typescript
+// PatternService - Complete pattern storage and retrieval system
+export class PatternService {
+  private static readonly STORAGE_KEY = 'ascii-sequencer-patterns';
+
+  // Core storage operations
+  static getStoredPatterns(): StoredPattern[]
+  static savePattern(pattern: Omit<StoredPattern, 'id' | 'createdAt' | 'updatedAt'>): StoredPattern
+  static updatePattern(id: string, updates: Partial<StoredPattern>): StoredPattern | null
+  static deletePattern(id: string): boolean
+
+  // Search and filtering
+  static getPatternsByCategory(category: string): StoredPattern[]
+  static searchPatterns(query: string): StoredPattern[]
+  static getPatternById(id: string): StoredPattern | null
+
+  // Initialization and sample data
+  static initializeStorage(): void
+  static getSamplePatterns(): StoredPattern[]
+}
+
+// Pattern data structure
+export interface StoredPattern {
+  id: string;
+  name: string;
+  category: string;
+  content: string;                    // ASCII pattern content
+  parsedPattern: ParsedPattern;       // Parsed pattern data
+  complexity: number;                 // 0-1 complexity score
+  createdAt: Date;
+  updatedAt: Date;
+  isPublic?: boolean;
+  userId?: string;
+}
+```
+
 **API Client Setup:**
 ```typescript
 import { createClient } from '@supabase/supabase-js';
