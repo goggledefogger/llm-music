@@ -49,7 +49,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     expect(screen.getByText('Playing • 120 BPM')).toBeInTheDocument();
 
     rerender(
@@ -60,7 +60,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     expect(screen.getByText('Stopped • 120 BPM')).toBeInTheDocument();
   });
 
@@ -73,7 +73,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     expect(screen.getByText('1:05.5')).toBeInTheDocument();
   });
 
@@ -86,9 +86,12 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     // At 1.0s with 120 BPM and 4 steps/beat: 8 steps → index 8 → display 9
-    expect(screen.getByText('9')).toBeInTheDocument(); // Step 9 (0-indexed + 1)
+    // Check the "Current Step" display specifically
+    expect(screen.getByText('Current Step:')).toBeInTheDocument();
+    const currentStepDisplay = screen.getByText('Current Step:').parentElement?.querySelector('.font-mono');
+    expect(currentStepDisplay).toHaveTextContent('9');
   });
 
   it('shows pattern loop information', () => {
@@ -100,7 +103,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     // At 1.0s: step index 8 → display 9
     expect(screen.getByText('Pattern Loop: 9/16')).toBeInTheDocument();
   });
@@ -114,7 +117,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     expect(screen.getByText('0')).toBeInTheDocument();
     expect(screen.getByText('16 steps')).toBeInTheDocument();
   });
@@ -141,7 +144,7 @@ describe('PlayheadIndicator', () => {
         tempo={140}
       />
     );
-    
+
     expect(screen.getByText('Stopped • 140 BPM')).toBeInTheDocument();
   });
 
@@ -154,9 +157,12 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     // At 120 BPM, 1 second = 2 beats = 8 steps
-    expect(screen.getByText('9')).toBeInTheDocument(); // Step 9 (0-indexed)
+    // Check the "Current Step" display specifically
+    expect(screen.getByText('Current Step:')).toBeInTheDocument();
+    const currentStepDisplay = screen.getByText('Current Step:').parentElement?.querySelector('.font-mono');
+    expect(currentStepDisplay).toHaveTextContent('9'); // Step 9 (0-indexed)
 
     rerender(
       <PlayheadIndicator
@@ -166,9 +172,10 @@ describe('PlayheadIndicator', () => {
         tempo={60}
       />
     );
-    
+
     // At 60 BPM, 1 second = 1 beat = 4 steps
-    expect(screen.getByText('5')).toBeInTheDocument(); // Step 5 (0-indexed)
+    const currentStepDisplay2 = screen.getByText('Current Step:').parentElement?.querySelector('.font-mono');
+    expect(currentStepDisplay2).toHaveTextContent('5'); // Step 5 (0-indexed)
   });
 
   it('handles patterns with different step counts', () => {
@@ -191,7 +198,7 @@ describe('PlayheadIndicator', () => {
         tempo={120}
       />
     );
-    
+
     // The component shows at least 16 steps; at 0.5s: 4 steps → index 4 → display 5
     expect(screen.getByText('Pattern Loop: 5/16')).toBeInTheDocument();
     expect(screen.getByText('16 steps')).toBeInTheDocument();
