@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { EditorState, StateEffect, StateField } from '@codemirror/state';
 import { EditorView, Decoration, DecorationSet, keymap, placeholder } from '@codemirror/view';
 import { defaultKeymap, history, historyKeymap } from '@codemirror/commands';
@@ -12,6 +12,7 @@ type StepToken = {
   stepIndex: number; // 0-based within its line's pattern
   isActive: boolean; // x/X
   patternLength: number; // total steps for its line
+  symbol: string; // raw character (x, X, ., o, f, r, ...)
 };
 
 // Parse the document to find all step characters across all sequence lines.
@@ -44,6 +45,7 @@ function indexSteps(doc: EditorState['doc']): StepToken[] {
         stepIndex: c,
         isActive: ch === 'x' || ch === 'X',
         patternLength: patternLen,
+        symbol: ch,
       });
     }
   }
@@ -118,6 +120,125 @@ function computeCurrentStepDecorations(state: EditorState, currentStep: number):
   return Decoration.set(marks, true);
 }
 
+// Base step coloring (stable, non-animated)
+const stepBaseField = StateField.define<DecorationSet>({
+  create(state) {
+    return computeStepBaseDecorations(state);
+  },
+  update(value, tr) {
+    if (tr.docChanged) {
+      return computeStepBaseDecorations(tr.state);
+    }
+    return value;
+  },
+  provide: f => EditorView.decorations.from(f),
+});
+
+function computeStepBaseDecorations(state: EditorState): DecorationSet {
+  const steps: StepToken[] = state.field(stepsIndexField, false) || [];
+  if (!steps.length) return Decoration.none;
+  const marks: any[] = [];
+  for (const t of steps) {
+    let cls = '';
+    if (t.symbol === 'x' || t.symbol === 'X') cls = 'cm-step-hit';
+    else if (t.symbol === '.') cls = 'cm-step-dot';
+    else if (t.symbol === 'o') cls = 'cm-step-ghost';
+    else if (t.symbol === 'f') cls = 'cm-step-flam';
+    else if (t.symbol === 'r') cls = 'cm-step-roll';
+    else continue;
+    marks.push(Decoration.mark({ class: cls }).range(t.from, t.to));
+  }
+  return Decoration.set(marks, true);
+}
+
+// Simple DSL highlighting (keywords, identifiers, numbers, attributes, comments)
+const dslHighlightField = StateField.define<DecorationSet>({
+  create(state) {
+    return computeDSLDecorations(state);
+  },
+  update(value, tr) {
+    if (tr.docChanged) {
+      return computeDSLDecorations(tr.state);
+    }
+    return value;
+  },
+  provide: f => EditorView.decorations.from(f),
+});
+
+function computeDSLDecorations(state: EditorState): DecorationSet {
+  const ranges: any[] = [];
+  for (let i = 1; i <= state.doc.lines; i++) {
+    const line = state.doc.line(i);
+    const text = line.text;
+    const trimmed = text.trim();
+
+    // Comments
+    if (trimmed.startsWith('#')) {
+      ranges.push(Decoration.mark({ class: 'cm-comment' }).range(line.from, line.to));
+      continue;
+    }
+
+    // TEMPO, SWING, SCALE lines
+    const kwMatch = trimmed.match(/^(TEMPO|SWING|SCALE)\b/);
+    if (kwMatch) {
+      const kw = kwMatch[1];
+      const kwIndex = text.indexOf(kw);
+      if (kwIndex >= 0) {
+        ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + kwIndex, line.from + kwIndex + kw.length));
+      }
+      // Numbers / percentages
+      const numRegex = /-?\d+%?/g;
+      let m: RegExpExecArray | null;
+      while ((m = numRegex.exec(text))) {
+        ranges.push(Decoration.mark({ class: 'cm-number' }).range(line.from + m.index, line.from + m.index + m[0].length));
+      }
+      continue;
+    }
+
+    // eq lines: eq name: low=0 mid=0 high=0
+    const eqIdx = text.indexOf('eq ');
+    if (eqIdx >= 0) {
+      ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + eqIdx, line.from + eqIdx + 2)); // 'eq'
+      const post = text.slice(eqIdx + 3);
+      const nameMatch = post.match(/^(\w+)/);
+      if (nameMatch) {
+        const nameStart = eqIdx + 3 + nameMatch.index!;
+        ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + nameStart, line.from + nameStart + nameMatch[0].length));
+      }
+      // attributes and numbers
+      const attrRegex = /(low|mid|high)(=)(-?\d+)/g;
+      let a: RegExpExecArray | null;
+      while ((a = attrRegex.exec(text))) {
+        const [full, key, eq, num] = a;
+        const base = a.index;
+        ranges.push(Decoration.mark({ class: 'cm-attr' }).range(line.from + base, line.from + base + key.length));
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + base + key.length, line.from + base + key.length + 1));
+        ranges.push(Decoration.mark({ class: 'cm-number' }).range(line.from + base + key.length + 1, line.from + base + full.length));
+      }
+      continue;
+    }
+
+    // seq lines: seq name: pattern
+    const seqIdx = text.indexOf('seq ');
+    if (seqIdx >= 0) {
+      ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + seqIdx, line.from + seqIdx + 3)); // 'seq'
+      const post = text.slice(seqIdx + 4);
+      const nameMatch = post.match(/^(\w+)/);
+      if (nameMatch) {
+        const nameStart = seqIdx + 4 + (nameMatch.index || 0);
+        ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + nameStart, line.from + nameStart + nameMatch[0].length));
+      }
+      // colon punctuation
+      const colonIdx = text.indexOf(':', seqIdx);
+      if (colonIdx >= 0) {
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + colonIdx, line.from + colonIdx + 1));
+      }
+      continue;
+    }
+  }
+  return Decoration.set(ranges, true);
+}
+
 // Theme: keep layout stable; only use color/glow.
 const editorTheme = EditorView.theme({
   '&': {
@@ -133,15 +254,33 @@ const editorTheme = EditorView.theme({
     lineHeight: '1.5',
     overflow: 'auto',
   },
+  // DSL tokens
+  '.cm-kw': { color: '#60a5fa', fontWeight: '600' }, // blue-400
+  '.cm-number': { color: '#a78bfa' }, // violet-400
+  '.cm-attr': { color: '#34d399' }, // green-400
+  '.cm-ident': { color: '#f472b6' }, // pink-400
+  '.cm-punc': { color: '#94a3b8' }, // slate-400
+  '.cm-comment': { color: '#9ca3af', fontStyle: 'italic' },
+
+  // Base steps
+  '.cm-step-hit': { color: '#22c55e' }, // green-500
+  '.cm-step-dot': { color: '#6b7280' }, // gray-500
+  '.cm-step-ghost': { color: '#93c5fd' }, // blue-300
+  '.cm-step-flam': { color: '#fca5a5' }, // red-300
+  '.cm-step-roll': { color: '#fde68a' }, // yellow-300
+
+  // Current step overlay (stronger specificity to override base)
   '.cm-step-current': {
-    color: '#fbbf24', // yellow-400
-    textShadow: '0 0 6px rgba(251, 191, 36, 0.55)'
+    color: '#111827', // near-black for contrast when background used
+    backgroundColor: 'var(--cm-playhead-bg, rgba(251, 191, 36, 0.35))',
+    boxShadow: 'inset 0 -1px 0 rgba(251, 191, 36, 0.65), inset 0 1px 0 rgba(251, 191, 36, 0.65)',
+    textShadow: 'var(--cm-glow, 0 0 6px rgba(251, 191, 36, 0.55))',
   },
   '.cm-step-active': {
     // keep as is; class is used for targeting
   },
   '.cm-step-rest': {
-    color: '#9ca3af', // gray-400
+    color: '#111827',
   },
 });
 
@@ -185,6 +324,8 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
   const lastExternalContentRef = useRef<string>('');
   const ignoreNextExternalSync = useRef(false);
 
+  const [reduceMotion, setReduceMotion] = useState<boolean>(false);
+
   const placeholderText = 'Enter your ASCII pattern here...';
 
   // Create the editor view once
@@ -198,6 +339,8 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap]),
         stepsIndexField,
+        stepBaseField,
+        dslHighlightField,
         currentStepField,
         clickToToggleSteps,
         editorTheme,
@@ -258,12 +401,28 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
   }, [currentStep]);
 
   return (
-    <div className={`h-full flex flex-col ${className || ''}`}>
+    <div className={`h-full flex flex-col ${className || ''}`} style={{
+      // Control glow and playhead background via CSS vars
+      // When reduceMotion is on, disable glow and use subtler background
+      // Note: CM theme reads these vars
+      ['--cm-glow' as any]: reduceMotion ? 'none' : '0 0 6px rgba(251, 191, 36, 0.55)',
+      ['--cm-playhead-bg' as any]: reduceMotion ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.35)'
+    }}>
       <div className="border-b border-border p-4">
         <h2 className="text-lg font-semibold">ASCII Pattern Editor</h2>
         <p className="text-sm text-foreground-muted">
           Live playhead highlights update inline without breaking editing.
         </p>
+        <div className="mt-2 flex items-center gap-3">
+          <label className="text-sm flex items-center gap-2">
+            <input
+              type="checkbox"
+              checked={reduceMotion}
+              onChange={(e) => setReduceMotion(e.target.checked)}
+            />
+            Reduce motion
+          </label>
+        </div>
       </div>
 
       {/* Validation Status */}
