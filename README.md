@@ -137,7 +137,7 @@ ascii-generative-sequencer/
 ### ✅ Completed
 - **Project Setup**: Monorepo with pnpm and Turborepo configured
 - **Development Environment**: Vite, TypeScript, and build system working
-- **Testing Framework**: Vitest and React Testing Library configured with 120+ tests passing
+- **Testing Framework**: Vitest and React Testing Library configured with 138 tests passing
 - **Web Application**: React app running on http://localhost:3000
 - **Package Management**: pnpm workspace with proper dependency management
 - **Audio Engine**: Complete Web Audio API implementation with professional-quality synthesis
@@ -164,6 +164,7 @@ ascii-generative-sequencer/
 - `pnpm dev:api` - Start only the API functions (planned)
 - `pnpm build` - Build all packages
 - `pnpm test` - Run all tests
+- `pnpm test:watch` - Run tests in watch mode
 - `pnpm lint` - Lint all packages
 - `pnpm type-check` - Type check all packages
 

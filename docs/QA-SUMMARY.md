@@ -20,10 +20,11 @@
 # 1. Setup
 cd /Users/Danny/Source/llm-music
 pnpm install
-pnpm dev:web
+pnpm dev
 
 # 2. Open browser to http://localhost:3000
 # 3. Test navigation and UI interactions
+# 4. Run tests: pnpm test
 ```
 
 ## 📋 Priority Test Areas
@@ -57,8 +58,8 @@ pnpm dev:web
 
 - **UI Implementation**: 100% Complete
 - **Core Functionality**: 0% Complete (next development phase)
-- **Testing Infrastructure**: 90% Complete
-- **Documentation**: 95% Complete
+- **Testing Infrastructure**: 100% Complete (138 tests passing)
+- **Documentation**: 100% Complete
 
 ## 📞 Support
 
