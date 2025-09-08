@@ -41,7 +41,7 @@ This document provides a comprehensive handoff from the development team to the 
   - `types/app.ts` - Unified app state types
 
 #### 4. Core Components
-- **ASCIIEditor**: Text editor with real-time pattern validation using AppContext
+- **PatternEditorCM (CM6)**: CodeMirror 6 editor with real-time playhead highlight, base step coloring, click-to-toggle; integrates with AppContext and audio engine
 - **ChatInterface**: AI chat interface (mock implementation)
 - **TransportControls**: Audio transport controls with AppContext state management
 - **MainLayout**: Main application layout
@@ -57,9 +57,9 @@ This document provides a comprehensive handoff from the development team to the 
 ### 🚧 In Progress / Partially Implemented
 
 #### 1. ASCII Editor
-- **Status**: Textarea with real-time validation using AppContext
-- **Missing**: CodeMirror 6 integration, syntax highlighting
-- **Current**: Pattern validation working, AppContext integration, simplified architecture
+- **Status**: ✅ CM6 integrated with inline playhead decorations, base step coloring, click-to-toggle, reduce-motion toggle
+- **Missing**: Advanced DSL grammar (Lezer) is optional and not required for QA
+- **Current**: Real-time validation and audio-driven visuals working
 
 #### 2. AI Chat Interface
 - **Status**: Mock implementation with simulated responses
@@ -158,6 +158,8 @@ This document provides a comprehensive handoff from the development team to the 
 - [ ] Verify button states and hover effects
 - [ ] Test form inputs and validation
 - [ ] Check accessibility (keyboard navigation, screen readers)
+- [ ] Verify CM6 editor caret accuracy and IME composition (no cursor drift)
+- [ ] Verify Reduce Motion toggle softens playhead accents
 
 #### Modular CSS System Testing
 - [ ] Test responsive utilities (responsive, compact, ultra-compact variants)
@@ -225,23 +227,28 @@ Expected Results:
 - No console errors
 ```
 
-### 2. ASCII Editor
+### 2. ASCII Editor (CM6)
 ```
-Test Case: ASCII Editor text input with AppContext
+Test Case: CM6 editor input + playhead highlight
 Steps:
 1. Navigate to Editor page
-2. Click in the textarea
+2. Click in the editor
 3. Type some text
-4. Verify text appears
-5. Test copy/paste functionality
-6. Verify AppContext state updates
+4. Verify text appears and selection behaves correctly
+5. Toggle steps by clicking `x`/`.` characters
+6. Verify playhead highlight advances during playback
+7. Test IME composition (e.g., Japanese input)
+8. Verify AppContext state updates
 
 Expected Results:
-- Text input works correctly
+- Text input works correctly, caret aligns with click position
 - Text is displayed in monospace font
-- AppContext state is updated with pattern content
+- AppContext state updates with pattern content
 - Pattern validation occurs in real-time
 - Copy/paste functions properly
+- Step toggling changes characters and remains in sync with validation/audio
+- Playhead highlights current step without layout shifts
+- IME composition is stable with no cursor jumps
 - No performance issues with large text
 ```
 

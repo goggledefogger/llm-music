@@ -148,6 +148,15 @@ The test suite is now in a clean, passing state with 138 tests. The fixes focuse
 
 This provides a solid foundation for future development and testing improvements.
 
+## Update — September 2025
+
+The ASCII editor has migrated to CodeMirror 6 with decoration-based inline visuals:
+
+- Use robust selectors that do not depend on overlayed DOM or transforms.
+- Prefer `getByRole('textbox')` or `getByPlaceholderText('Enter your ASCII pattern here...')` to target the editor.
+- Avoid relying on per-character DOM structure; decorations do not change layout. Test for behavior (content changes, validation messages, playhead stepping) rather than specific span structures.
+- For step toggling, simulate a click near the character position and assert content change; do not depend on internal CSS class names.
+No test changes are strictly required, but selectors should continue following the best practices above.
 ## Quick Reference
 
 ### Running Tests

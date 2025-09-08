@@ -40,6 +40,11 @@ The ASCII Generative Sequencer now has a **fully modular CSS architecture** that
 - **HomePage**: Now uses page container classes
 - **SettingsPage**: Now uses page container classes
 - **ChatInterface**: Now uses chat interface classes
+\n+### **✅ Editor & Audio (Critical Path)**
+- **PatternEditorCM (CM6)**: CodeMirror 6 editor with inline playhead highlighting, base step coloring, click-to-toggle, and reduce-motion toggle
+- **Real-time Validation**: Debounced validation flows into audio engine once valid
+- **Unified Audio Engine**: Web Audio API synthesis; transport controls (play/pause/stop), tempo, volume
+- **Tight Sync**: Decorations update in response to audio time/tempo; no layout shifts
 
 ## 🎯 **Architecture Benefits**
 

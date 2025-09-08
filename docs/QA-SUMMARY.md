@@ -6,13 +6,13 @@
 ✅ **UI Components**: All major UI components are implemented and functional
 ✅ **Navigation**: Complete routing system between pages
 ✅ **Responsive Design**: Works on desktop, tablet, and mobile
-✅ **Basic Interactions**: Buttons, inputs, and form elements work
+✅ **ASCII Editor (CM6)**: Real-time playhead highlighting, base step coloring, click-to-toggle steps (reduce motion supported)
+✅ **Audio Playback**: Web Audio engine with transport (play/pause/stop), tempo, and volume control
+✅ **Pattern Validation**: Real-time validation with debouncing and error messages
+✅ **Pattern Library**: Load sample patterns; local storage for patterns
 
 ### What's NOT Ready (Expected)
-❌ **Audio Playback**: Transport controls are UI-only (no actual audio)
 ❌ **AI Integration**: Chat interface shows mock responses only
-❌ **Data Persistence**: No saving/loading of patterns
-❌ **Pattern Validation**: ASCII patterns are not parsed or validated
 
 ## 🚀 How to Test
 
@@ -35,9 +35,11 @@ pnpm dev
 - Check page routing and URL changes
 
 ### 2. **Component Functionality** (High Priority)
-- ASCII Editor: Text input, copy/paste, display
+- ASCII Editor (CM6): Text input, selection, IME composition, click-to-toggle steps
+- Audio Playback: Play/pause/stop behavior; step highlight tracks tempo
+- Pattern Validation: Errors/warnings appear promptly; valid patterns auto-load
 - Chat Interface: Message sending, mock responses
-- Transport Controls: Button states, slider interactions
+- Transport Controls: Button states, tempo/volume sliders
 
 ### 3. **Cross-Browser Compatibility** (Medium Priority)
 - Chrome, Firefox, Safari, Edge
@@ -51,13 +53,12 @@ pnpm dev
 ## 🐛 Known Issues (Not Bugs)
 
 1. **Build Warning**: Package.json "types" condition warning (non-critical)
-2. **No Audio**: Transport controls don't play audio (expected - not implemented)
-3. **Mock AI**: Chat shows placeholder responses (expected - not implemented)
+2. **Mock AI**: Chat shows placeholder responses (expected - not implemented)
 
 ## 📊 Current Status
 
 - **UI Implementation**: 100% Complete
-- **Core Functionality**: 0% Complete (next development phase)
+- **Core Functionality**: Editor + Audio + Validation complete; AI integration pending
 - **Testing Infrastructure**: 100% Complete (138 tests passing)
 - **Documentation**: 100% Complete
 
@@ -69,6 +70,6 @@ pnpm dev
 
 ---
 
-**Ready for QA Testing**: ✅ Yes - UI and navigation components
+**Ready for QA Testing**: ✅ Yes - UI, Editor, Audio, Validation
 **Manual Testing Guide**: See `MANUAL-TESTING-GUIDE.md`
 **Next Phase**: UX Expert Review → Core functionality development

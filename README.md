@@ -145,13 +145,13 @@ ascii-generative-sequencer/
 - **Pattern Loading System**: Complete pattern library with search, filter, and one-click loading
 - **Visualization System**: 6 core visualization components with comprehensive testing
 - **Architecture**: Simplified component-based architecture with focused custom hooks
+- **ASCII Editor**: CodeMirror 6 integration with inline playhead highlighting, base step coloring, and click-to-toggle steps (reduce-motion supported)
 
 ### 🚧 In Progress
-- **ASCII Editor**: CodeMirror 6 integration (basic textarea implemented)
 - **AI Integration**: OpenAI API setup (mock interface implemented)
 
 ### 📋 Next Steps
-- Complete CodeMirror 6 integration with custom DSL syntax
+- Enhance DSL highlighting (Lezer grammar, optional)
 - Integrate OpenAI API for AI chat functionality
 - Add advanced audio effects and synthesis capabilities
 

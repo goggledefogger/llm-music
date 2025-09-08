@@ -80,7 +80,7 @@ packages:
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS with modular design system
 - **Audio**: Web Audio API (current) + Tone.js (upcoming hybrid approach)
-- **Editor**: Custom text editor implementation
+- **Editor**: CodeMirror 6 with decorations (inline playhead), base step coloring, click-to-toggle
 - **Testing**: Vitest, React Testing Library
 - **Build**: Turborepo for monorepo management
 - **State Management**: React Context with focused custom hooks
@@ -690,9 +690,8 @@ expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 ### 🚧 In Progress
 
 **ASCII Editor:**
-- Basic textarea with real-time validation
-- CodeMirror 6 integration pending
-- Custom DSL syntax highlighting pending
+- CM6 integrated with inline playhead decorations, base step coloring, and click-to-toggle
+- Custom DSL highlighting present (keywords/numbers/attrs/identifiers/comments); Lezer grammar optional
 
 **AI Integration:**
 - Mock chat interface implemented

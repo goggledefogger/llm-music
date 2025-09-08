@@ -17,12 +17,12 @@ pnpm dev:web
 
 ### 🎨 **HIGH PRIORITY: Visualizations for Each Module**
 
-#### **1. ASCII Editor Visualization**
-- **Pattern Grid**: Visual representation of the ASCII pattern as a step sequencer grid
-- **Real-time Preview**: Show pattern structure as user types
-- **Instrument Tracks**: Visual separation of kick, snare, hihat tracks
-- **Step Indicators**: Highlight active steps and current playback position
-- **Pattern Length**: Visual indication of pattern length and loop points
+#### **1. ASCII Editor (CM6) Visualization**
+- **Inline Highlighting**: Current step highlight directly in text (no layout shift)
+- **Base Step Colors**: Distinct colors for x/X, ., o, f, r symbols
+- **Click-to-Toggle**: Toggle steps by clicking characters
+- **Reduce Motion**: Accessible option to soften animation accents
+- (Optional) Grid visualization remains a future enhancement; current path prioritizes text-first stability
 
 #### **2. Transport Controls Visualization**
 - **Waveform Display**: Show audio waveform or pattern visualization
@@ -148,7 +148,9 @@ pnpm dev:web
 ### Editor Page
 - [ ] **Workflow**: Is the editing experience intuitive?
 - [ ] **Tool Layout**: Are tools positioned logically?
-- [ ] **Text Editing**: Is the ASCII editor comfortable to use?
+- [ ] **Text Editing (CM6)**: Is caret placement accurate and IME stable?
+- [ ] **Step Interaction**: Is click-to-toggle discoverable and responsive?
+- [ ] **Reduce Motion**: Does the toggle meet accessibility expectations?
 - [ ] **AI Integration**: Is the chat interface well-integrated?
 - [ ] **Transport Controls**: Are audio controls accessible and clear?
 - [ ] **Visualizations**: Are pattern visualizations helpful and clear?
