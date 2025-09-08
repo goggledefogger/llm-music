@@ -1,5 +1,5 @@
 import React from 'react';
-import { ASCIIEditor } from '../components/editor/ASCIIEditor';
+import { PatternEditorCM } from '../components/editor/PatternEditorCM';
 import { ChatInterface } from '../components/ai/ChatInterface';
 import { TransportControls } from '../components/audio/TransportControls';
 import { VisualizationPanel } from '../components/layout/VisualizationPanel';
@@ -19,9 +19,9 @@ export const EditorPage: React.FC = () => {
     <div className="flex h-full flex-col lg:flex-row">
       {/* Main Editor Area */}
       <div className="flex-1 flex flex-col min-w-0">
-        {/* ASCII Editor - Takes most of the space */}
+        {/* CodeMirror Editor - Takes most of the space */}
         <div className="flex-1 min-h-0">
-          <ASCIIEditor />
+          <PatternEditorCM />
         </div>
 
         {/* Compact Transport Controls */}
