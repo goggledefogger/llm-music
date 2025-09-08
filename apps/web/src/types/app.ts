@@ -7,6 +7,34 @@ export interface EQModule {
   high: number;   // -3 to +3
 }
 
+export interface AmpModule {
+  name: string;
+  // gain in steps (-3..+3). Engine maps to dB/linear
+  gain: number;
+}
+
+export interface CompModule {
+  name: string;
+  threshold: number; // dB (-60..0)
+  ratio: number;     // (1..20)
+  attack: number;    // seconds (0.001..0.3)
+  release: number;   // seconds (0.02..1)
+  knee: number;      // dB (0..40)
+}
+
+export type LFOWave = 'sine' | 'triangle' | 'square' | 'sawtooth';
+
+export interface LFOModule {
+  // key like 'master.amp' or 'kick.amp'
+  key: string;
+  scope: 'master' | 'instrument';
+  target: 'amp';
+  name: string; // instrument name or 'master'
+  rateHz: number; // 0.1..20
+  depth: number;  // 0..1
+  wave: LFOWave;
+}
+
 export interface ParsedPattern {
   tempo: number;
   instruments: {
@@ -17,6 +45,15 @@ export interface ParsedPattern {
   };
   eqModules?: {
     [moduleName: string]: EQModule;
+  };
+  ampModules?: {
+    [moduleName: string]: AmpModule;
+  };
+  compModules?: {
+    [moduleName: string]: CompModule;
+  };
+  lfoModules?: {
+    [key: string]: LFOModule; // keyed by 'name.target' (e.g., 'kick.amp')
   };
   totalSteps: number;
 }

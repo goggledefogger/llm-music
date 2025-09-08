@@ -6,6 +6,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 
 - 🎵 **ASCII Pattern DSL**: Create music using simple text-based syntax
 - 🎛️ **EQ Modules**: Professional-grade equalizer controls with keyboard-friendly syntax
+- 🎚️ **Audio Effects**: Compressors, amplifiers, and LFOs with text-only control
 - 🤖 **AI Assistant**: Get help from AI to generate and modify patterns
 - 🎧 **Real-time Audio**: High-quality audio synthesis with Tone.js
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile
@@ -86,6 +87,28 @@ seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
 ```
 
+### Pattern with EQ, Amp, Compressor, and LFO
+```ascii
+TEMPO 120
+
+# Master processing
+eq master: low=0 mid=0 high=0
+amp master: gain=0           # −3..+3 steps (≈3 dB/step)
+comp master: threshold=-24 ratio=4 attack=0.01 release=0.25 knee=30
+
+# Per-instrument processing
+eq kick: low=3 mid=-1 high=0
+amp kick: gain=1
+comp kick: threshold=-18 ratio=3 attack=0.005 release=0.2 knee=24
+
+# Tremolo on kick level
+lfo kick.amp: rate=5Hz depth=0.5 wave=sine
+
+seq kick:  x...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
 ## Environment Setup
 
 ### Required API Keys
@@ -140,7 +163,7 @@ ascii-generative-sequencer/
 - **Testing Framework**: Vitest and React Testing Library configured with 138 tests passing
 - **Web Application**: React app running on http://localhost:3000
 - **Package Management**: pnpm workspace with proper dependency management
-- **Audio Engine**: Complete Web Audio API implementation with professional-quality synthesis
+- **Audio Engine**: Web Audio API engine with master/per-instrument effects (EQ, amp, compressor, LFO)
 - **Pattern System**: Boolean-based pattern parsing with real-time validation
 - **Pattern Loading System**: Complete pattern library with search, filter, and one-click loading
 - **Visualization System**: 6 core visualization components with comprehensive testing
@@ -200,6 +223,10 @@ seq hihat: x.x.x.x.x.x.x.x.
 - `SCALE` - Set the musical scale
 - `inst` - Define instruments with samples or synthesis
 - `seq` - Create sequences using pattern symbols
+- `eq name:` - 3-band EQ per module; `low|mid|high = -3..+3`
+- `amp name:` - Amplifier gain in steps; `gain = -3..+3` (≈3 dB/step)
+- `comp name:` - Compressor; `threshold -60..0`, `ratio 1..20`, `attack 0.001..0.3`, `release 0.02..1`, `knee 0..40`
+- `lfo name.amp:` - LFO on amp gain; `rate 0.1..20Hz`, `depth 0..1`, `wave sine|triangle|square|sawtooth`
 - Pattern symbols: `x` (hit), `.` (rest), `X` (accent), `o` (ghost)
 
 ## AI Assistant

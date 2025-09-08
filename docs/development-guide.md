@@ -244,6 +244,72 @@ eq master: low=1 mid=0 high=-1
 eq hihat: low=0 mid=0 high=2
 ```
 
+### Amp Module Syntax (Added Sept 2025)
+
+Amplifier modules provide simple gain staging in text form.
+
+```ascii
+# Amplifier Settings
+amp master: gain=0       # −3..+3 steps (≈3 dB/step)
+amp kick: gain=1
+amp snare: gain=-1
+```
+
+**Amp Syntax:**
+- `amp name:`: Defines an amp module
+- `gain=N`: Gain in steps (−3..+3), mapped to dB (~3 dB per step)
+
+**Amp Features:**
+- Keyboard-only text control, per instrument or `master`
+- Values auto-clamped to range
+- Updates apply in real time while playing
+
+### Compressor Module Syntax (Added Sept 2025)
+
+Compressor modules provide dynamics control with sensible ranges and defaults.
+
+```ascii
+# Compressor Settings
+comp master: threshold=-24 ratio=4 attack=0.01 release=0.25 knee=30
+comp kick: threshold=-18 ratio=3 attack=0.005 release=0.2 knee=24
+```
+
+**Compressor Syntax:**
+- `comp name:`: Defines a compressor module
+- Parameters (clamped):
+  - `threshold`: −60..0 dB
+  - `ratio`: 1..20
+  - `attack`: 0.001..0.3 s
+  - `release`: 0.02..1 s
+  - `knee`: 0..40 dB
+
+**Compressor Features:**
+- Per instrument or `master`
+- Live updates with smooth param changes
+- Works in series with EQ and amp
+
+### LFO Module Syntax (Added Sept 2025)
+
+LFO modules modulate amp gain for tremolo-style effects.
+
+```ascii
+# LFO Settings
+lfo master.amp: rate=0.7Hz depth=0.3 wave=triangle
+lfo kick.amp: rate=5Hz depth=0.5 wave=sine
+```
+
+**LFO Syntax:**
+- `lfo name.amp:`: LFO targeting `amp` of `name` (instrument or `master`)
+- Parameters (clamped):
+  - `rate`: 0.1..20 Hz
+  - `depth`: 0..1
+  - `wave`: `sine | triangle | square | sawtooth`
+
+**LFO Features:**
+- Live routing; starts automatically and updates without stopping playback
+- Depth scales relative to current base gain
+- Simple, readable text format
+
 ### Pattern Validation
 
 The system provides real-time validation with helpful error messages:
@@ -1084,13 +1150,13 @@ const audioContext = new AudioContext()
 console.log('Audio Context Latency:', audioContext.baseLatency)
 console.log('Audio Context Sample Rate:', audioContext.sampleRate)
 
-// Current audio engine implementation
-import { AudioEngine } from '@/services/audioEngine'
+// Current audio engine implementation (unified engine)
+import { unifiedAudioEngine } from '@/services/unifiedAudioEngine'
 
-const audioEngine = AudioEngine.getInstance()
-await audioEngine.initialize()
-audioEngine.loadPattern(parsedPattern)
-audioEngine.play() // Now plays professional-quality audio
+await unifiedAudioEngine.initialize()
+// `patternString` contains ASCII DSL including eq/amp/comp/lfo lines
+unifiedAudioEngine.loadPattern(patternString)
+unifiedAudioEngine.play() // Plays with real-time effects
 ```
 
 ### Environment Variables
@@ -1127,9 +1193,10 @@ After setting up your development environment:
 2. Navigate to the Editor page
 3. Click the Play button
 4. Listen to the kick, snare, and hihat sounds
-5. Adjust tempo and volume to test real-time controls
+5. Type EQ/Amp/Comp/LFO lines (e.g., `eq master: ...`, `amp master: gain=1`, `comp master: ...`, `lfo kick.amp: ...`) and hear changes instantly
+6. Adjust tempo and volume to test real-time controls
 
-The audio engine is fully functional with professional-quality synthesis! 🎵
+The audio engine is fully functional with professional-quality synthesis and real-time effects! 🎵
 
 ## Audio Refactor Plan
 

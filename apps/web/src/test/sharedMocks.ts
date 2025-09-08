@@ -77,6 +77,21 @@ export const mockAudioContext = {
     start: vi.fn(),
     stop: vi.fn(),
   })),
+  createBiquadFilter: vi.fn(() => ({
+    type: 'peaking' as BiquadFilterType,
+    frequency: { setValueAtTime: vi.fn() },
+    Q: { setValueAtTime: vi.fn() },
+    gain: { setValueAtTime: vi.fn(), value: 0 },
+    connect: vi.fn(),
+  })),
+  createDynamicsCompressor: vi.fn(() => ({
+    threshold: { setValueAtTime: vi.fn(), value: -24 },
+    ratio: { setValueAtTime: vi.fn(), value: 4 },
+    attack: { setValueAtTime: vi.fn(), value: 0.01 },
+    release: { setValueAtTime: vi.fn(), value: 0.25 },
+    knee: { setValueAtTime: vi.fn(), value: 30 },
+    connect: vi.fn(),
+  })),
   createBuffer: vi.fn(() => ({
     getChannelData: vi.fn(() => new Float32Array(4410)),
   })),

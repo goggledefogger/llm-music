@@ -1,5 +1,5 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
-import { ParsedPattern, UnifiedAudioState } from '../types/app';
+import { ParsedPattern, UnifiedAudioState, LFOModule } from '../types/app';
 import { PatternParser } from './patternParser';
 import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
@@ -33,6 +33,36 @@ export class UnifiedAudioEngine {
   private audioContext: AudioContext | null = null;
   private masterGain: GainNode | null = null;
   private volumeGain: GainNode | null = null;
+  // Master effects chain
+  private masterEQLow: BiquadFilterNode | null = null;
+  private masterEQMid: BiquadFilterNode | null = null;
+  private masterEQHigh: BiquadFilterNode | null = null;
+  private masterComp: DynamicsCompressorNode | null = null;
+  private masterPreGain: GainNode | null = null; // for master amp
+  private masterChainInput: AudioNode | null = null; // first node in chain
+
+  // Per-instrument chains
+  private instrumentChains: Map<string, {
+    preGain: GainNode;
+    comp: DynamicsCompressorNode;
+    eqLow: BiquadFilterNode;
+    eqMid: BiquadFilterNode;
+    eqHigh: BiquadFilterNode;
+    input: AudioNode; // alias to preGain
+    output: AudioNode; // eqHigh
+  }> = new Map();
+
+  // LFOs
+  private lfoMap: Map<string, {
+    osc: OscillatorNode;
+    depthGain: GainNode;
+    targetParam: AudioParam;
+    scope: 'master' | 'instrument';
+    name: string;
+    wave: OscillatorType;
+    rateHz: number;
+    depth: number;
+  }> = new Map();
 
   // Real-time timing system (no pre-calculation)
   private startTime: number = 0;
@@ -90,6 +120,9 @@ export class UnifiedAudioEngine {
       this.volumeGain = this.audioContext.createGain();
       this.volumeGain.gain.value = 0.5; // Start at -6dB equivalent
 
+      // Ensure master chain
+      this.ensureMasterChain();
+
       // Connect: masterGain -> volumeGain -> destination
       this.masterGain.connect(this.volumeGain);
       this.volumeGain.connect(this.audioContext.destination);
@@ -126,10 +159,15 @@ export class UnifiedAudioEngine {
         this.updateParameter('tempo', newPattern.tempo);
       }
 
-      // Apply EQ changes in real-time
-      if (newPattern.eqModules && Object.keys(newPattern.eqModules).length > 0) {
-        this.updateParameter('eq', newPattern.eqModules);
-      }
+      // Apply EQ changes in real-time (always pass object to allow reset)
+      this.updateParameter('eq', newPattern.eqModules || {});
+
+      // Apply effects changes in real-time (amp/comp/lfo)
+      this.updateParameter('effects', {
+        amp: newPattern.ampModules || {},
+        comp: newPattern.compModules || {},
+        lfo: newPattern.lfoModules || {},
+      });
 
       console.log('Pattern loaded with real-time updates:', this.currentPattern);
     } catch (error) {
@@ -319,7 +357,108 @@ export class UnifiedAudioEngine {
    */
   private applyEffectsUpdate(effectsConfig: any): void {
     console.log(`[Unified] Effects updated:`, effectsConfig);
-    // TODO: Implement effects system
+    if (!this.audioContext) return;
+
+    const now = this.audioContext.currentTime;
+    // Master AMP
+    const masterAmp = effectsConfig?.amp?.['master'];
+    if (masterAmp && this.masterPreGain) {
+      const linear = this.stepsToLinear(masterAmp.gain);
+      this.masterPreGain.gain.setValueAtTime(linear, now);
+      // Update any LFO targeting master.amp scaling
+      const lfoKey = 'master.amp';
+      const lfo = this.lfoMap.get(lfoKey);
+      if (lfo) {
+        lfo.depthGain.gain.setValueAtTime(linear * (lfo.depth || 0), now);
+      }
+    } else if (this.masterPreGain) {
+      // Reset to neutral if no master amp provided
+      this.masterPreGain.gain.setValueAtTime(1, now);
+    }
+
+    // Master COMP
+    const masterComp = effectsConfig?.comp?.['master'];
+    if (this.masterComp) {
+      if (masterComp) {
+        this.masterComp.threshold.setValueAtTime(masterComp.threshold, now);
+        this.masterComp.ratio.setValueAtTime(masterComp.ratio, now);
+        this.masterComp.attack.setValueAtTime(masterComp.attack, now);
+        this.masterComp.release.setValueAtTime(masterComp.release, now);
+        this.masterComp.knee.setValueAtTime(masterComp.knee, now);
+      } else {
+        // Reset to mild default
+        this.masterComp.threshold.setValueAtTime(-24, now);
+        this.masterComp.ratio.setValueAtTime(4, now);
+        this.masterComp.attack.setValueAtTime(0.01, now);
+        this.masterComp.release.setValueAtTime(0.25, now);
+        this.masterComp.knee.setValueAtTime(30, now);
+      }
+    }
+
+    // Per-instrument AMP/COMP
+    const ampMods = effectsConfig?.amp || {};
+    const compMods = effectsConfig?.comp || {};
+    const lfoMods = effectsConfig?.lfo || {};
+
+    // Determine which instruments need chains (if any of amp/comp/eq/lfo present)
+    const instrumentsToEnsure = new Set<string>();
+    if (this.currentPattern) {
+      const names = new Set<string>(
+        Object.keys(this.currentPattern?.instruments || {})
+      );
+      Object.keys(this.currentPattern?.eqModules || {}).forEach(n => names.add(n.toLowerCase()));
+      Object.keys(ampMods).forEach((n: string) => names.add(n.toLowerCase()));
+      Object.keys(compMods).forEach((n: string) => names.add(n.toLowerCase()));
+      Object.values(lfoMods as Record<string, LFOModule>).forEach(l => {
+        if (l.scope === 'instrument') names.add(l.name.toLowerCase());
+      });
+      names.forEach(n => {
+        if (n !== 'master') this.ensureInstrumentChain(n);
+      });
+    }
+
+    // Apply per-instrument AMP
+    Object.entries(ampMods as Record<string, { gain: number }>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        const linear = this.stepsToLinear(cfg.gain);
+        chain.preGain.gain.setValueAtTime(linear, now);
+        // Update LFO depth scaling if present
+        const lfoKey = `${lower}.amp`;
+        const lfo = this.lfoMap.get(lfoKey);
+        if (lfo) {
+          lfo.depthGain.gain.setValueAtTime(linear * (lfo.depth || 0), now);
+        }
+      }
+    });
+
+    // Apply per-instrument COMP
+    Object.entries(compMods as Record<string, any>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        chain.comp.threshold.setValueAtTime(cfg.threshold, now);
+        chain.comp.ratio.setValueAtTime(cfg.ratio, now);
+        chain.comp.attack.setValueAtTime(cfg.attack, now);
+        chain.comp.release.setValueAtTime(cfg.release, now);
+        chain.comp.knee.setValueAtTime(cfg.knee, now);
+      }
+    });
+
+    // Apply/Update LFOs targeting amp
+    const lfoEntries = Object.values(lfoMods as Record<string, LFOModule>);
+    lfoEntries.forEach((lfoCfg) => {
+      this.updateLFO(lfoCfg);
+    });
+
+    // Dispose any LFOs no longer present
+    const newLfoKeys = new Set(lfoEntries.map(l => l.key.toLowerCase()));
+    Array.from(this.lfoMap.keys()).forEach((key) => {
+      if (!newLfoKeys.has(key)) {
+        this.disposeLFO(key);
+      }
+    });
   }
 
   /**
@@ -327,7 +466,36 @@ export class UnifiedAudioEngine {
    */
   private applyEQUpdate(eqConfig: any): void {
     console.log(`[Unified] EQ updated:`, eqConfig);
-    // TODO: Implement EQ system
+    if (!this.audioContext) return;
+    const now = this.audioContext.currentTime;
+
+    this.ensureMasterChain();
+
+    // Master EQ
+    const master = eqConfig?.['master'];
+    if (master && this.masterEQLow && this.masterEQMid && this.masterEQHigh) {
+      this.masterEQLow.gain.setValueAtTime(this.stepsToDb(master.low), now);
+      this.masterEQMid.gain.setValueAtTime(this.stepsToDb(master.mid), now);
+      this.masterEQHigh.gain.setValueAtTime(this.stepsToDb(master.high), now);
+    } else if (this.masterEQLow && this.masterEQMid && this.masterEQHigh) {
+      // Reset to neutral when not provided
+      this.masterEQLow.gain.setValueAtTime(0, now);
+      this.masterEQMid.gain.setValueAtTime(0, now);
+      this.masterEQHigh.gain.setValueAtTime(0, now);
+    }
+
+    // Per-instrument EQ
+    Object.keys(eqConfig || {}).forEach((name) => {
+      const lower = name.toLowerCase();
+      if (lower === 'master') return;
+      const chain = this.ensureInstrumentChain(lower);
+      const eq = eqConfig[name];
+      if (chain && eq) {
+        chain.eqLow.gain.setValueAtTime(this.stepsToDb(eq.low), now);
+        chain.eqMid.gain.setValueAtTime(this.stepsToDb(eq.mid), now);
+        chain.eqHigh.gain.setValueAtTime(this.stepsToDb(eq.high), now);
+      }
+    });
   }
 
   /**
@@ -440,6 +608,186 @@ export class UnifiedAudioEngine {
   // getCurrentStep method removed - not currently used
 
   /**
+   * Ensure master chain is created and connected:
+   * EQLow -> EQMid -> EQHigh -> Comp -> PreGain -> MasterGain
+   */
+  private ensureMasterChain(): void {
+    if (!this.audioContext || !this.masterGain) return;
+    if (this.masterEQLow && this.masterEQMid && this.masterEQHigh && this.masterComp && this.masterPreGain && this.masterChainInput) {
+      return; // already created
+    }
+
+    const ac = this.audioContext;
+    // Create filters with neutral gains
+    this.masterEQLow = ac.createBiquadFilter();
+    this.masterEQLow.type = 'lowshelf';
+    this.masterEQLow.frequency.setValueAtTime(150, ac.currentTime);
+    this.masterEQLow.gain.setValueAtTime(0, ac.currentTime);
+
+    this.masterEQMid = ac.createBiquadFilter();
+    this.masterEQMid.type = 'peaking';
+    this.masterEQMid.frequency.setValueAtTime(1000, ac.currentTime);
+    this.masterEQMid.Q.setValueAtTime(1.0, ac.currentTime);
+    this.masterEQMid.gain.setValueAtTime(0, ac.currentTime);
+
+    this.masterEQHigh = ac.createBiquadFilter();
+    this.masterEQHigh.type = 'highshelf';
+    this.masterEQHigh.frequency.setValueAtTime(6000, ac.currentTime);
+    this.masterEQHigh.gain.setValueAtTime(0, ac.currentTime);
+
+    this.masterComp = ac.createDynamicsCompressor();
+    this.masterComp.threshold.setValueAtTime(-24, ac.currentTime);
+    this.masterComp.ratio.setValueAtTime(4, ac.currentTime);
+    this.masterComp.attack.setValueAtTime(0.01, ac.currentTime);
+    this.masterComp.release.setValueAtTime(0.25, ac.currentTime);
+    this.masterComp.knee.setValueAtTime(30, ac.currentTime);
+
+    this.masterPreGain = ac.createGain();
+    this.masterPreGain.gain.setValueAtTime(1, ac.currentTime);
+
+    // Connect chain into masterGain
+    this.masterEQLow.connect(this.masterEQMid);
+    this.masterEQMid.connect(this.masterEQHigh);
+    this.masterEQHigh.connect(this.masterComp);
+    this.masterComp.connect(this.masterPreGain);
+    this.masterPreGain.connect(this.masterGain);
+
+    this.masterChainInput = this.masterEQLow;
+  }
+
+  /**
+   * Ensure per-instrument chain exists and is connected to master chain input
+   */
+  private ensureInstrumentChain(name: string) {
+    if (!this.audioContext) return null;
+    const n = name.toLowerCase();
+    const existing = this.instrumentChains.get(n);
+    if (existing) return existing;
+
+    const ac = this.audioContext;
+    const preGain = ac.createGain();
+    preGain.gain.setValueAtTime(1, ac.currentTime);
+
+    const comp = ac.createDynamicsCompressor();
+    comp.threshold.setValueAtTime(-24, ac.currentTime);
+    comp.ratio.setValueAtTime(4, ac.currentTime);
+    comp.attack.setValueAtTime(0.01, ac.currentTime);
+    comp.release.setValueAtTime(0.25, ac.currentTime);
+    comp.knee.setValueAtTime(30, ac.currentTime);
+
+    const eqLow = ac.createBiquadFilter();
+    eqLow.type = 'lowshelf';
+    eqLow.frequency.setValueAtTime(150, ac.currentTime);
+    eqLow.gain.setValueAtTime(0, ac.currentTime);
+
+    const eqMid = ac.createBiquadFilter();
+    eqMid.type = 'peaking';
+    eqMid.frequency.setValueAtTime(1000, ac.currentTime);
+    eqMid.Q.setValueAtTime(1.0, ac.currentTime);
+    eqMid.gain.setValueAtTime(0, ac.currentTime);
+
+    const eqHigh = ac.createBiquadFilter();
+    eqHigh.type = 'highshelf';
+    eqHigh.frequency.setValueAtTime(6000, ac.currentTime);
+    eqHigh.gain.setValueAtTime(0, ac.currentTime);
+
+    // Connect chain: preGain -> comp -> eqLow -> eqMid -> eqHigh -> masterChainInput
+    preGain.connect(comp);
+    comp.connect(eqLow);
+    eqLow.connect(eqMid);
+    eqMid.connect(eqHigh);
+
+    // Ensure master input
+    this.ensureMasterChain();
+    if (this.masterChainInput) {
+      eqHigh.connect(this.masterChainInput);
+    } else if (this.masterGain) {
+      eqHigh.connect(this.masterGain);
+    }
+
+    const chain = { preGain, comp, eqLow, eqMid, eqHigh, input: preGain, output: eqHigh };
+    this.instrumentChains.set(n, chain);
+    return chain;
+  }
+
+  private stepsToDb(steps: number): number {
+    const s = Math.max(-3, Math.min(3, steps | 0));
+    return s * 3; // +/- 9 dB range
+  }
+
+  private stepsToLinear(steps: number): number {
+    const db = this.stepsToDb(steps);
+    return Math.pow(10, db / 20);
+  }
+
+  /**
+   * Create or update an LFO targeting master/instrument amp gain
+   */
+  private updateLFO(lfoCfg: LFOModule): void {
+    if (!this.audioContext) return;
+    const ac = this.audioContext;
+    const now = ac.currentTime;
+    const key = lfoCfg.key.toLowerCase();
+
+    // Identify target param
+    let targetParam: AudioParam | null = null;
+    if (lfoCfg.scope === 'master') {
+      this.ensureMasterChain();
+      targetParam = this.masterPreGain?.gain || null;
+    } else {
+      const chain = this.ensureInstrumentChain(lfoCfg.name.toLowerCase());
+      targetParam = chain?.preGain.gain || null;
+    }
+    if (!targetParam) return;
+
+    let entry = this.lfoMap.get(key);
+    if (!entry) {
+      const osc = ac.createOscillator();
+      const depthGain = ac.createGain();
+      osc.connect(depthGain);
+      // Depth (linear) scale against target base value; we set absolute gain below
+      depthGain.connect(targetParam);
+      osc.start();
+      entry = {
+        osc,
+        depthGain,
+        targetParam,
+        scope: lfoCfg.scope,
+        name: lfoCfg.name.toLowerCase(),
+        wave: lfoCfg.wave,
+        rateHz: lfoCfg.rateHz,
+        depth: lfoCfg.depth,
+      };
+      this.lfoMap.set(key, entry);
+    }
+
+    // Update target if changed
+    if (entry.targetParam !== targetParam) {
+      try { entry.depthGain.disconnect(); } catch {}
+      entry.depthGain.connect(targetParam);
+      entry.targetParam = targetParam;
+    }
+
+    // Update oscillator params
+    entry.osc.type = lfoCfg.wave;
+    entry.osc.frequency.setValueAtTime(lfoCfg.rateHz, now);
+    entry.depth = lfoCfg.depth;
+
+    // Scale depth by current base value of target param
+    const base = targetParam.value; // current linear gain
+    entry.depthGain.gain.setValueAtTime(base * lfoCfg.depth, now);
+  }
+
+  private disposeLFO(key: string): void {
+    const entry = this.lfoMap.get(key);
+    if (!entry) return;
+    try { entry.osc.stop(); } catch {}
+    try { entry.osc.disconnect(); } catch {}
+    try { entry.depthGain.disconnect(); } catch {}
+    this.lfoMap.delete(key);
+  }
+
+  /**
    * Schedule pattern playback with real-time timing
    */
   private schedulePattern(): void {
@@ -540,15 +888,28 @@ export class UnifiedAudioEngine {
     const oscillator = this.audioContext.createOscillator();
     const envelope = this.audioContext.createGain();
 
-    // Connect: oscillator -> envelope -> masterGain -> volumeGain -> destination
+    // Connect: oscillator -> envelope -> instrument or master chain input
     oscillator.connect(envelope);
-    envelope.connect(this.masterGain);
+    const lowerName = instrumentName.toLowerCase();
+    const hasInstrumentEffects = !!(
+      this.currentPattern?.eqModules?.[lowerName] ||
+      this.currentPattern?.ampModules?.[lowerName] ||
+      this.currentPattern?.compModules?.[lowerName]
+    );
+    const targetChain = hasInstrumentEffects ? this.ensureInstrumentChain(lowerName) : null;
+    if (targetChain) {
+      envelope.connect(targetChain.input);
+    } else if (this.masterChainInput) {
+      envelope.connect(this.masterChainInput);
+    } else {
+      // Fallback
+      envelope.connect(this.masterGain);
+    }
 
     // Track for immediate stopping
     this.activeOscillators.push(oscillator);
 
     // Set up the sound based on instrument
-    const lowerName = instrumentName.toLowerCase();
     let scheduledNoise: AudioBufferSourceNode | null = null;
     switch (lowerName) {
       case 'kick':
