@@ -10,7 +10,7 @@ The ASCII Generative Sequencer now has a **fully functional pattern loading syst
 - **localStorage Integration**: Persistent pattern storage using browser localStorage
 - **CRUD Operations**: Create, Read, Update, Delete patterns with full data validation
 - **Search & Filter**: Advanced search by name, category, and content
-- **Sample Patterns**: 6 pre-loaded sample patterns across different genres
+  - **Sample Patterns**: 26 pre-loaded sample patterns across different genres
 - **Data Validation**: Proper TypeScript typing and data structure validation
 - **Error Handling**: Graceful error handling with fallback mechanisms
 
@@ -146,14 +146,15 @@ src/
 
 ## 🎵 **Sample Patterns Included**
 
-The system comes with 6 pre-loaded sample patterns:
+The system comes with 26 pre-loaded sample patterns. Examples include:
 
 1. **Basic House Beat** (House) - 128 BPM, 3 instruments, 46% density
-2. **Minimal Techno** (Techno) - 130 BPM, 2 instruments, 38% density  
+2. **Minimal Techno** (Techno) - 130 BPM, 2 instruments, 38% density
 3. **Complex Breakbeat** (Breakbeat) - 140 BPM, 3 instruments, 38% density
 4. **Simple Rock** (Rock) - 120 BPM, 2 instruments, 13% density
 5. **Jungle Pattern** (Jungle) - 160 BPM, 3 instruments, 46% density
 6. **Ambient Drone** (Ambient) - 60 BPM, 2 instruments, 28% density
+...and 20 additional patterns spanning genres like Hip Hop, Trap, Reggae, Latin, Jazz, Funk, Dubstep, Drum and Bass, Afrobeat, Pop, EDM, Country, R&B, Gospel, Metal, Marching, Ska, Bluegrass, and Punk.
 
 ## 🧪 **Testing Coverage**
 
