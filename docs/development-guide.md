@@ -362,13 +362,14 @@ export class PatternService {
 5. **Editor Integration**: Pattern appears in ASCII editor with full audio integration
 
 #### Sample Patterns
-The system includes 6 pre-loaded sample patterns:
+The system includes 26 pre-loaded sample patterns. Examples include:
 - **Basic House Beat** (House) - 128 BPM, 3 instruments
 - **Minimal Techno** (Techno) - 130 BPM, 2 instruments
 - **Complex Breakbeat** (Breakbeat) - 140 BPM, 3 instruments
 - **Simple Rock** (Rock) - 120 BPM, 2 instruments
 - **Jungle Pattern** (Jungle) - 160 BPM, 3 instruments
 - **Ambient Drone** (Ambient) - 60 BPM, 2 instruments
+- ...and 20 additional patterns across genres like Hip Hop, Trap, Reggae, Latin, Jazz, Funk, Dubstep, Drum and Bass, Afrobeat, Pop, EDM, Country, R&B, Gospel, Metal, Marching, Ska, Bluegrass, and Punk.
 
 ### Testing Pattern Loading
 

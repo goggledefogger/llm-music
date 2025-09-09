@@ -330,7 +330,7 @@ describe('PatternService', () => {
     it('should return sample patterns with correct structure', () => {
       const samplePatterns = PatternService.getSamplePatterns();
       
-      expect(samplePatterns).toHaveLength(6);
+        expect(samplePatterns).toHaveLength(26);
       expect(samplePatterns[0]).toHaveProperty('id');
       expect(samplePatterns[0]).toHaveProperty('name');
       expect(samplePatterns[0]).toHaveProperty('category');
@@ -349,7 +349,7 @@ describe('PatternService', () => {
       expect(localStorageMock.setItem).toHaveBeenCalled();
       const callArgs = localStorageMock.setItem.mock.calls[0];
       const savedPatterns = JSON.parse(callArgs[1]);
-      expect(savedPatterns).toHaveLength(6);
+        expect(savedPatterns).toHaveLength(26);
     });
 
     it('should not initialize storage when patterns already exist', () => {
