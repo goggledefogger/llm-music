@@ -22,6 +22,11 @@ describe('ASCIIEditor', () => {
     const editor = screen.getByRole('textbox');
     expect(editor).toHaveValue(`TEMPO 120
 
+# Samples
+sample kick: kick
+sample snare: snare gain=1
+sample hihat: hihat
+
 # EQ Settings
 eq master: low=0 mid=0 high=0
 eq kick: low=2 mid=0 high=-1
@@ -110,8 +115,8 @@ seq hihat: x.x.x.x.x.x.x.x.`);
     render(<ASCIIEditor />);
     const editor = screen.getByRole('textbox');
 
-    // Check initial count (default pattern has 10 lines)
-    expect(screen.getByText(/Lines: 10/)).toBeInTheDocument();
+    // Check initial count (default pattern lines)
+    expect(screen.getByText(/Lines: 15/)).toBeInTheDocument();
 
     // Add a line
     fireEvent.change(editor, { target: { value: `TEMPO 120

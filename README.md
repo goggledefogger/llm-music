@@ -109,6 +109,27 @@ seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
 ```
 
+### Triggering Samples (MVP)
+Assign preloaded samples to instruments and trigger them with `seq`:
+
+```ascii
+TEMPO 122
+
+# Map instrument names to samples (built-in: kick, snare, hihat, clap)
+sample kick: kick
+sample snare: snare gain=1
+sample hat: hihat
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq hat: x.x.x.x.x.x.x.x.
+```
+
+Notes:
+- For MVP, a small procedural sample bank is preloaded (kick, snare, hihat, clap).
+- If no `sample` line is provided, the engine tries a sample matching the instrument name; otherwise it falls back to a synthesized sound.
+- Optional `gain` per sample maps −3..+3 steps (~3 dB/step).
+
 ## Environment Setup
 
 ### Required API Keys

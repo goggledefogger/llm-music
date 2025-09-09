@@ -1,5 +1,5 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave } from '../types/app';
+import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, SampleModule } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;
@@ -15,6 +15,7 @@ export class PatternParser {
     let tempo = this.DEFAULT_TEMPO;
     const instruments: ParsedPattern['instruments'] = {};
     const eqModules: ParsedPattern['eqModules'] = {};
+    const sampleModules: ParsedPattern['sampleModules'] = {};
     const ampModules: ParsedPattern['ampModules'] = {};
     const compModules: ParsedPattern['compModules'] = {};
     const lfoModules: ParsedPattern['lfoModules'] = {};
@@ -25,6 +26,19 @@ export class PatternParser {
         const tempoMatch = line.match(/TEMPO\s+(\d+)/);
         if (tempoMatch) {
           tempo = Math.max(60, Math.min(200, parseInt(tempoMatch[1], 10)));
+        }
+        continue;
+      }
+
+      // Parse SAMPLE assignment: sample <instrument>: <sampleName> [gain=X]
+      if (line.startsWith('sample ')) {
+        const sm = line.match(/sample\s+(\w+):\s*(.+)/);
+        if (sm) {
+          const [, instrumentName, rest] = sm;
+          const sample = this.parseSampleString(instrumentName, rest);
+          if (sample) {
+            sampleModules[instrumentName.toLowerCase()] = sample;
+          }
         }
         continue;
       }
@@ -107,6 +121,7 @@ export class PatternParser {
     return {
       tempo,
       instruments,
+      sampleModules,
       eqModules,
       ampModules,
       compModules,
@@ -201,6 +216,32 @@ export class PatternParser {
   }
 
   /**
+   * Parse SAMPLE string like "kick: snare" OR with options: "kick: snare gain=2"
+   */
+  private static parseSampleString(moduleName: string, sampleString: string): SampleModule | null {
+    // Split by spaces; first token is sample name, rest are key=value
+    const parts = sampleString.trim().split(/\s+/);
+    if (!parts.length) return null;
+    const sampleName = parts[0].toLowerCase();
+
+    let gain: number | undefined = undefined;
+    const opts = parts.slice(1).join(' ');
+    if (opts) {
+      const m = opts.match(/gain\s*=\s*(-?\d+)/i);
+      if (m) {
+        const steps = Math.max(-3, Math.min(3, parseInt(m[1], 10)));
+        gain = steps;
+      }
+    }
+
+    return {
+      name: moduleName.toLowerCase(),
+      sample: sampleName,
+      gain,
+    };
+  }
+
+  /**
    * Parse LFO string and target: target like 'master.amp' or 'kick.amp'
    */
   private static parseLFOString(target: string, lfoString: string): LFOModule | null {
@@ -291,6 +332,21 @@ export class PatternParser {
           const tempo = parseInt(tempoMatch[1], 10);
           if (tempo < 60 || tempo > 200) {
             errors.push('Tempo must be between 60 and 200 BPM');
+          }
+        }
+        continue;
+      }
+
+      // Check SAMPLE format
+      if (line.startsWith('sample ')) {
+        const sm = line.match(/sample\s+(\w+):\s*(.+)/);
+        if (!sm) {
+          errors.push(`Invalid sample format: ${line}. Use: sample <instrument>: <sampleName> [gain=X]`);
+        } else {
+          const [, instrumentName, rest] = sm;
+          const sample = this.parseSampleString(instrumentName, rest);
+          if (!sample) {
+            errors.push(`Invalid sample assignment for ${instrumentName}.`);
           }
         }
         continue;

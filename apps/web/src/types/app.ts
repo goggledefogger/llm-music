@@ -35,6 +35,15 @@ export interface LFOModule {
   wave: LFOWave;
 }
 
+export interface SampleModule {
+  // instrument name to map (e.g., 'kick')
+  name: string;
+  // sample identifier from preloaded bank (e.g., 'kick', 'snare')
+  sample: string;
+  // optional gain in steps (-3..+3) applied at trigger
+  gain?: number;
+}
+
 export interface ParsedPattern {
   tempo: number;
   instruments: {
@@ -42,6 +51,9 @@ export interface ParsedPattern {
       steps: boolean[];
       name: string;
     };
+  };
+  sampleModules?: {
+    [instrumentName: string]: SampleModule;
   };
   eqModules?: {
     [moduleName: string]: EQModule;

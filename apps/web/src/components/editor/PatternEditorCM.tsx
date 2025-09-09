@@ -195,6 +195,42 @@ function computeDSLDecorations(state: EditorState): DecorationSet {
       continue;
     }
 
+    // sample lines: sample <instrument>: <sampleName> [gain=X]
+    const sampleIdx = text.indexOf('sample ');
+    if (sampleIdx >= 0) {
+      ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + sampleIdx, line.from + sampleIdx + 6)); // 'sample'
+      const post = text.slice(sampleIdx + 7);
+      const nameMatch = post.match(/^(\w+)/);
+      if (nameMatch) {
+        const nameStart = sampleIdx + 7 + (nameMatch.index || 0);
+        ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + nameStart, line.from + nameStart + nameMatch[0].length));
+      }
+      const colonIdx = text.indexOf(':', sampleIdx);
+      if (colonIdx >= 0) {
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + colonIdx, line.from + colonIdx + 1));
+      }
+      // Sample name (first token after colon)
+      if (colonIdx >= 0) {
+        const after = text.slice(colonIdx + 1);
+        const sm = after.match(/\s*(\w+)/);
+        if (sm) {
+          const start = colonIdx + 1 + (sm.index || 0);
+          ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + start, line.from + start + sm[1].length));
+        }
+      }
+      // attributes like gain=2
+      const attrRegex = /(gain)(=)(-?\d+)/g;
+      let a: RegExpExecArray | null;
+      while ((a = attrRegex.exec(text))) {
+        const [full, key] = a;
+        const base = a.index;
+        ranges.push(Decoration.mark({ class: 'cm-attr' }).range(line.from + base, line.from + base + key.length));
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + base + key.length, line.from + base + key.length + 1));
+        ranges.push(Decoration.mark({ class: 'cm-number' }).range(line.from + base + key.length + 1, line.from + base + full.length));
+      }
+      continue;
+    }
+
     // eq lines: eq name: low=0 mid=0 high=0
     const eqIdx = text.indexOf('eq ');
     if (eqIdx >= 0) {
@@ -209,7 +245,7 @@ function computeDSLDecorations(state: EditorState): DecorationSet {
       const attrRegex = /(low|mid|high)(=)(-?\d+)/g;
       let a: RegExpExecArray | null;
       while ((a = attrRegex.exec(text))) {
-        const [full, key, eq, num] = a;
+        const [full, key] = a;
         const base = a.index;
         ranges.push(Decoration.mark({ class: 'cm-attr' }).range(line.from + base, line.from + base + key.length));
         ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + base + key.length, line.from + base + key.length + 1));

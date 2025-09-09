@@ -5,6 +5,7 @@ import {
   QuickStatsBar, 
   PatternAnalysis, 
   AudioEffects,
+  SampleLibrary,
   PlayheadIndicator, 
   WaveformDisplay 
 } from '../visualizations';
@@ -32,7 +33,8 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
     quickStats: true,       // Always visible - essential metrics
     audioWaveform: true,    // Always visible - playback feedback
     patternAnalysis: false, // Expandable - detailed breakdowns
-    audioEffects: false     // Collapsible - advanced audio processing
+    audioEffects: false,    // Collapsible - advanced audio processing
+    sampleLibrary: true     // Small helper panel for sample mapping
   });
 
   const toggleSection = (section: keyof typeof expandedSections) => {
@@ -44,6 +46,19 @@ export const VisualizationPanel: React.FC<VisualizationPanelProps> = ({
 
   return (
     <div className={`ultra-compact-spacing w-full min-w-0 ${className}`}>
+      {/* 0. Sample Library - Quick mapping helpers */}
+      <div className="visualization-section">
+        <CollapsibleSection
+          title="Sample Library"
+          icon="📦"
+          isExpanded={expandedSections.sampleLibrary}
+          onToggle={() => toggleSection('sampleLibrary')}
+          className="h-auto"
+        >
+          <SampleLibrary className="h-auto" />
+        </CollapsibleSection>
+      </div>
+
       {/* 1. Step Sequencer - Most Used (Primary Tool) */}
       <div className="visualization-section">
         <CollapsibleSection

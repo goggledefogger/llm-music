@@ -6,6 +6,11 @@ import { ParsedPattern, ValidationResult } from '../types/app';
 export const usePatternEditor = () => {
   const [content, setContent] = useState(`TEMPO 120
 
+# Samples
+sample kick: kick
+sample snare: snare gain=1
+sample hihat: hihat
+
 # EQ Settings
 eq master: low=0 mid=0 high=0
 eq kick: low=2 mid=0 high=-1

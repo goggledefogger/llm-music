@@ -6,6 +6,7 @@ export { StepSequencerGrid } from './editor/StepSequencerGrid';
 
 // Audio visualizations
 export { AudioEffects } from './audio/AudioEffects';
+export { SampleLibrary } from './audio/SampleLibrary';
 export { PlayheadIndicator } from './audio/PlayheadIndicator';
 export { WaveformDisplay } from './audio/WaveformDisplay';
 

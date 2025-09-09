@@ -85,6 +85,9 @@ export class UnifiedAudioEngine {
   // 'rest': shorter instruments are silent beyond their length
   private overflowMode: 'loop' | 'rest' = 'loop';
 
+  // Samples
+  private sampleBuffers: Map<string, AudioBuffer> = new Map(); // sampleName -> buffer
+
   private constructor() {
     // Constructor is minimal - initialization happens in initialize()
   }
@@ -126,6 +129,9 @@ export class UnifiedAudioEngine {
       // Connect: masterGain -> volumeGain -> destination
       this.masterGain.connect(this.volumeGain);
       this.volumeGain.connect(this.audioContext.destination);
+
+      // Preload a minimal sample bank (procedurally generated for MVP)
+      await this.preloadDefaultSamples();
 
       // Resume context if suspended
       if (this.audioContext.state === 'suspended') {
@@ -656,6 +662,104 @@ export class UnifiedAudioEngine {
   }
 
   /**
+   * Preload a small built-in sample bank.
+   * For MVP these are generated procedurally to avoid external assets.
+   * Names: 'kick', 'snare', 'hihat', 'clap'
+   */
+  private async preloadDefaultSamples(): Promise<void> {
+    if (!this.audioContext) return;
+    const ac = this.audioContext;
+    const add = (name: string, buf: AudioBuffer) => this.sampleBuffers.set(name.toLowerCase(), buf);
+    try {
+      add('kick', this.generateKickSample(ac));
+      add('snare', this.generateSnareSample(ac));
+      add('hihat', this.generateHiHatSample(ac));
+      add('clap', this.generateClapSample(ac));
+    } catch (e) {
+      console.warn('Failed to generate default samples:', e);
+    }
+  }
+
+  // Procedural sample generators (very light approximations)
+  private generateKickSample(ac: AudioContext): AudioBuffer {
+    const duration = 0.2;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    // Exponential pitch down with exponential amplitude decay
+    const startFreq = 120;
+    const endFreq = 40;
+    const twoPi = 2 * Math.PI;
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const freq = startFreq * Math.pow(endFreq / startFreq, t);
+      const env = Math.pow(1 - t, 4);
+      phase += twoPi * freq / sr;
+      ch[i] = Math.sin(phase) * env * 0.9;
+    }
+    return buf;
+  }
+
+  private generateSnareSample(ac: AudioContext): AudioBuffer {
+    const duration = 0.15;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 8);
+      ch[i] = (Math.random() * 2 - 1) * env * 0.6;
+    }
+    return buf;
+  }
+
+  private generateHiHatSample(ac: AudioContext): AudioBuffer {
+    const duration = 0.07;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    // Bright, short noise burst
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 10);
+      const n = (Math.random() * 2 - 1);
+      ch[i] = n * env * 0.35;
+    }
+    return buf;
+  }
+
+  private generateClapSample(ac: AudioContext): AudioBuffer {
+    // Multi-tap noise bursts to approximate a clap
+    const duration = 0.2;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const taps = [0, 0.015, 0.03, 0.045];
+    for (let i = 0; i < len; i++) ch[i] = 0;
+    for (const tTap of taps) {
+      const start = Math.floor(tTap * sr);
+      for (let i = 0; i < len - start; i++) {
+        const t = i / (len - start);
+        const env = Math.pow(1 - t, 10);
+        ch[start + i] += (Math.random() * 2 - 1) * env * 0.18;
+      }
+    }
+    // Normalize a bit to avoid clipping
+    let max = 0;
+    for (let i = 0; i < len; i++) max = Math.max(max, Math.abs(ch[i]));
+    if (max > 1e-6) {
+      const s = 0.95 / max;
+      for (let i = 0; i < len; i++) ch[i] *= s;
+    }
+    return buf;
+  }
+
+  /**
    * Ensure per-instrument chain exists and is connected to master chain input
    */
   private ensureInstrumentChain(name: string) {
@@ -885,11 +989,7 @@ export class UnifiedAudioEngine {
   private scheduleInstrumentHit(instrumentName: string, time: number): void {
     if (!this.audioContext || !this.masterGain) return;
 
-    const oscillator = this.audioContext.createOscillator();
     const envelope = this.audioContext.createGain();
-
-    // Connect: oscillator -> envelope -> instrument or master chain input
-    oscillator.connect(envelope);
     const lowerName = instrumentName.toLowerCase();
     const hasInstrumentEffects = !!(
       this.currentPattern?.eqModules?.[lowerName] ||
@@ -906,74 +1006,92 @@ export class UnifiedAudioEngine {
       envelope.connect(this.masterGain);
     }
 
-    // Track for immediate stopping
-    this.activeOscillators.push(oscillator);
-
-    // Set up the sound based on instrument
+    // Prefer sample playback when available (explicit mapping or matching name)
+    const mappedSampleName = this.currentPattern?.sampleModules?.[lowerName]?.sample || lowerName;
+    const sampleBuffer = this.sampleBuffers.get(mappedSampleName);
+    let scheduledOsc: OscillatorNode | null = null;
     let scheduledNoise: AudioBufferSourceNode | null = null;
-    switch (lowerName) {
-      case 'kick':
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(60, time);
-        oscillator.frequency.exponentialRampToValueAtTime(30, time + 0.1);
-        envelope.gain.setValueAtTime(0.8, time);
-        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-        oscillator.start(time);
-        oscillator.stop(time + 0.2);
-        break;
 
-      case 'snare':
-        // Create noise for snare
-        const bufferSize = this.audioContext.sampleRate * 0.1;
-        const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
-        const output = buffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = Math.random() * 2 - 1;
-        }
-        const noise = this.audioContext.createBufferSource();
-        noise.buffer = buffer;
-        noise.connect(envelope);
+    if (sampleBuffer) {
+      const source = this.audioContext.createBufferSource();
+      source.buffer = sampleBuffer;
+      source.connect(envelope);
+      const gainSteps = this.currentPattern?.sampleModules?.[lowerName]?.gain ?? 0;
+      envelope.gain.setValueAtTime(this.stepsToLinear(gainSteps), time);
+      // Track and schedule
+      this.activeNoiseSources.push(source);
+      scheduledNoise = source;
+      source.start(time);
+      source.stop(time + Math.min(sampleBuffer.duration + 0.01, 1.5));
+    } else {
+      // Fall back to synthesized sounds
+      const oscillator = this.audioContext.createOscillator();
+      scheduledOsc = oscillator;
+      oscillator.connect(envelope);
+      // Track for immediate stopping
+      this.activeOscillators.push(oscillator);
 
-        // Track for immediate stopping
-        this.activeNoiseSources.push(noise);
-        scheduledNoise = noise;
-
-        envelope.gain.setValueAtTime(0.3, time);
-        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-        noise.start(time);
-        noise.stop(time + 0.1);
-        break;
-
-      case 'hihat':
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(8000, time);
-        envelope.gain.setValueAtTime(0.1, time);
-        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-        oscillator.start(time);
-        oscillator.stop(time + 0.05);
-        break;
-
-      default:
-        // Default sound for unknown instruments
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(440, time);
-        envelope.gain.setValueAtTime(0.3, time);
-        envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-        oscillator.start(time);
-        oscillator.stop(time + 0.1);
-        break;
+      switch (lowerName) {
+        case 'kick':
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(60, time);
+          oscillator.frequency.exponentialRampToValueAtTime(30, time + 0.1);
+          envelope.gain.setValueAtTime(0.8, time);
+          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+          oscillator.start(time);
+          oscillator.stop(time + 0.2);
+          break;
+        case 'snare':
+          // Quick noise burst
+          const bufferSize = this.audioContext.sampleRate * 0.1;
+          const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+          const output = buffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+          const noise = this.audioContext.createBufferSource();
+          noise.buffer = buffer;
+          noise.connect(envelope);
+          this.activeNoiseSources.push(noise);
+          scheduledNoise = noise;
+          envelope.gain.setValueAtTime(0.3, time);
+          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+          noise.start(time);
+          noise.stop(time + 0.1);
+          break;
+        case 'hihat':
+          oscillator.type = 'square';
+          oscillator.frequency.setValueAtTime(8000, time);
+          envelope.gain.setValueAtTime(0.1, time);
+          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+          oscillator.start(time);
+          oscillator.stop(time + 0.05);
+          break;
+        default:
+          oscillator.type = 'sine';
+          oscillator.frequency.setValueAtTime(440, time);
+          envelope.gain.setValueAtTime(0.3, time);
+          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+          oscillator.start(time);
+          oscillator.stop(time + 0.1);
+          break;
+      }
     }
 
     // Track scheduled sources so we can cancel future events on live edits
     const now = this.audioContext.currentTime;
     const cleanupFns: Array<() => void> = [];
-    // For oscillator-based instruments (kick, hihat, default)
-    cleanupFns.push(() => {
-      try { oscillator.stop(now); } catch (e) { /* ignore */ }
-      try { oscillator.disconnect(); } catch (e) { /* ignore */ }
-      try { envelope.disconnect(); } catch (e) { /* ignore */ }
-      this.activeOscillators = this.activeOscillators.filter(osc => osc !== oscillator);
-    });
+    if (scheduledOsc) {
+      const osc = scheduledOsc;
+      cleanupFns.push(() => {
+        try { osc.stop(now); } catch (e) { /* ignore */ }
+        try { osc.disconnect(); } catch (e) { /* ignore */ }
+        try { envelope.disconnect(); } catch (e) { /* ignore */ }
+        this.activeOscillators = this.activeOscillators.filter(o => o !== osc);
+      });
+    } else {
+      cleanupFns.push(() => {
+        try { envelope.disconnect(); } catch (e) { /* ignore */ }
+      });
+    }
     if (scheduledNoise) {
       cleanupFns.push(() => {
         try { scheduledNoise!.stop(now); } catch (e) { /* ignore */ }
@@ -992,11 +1110,11 @@ export class UnifiedAudioEngine {
     this.scheduledEvents.push(pruneId);
 
     // Auto-cleanup when audio ends
-    if (typeof oscillator.addEventListener === 'function') {
+    if (scheduledOsc && typeof scheduledOsc.addEventListener === 'function') {
       const cleanup = () => {
-        this.activeOscillators = this.activeOscillators.filter(osc => osc !== oscillator);
+        this.activeOscillators = this.activeOscillators.filter(osc => osc !== scheduledOsc);
       };
-      oscillator.addEventListener('ended', cleanup);
+      scheduledOsc.addEventListener('ended', cleanup);
     }
   }
 
