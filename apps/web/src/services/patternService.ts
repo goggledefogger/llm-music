@@ -350,6 +350,489 @@ seq pad: xxxxxxxx`,
         createdAt: new Date('2024-01-01'),
         updatedAt: new Date('2024-01-01'),
         isPublic: true
+      },
+      {
+        id: 'sample-7',
+        name: 'Classic Hip Hop',
+        category: 'Hip Hop',
+        content: `TEMPO 95
+
+# EQ Settings
+eq master: low=1 mid=1 high=0
+eq kick: low=2 mid=-1 high=0
+eq snare: low=0 mid=2 high=1
+
+seq kick: x..x...x.x..x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 95,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, false, false, true, false, true, false, false, true, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            hihat: { name: 'hihat', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {
+            master: { name: 'master', low: 1, mid: 1, high: 0 },
+            kick: { name: 'kick', low: 2, mid: -1, high: 0 },
+            snare: { name: 'snare', low: 0, mid: 2, high: 1 }
+          },
+          totalSteps: 16
+        },
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-8',
+        name: 'Trap Beat',
+        category: 'Trap',
+        content: `TEMPO 140
+
+seq kick: x..x..x.x.x.x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.xx.xx.x.x.`,
+        parsedPattern: {
+          tempo: 140,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, false, true, false, true, false, true, false, true, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            hihat: { name: 'hihat', steps: [true, false, true, false, true, false, true, true, false, true, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.7,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-9',
+        name: 'Reggaeton Rhythm',
+        category: 'Reggaeton',
+        content: `TEMPO 98
+
+seq kick: x..x..x..x..x..x.
+seq snare: .x..x..x..x..x..x`,
+        parsedPattern: {
+          tempo: 98,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, false, true, false, false, true, false, false, true, false, false, true] },
+            snare: { name: 'snare', steps: [false, true, false, false, true, false, false, true, false, false, true, false, false, true, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.5,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-10',
+        name: 'Lo-fi Groove',
+        category: 'Lo-fi',
+        content: `TEMPO 85
+
+seq kick: x....x..x....x..
+seq snare: ....x.......x...
+seq perc: .x.x.x.x.x.x.x.x`,
+        parsedPattern: {
+          tempo: 85,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, false, true, false, false, true, false, false, false, false, true, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            perc: { name: 'perc', steps: [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.4,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-11',
+        name: 'Synthwave Drive',
+        category: 'Synthwave',
+        content: `TEMPO 110
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq bass: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 110,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            bass: { name: 'bass', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-12',
+        name: 'Drum and Bass',
+        category: 'Drum and Bass',
+        content: `TEMPO 170
+
+seq kick: x..x..x.x..x....
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 170,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, false, true, false, true, false, false, true, false, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            hihat: { name: 'hihat', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.8,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-13',
+        name: 'Trance Anthem',
+        category: 'Trance',
+        content: `TEMPO 138
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq arpeggio: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 138,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            arpeggio: { name: 'arpeggio', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.7,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-14',
+        name: 'Dubstep Wobble',
+        category: 'Dubstep',
+        content: `TEMPO 140
+
+seq kick: x...x...........
+seq snare: ....x.......x...
+seq wobble: x.x.....x.x.....`,
+        parsedPattern: {
+          tempo: 140,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, true, false, false, false, false, false, false, false, false, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            wobble: { name: 'wobble', steps: [true, false, true, false, false, false, false, false, true, false, true, false, false, false, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-15',
+        name: 'Funk Groove',
+        category: 'Funk',
+        content: `TEMPO 115
+
+seq kick: x..x.x..x..x.x..
+seq snare: ..x...x...x...x.
+seq bass: x.x.x...x.x.x...`,
+        parsedPattern: {
+          tempo: 115,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, true, false, false, true, false, false, true, false, true, false, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            bass: { name: 'bass', steps: [true, false, true, false, true, false, false, false, true, false, true, false, true, false, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.7,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-16',
+        name: 'Afrobeat Pattern',
+        category: 'Afrobeat',
+        content: `TEMPO 110
+
+seq kick: x..x..x.x..x..x.
+seq snare: ..x...x...x...x.
+seq shaker: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 110,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, true, false, false, true, false, true, false, false, true, false, false, true, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            shaker: { name: 'shaker', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.8,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-17',
+        name: 'Salsa Rhythm',
+        category: 'Salsa',
+        content: `TEMPO 180
+
+seq clave: x..x..x.x..x..x.
+seq conga: .x.x.x..x.x.x..
+seq cowbell: x...x...x...x...`,
+        parsedPattern: {
+          tempo: 180,
+          instruments: {
+            clave: { name: 'clave', steps: [true, false, false, true, false, false, true, false, true, false, false, true, false, false, true, false] },
+            conga: { name: 'conga', steps: [false, true, false, true, false, true, false, false, true, false, true, false, true, false, false, false] },
+            cowbell: { name: 'cowbell', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.9,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-18',
+        name: 'Jazz Swing',
+        category: 'Jazz',
+        content: `TEMPO 130
+
+seq ride: x.x.x.x.x.x.x.x.
+seq snare: ..s...s...s...s.
+seq kick: x.....x.......x.`,
+        parsedPattern: {
+          tempo: 130,
+          instruments: {
+            ride: { name: 'ride', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            kick: { name: 'kick', steps: [true, false, false, false, false, false, true, false, false, false, false, false, false, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-19',
+        name: 'Blues Shuffle',
+        category: 'Blues',
+        content: `TEMPO 110
+
+seq kick: x.x.x.x.x.x.x.x.
+seq snare: ..x...x...x...x.
+seq guitar: x..x..x..x..x..x.`,
+        parsedPattern: {
+          tempo: 110,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            guitar: { name: 'guitar', steps: [true, false, false, true, false, false, true, false, false, true, false, false, true, false, false, true] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.5,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-20',
+        name: 'Country Two-Step',
+        category: 'Country',
+        content: `TEMPO 140
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...
+seq bass: x.x.x...x.x.x...`,
+        parsedPattern: {
+          tempo: 140,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            bass: { name: 'bass', steps: [true, false, true, false, true, false, false, false, true, false, true, false, true, false, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.4,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-21',
+        name: 'Metal Blast Beat',
+        category: 'Metal',
+        content: `TEMPO 200
+
+seq kick: x.x.x.x.x.x.x.x.
+seq snare: .x.x.x.x.x.x.x.x
+seq cymbal: xxxxxxxxxxxxxxxx`,
+        parsedPattern: {
+          tempo: 200,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] },
+            snare: { name: 'snare', steps: [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true] },
+            cymbal: { name: 'cymbal', steps: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.9,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-22',
+        name: 'Punk Rock Beat',
+        category: 'Punk Rock',
+        content: `TEMPO 180
+
+seq kick: x.x.x.x.x.x.x.x.
+seq snare: ..x...x...x...x.
+seq hihat: xxxxxxxxxxxxxxxx`,
+        parsedPattern: {
+          tempo: 180,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            hihat: { name: 'hihat', steps: [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.7,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-23',
+        name: 'Pop Ballad',
+        category: 'Pop',
+        content: `TEMPO 80
+
+seq kick: x.......x.......
+seq snare: ....x.......x...
+seq piano: x.x.x.x.x.x.x.x.`,
+        parsedPattern: {
+          tempo: 80,
+          instruments: {
+            kick: { name: 'kick', steps: [true, false, false, false, false, false, false, false, true, false, false, false, false, false, false, false] },
+            snare: { name: 'snare', steps: [false, false, false, false, true, false, false, false, false, false, false, false, true, false, false, false] },
+            piano: { name: 'piano', steps: [true, false, true, false, true, false, true, false, true, false, true, false, true, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.3,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-24',
+        name: 'Reggae One Drop',
+        category: 'Reggae',
+        content: `TEMPO 140
+
+seq kick: ..x...x...x...x.
+seq snare: ..x...x...x...x.
+seq hihat: .x.x.x.x.x.x.x.x`,
+        parsedPattern: {
+          tempo: 140,
+          instruments: {
+            kick: { name: 'kick', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            snare: { name: 'snare', steps: [false, false, true, false, false, false, true, false, false, false, true, false, false, false, true, false] },
+            hihat: { name: 'hihat', steps: [false, true, false, true, false, true, false, true, false, true, false, true, false, true, false, true] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.5,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-25',
+        name: 'Simple Canon',
+        category: 'Classical',
+        content: `TEMPO 100
+
+seq melody1: x...x...x...x...
+seq melody2: .x..x..x..x..x..`,
+        parsedPattern: {
+          tempo: 100,
+          instruments: {
+            melody1: { name: 'melody1', steps: [true, false, false, false, true, false, false, false, true, false, false, false, true, false, false, false] },
+            melody2: { name: 'melody2', steps: [false, true, false, false, true, false, false, true, false, false, true, false, false, true, false, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.2,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-26',
+        name: 'Experimental Noise',
+        category: 'Experimental',
+        content: `TEMPO 150
+
+seq noise1: x.xx.x.xx.x.xx.x
+seq noise2: .x..x.x..x.x..x.x`,
+        parsedPattern: {
+          tempo: 150,
+          instruments: {
+            noise1: { name: 'noise1', steps: [true, false, true, true, false, true, false, true, true, false, true, false, true, true, false, true] },
+            noise2: { name: 'noise2', steps: [false, true, false, false, true, false, true, false, false, true, false, true, false, false, true, false] }
+          },
+          eqModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.9,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
       }
     ];
   }

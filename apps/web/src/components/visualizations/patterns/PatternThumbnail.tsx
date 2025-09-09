@@ -48,6 +48,7 @@ export const PatternThumbnail: React.FC<PatternThumbnailProps> = ({
 
   return (
     <div
+      data-testid="pattern-thumbnail"
       className={`
         bg-background border border-border rounded-lg p-4 cursor-pointer
         hover:border-foreground-muted hover:shadow-md transition-all duration-200
