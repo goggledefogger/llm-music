@@ -1,6 +1,7 @@
 // Pattern service for managing pattern storage and retrieval
 import { STORAGE_CONSTANTS } from '@ascii-sequencer/shared';
 import { ParsedPattern } from '../types/app';
+import { PatternParser } from './patternParser';
 
 export interface StoredPattern {
   id: string;
@@ -27,12 +28,16 @@ export class PatternService {
       if (!stored) return [];
 
       const patterns = JSON.parse(stored);
-      // Convert date strings back to Date objects
-      return patterns.map((pattern: any) => ({
-        ...pattern,
-        createdAt: new Date(pattern.createdAt),
-        updatedAt: new Date(pattern.updatedAt)
-      }));
+      // Convert date strings back to Date objects and parse content
+      return patterns.map((pattern: any) => {
+        const parsedPattern = PatternParser.parse(pattern.content || '');
+        return {
+          ...pattern,
+          parsedPattern,
+          createdAt: new Date(pattern.createdAt),
+          updatedAt: new Date(pattern.updatedAt)
+        };
+      });
     } catch (error) {
       console.error('Error loading patterns from storage:', error);
       return [];
