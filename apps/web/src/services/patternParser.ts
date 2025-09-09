@@ -151,24 +151,31 @@ export class PatternParser {
 
   /**
    * Parse EQ string like "low=2 mid=-1 high=0" into EQModule
-   * Format: low=X mid=Y high=Z where X, Y, Z are integers from -3 to +3
+   * Any combination of low/mid/high may be provided in any order
    */
   private static parseEQString(moduleName: string, eqString: string): EQModule | null {
-    // Match pattern: low=X mid=Y high=Z
-    const eqMatch = eqString.match(/low=(-?\d+)\s+mid=(-?\d+)\s+high=(-?\d+)/);
-    
-    if (!eqMatch) {
-      return null;
+    const parts = eqString.trim().split(/\s+/);
+    let low = 0;
+    let mid = 0;
+    let high = 0;
+    let hasAny = false;
+
+    for (const part of parts) {
+      const match = part.match(/(low|mid|high)\s*=\s*(-?\d+)/i);
+      if (match) {
+        const [, key, valueStr] = match;
+        const value = Math.max(-3, Math.min(3, parseInt(valueStr, 10)));
+        if (key.toLowerCase() === 'low') low = value;
+        if (key.toLowerCase() === 'mid') mid = value;
+        if (key.toLowerCase() === 'high') high = value;
+        hasAny = true;
+      } else if (/(low|mid|high)\s*=/.test(part)) {
+        // Recognized key but invalid value
+        return null;
+      }
     }
 
-    const [, lowStr, midStr, highStr] = eqMatch;
-    
-    return {
-      name: moduleName,
-      low: Math.max(-3, Math.min(3, parseInt(lowStr, 10))),
-      mid: Math.max(-3, Math.min(3, parseInt(midStr, 10))),
-      high: Math.max(-3, Math.min(3, parseInt(highStr, 10)))
-    };
+    return hasAny ? { name: moduleName, low, mid, high } : null;
   }
 
   /**
@@ -356,12 +363,12 @@ export class PatternParser {
       if (line.startsWith('eq ')) {
         const eqMatch = line.match(/eq\s+(\w+):\s*(.+)/);
         if (!eqMatch) {
-          errors.push(`Invalid EQ format: ${line}. Use: eq name: low=X mid=Y high=Z`);
+          errors.push(`Invalid EQ format: ${line}. Use: eq name: low=X mid=Y high=Z (any combination)`);
         } else {
           const [, moduleName, eqString] = eqMatch;
           const eqModule = this.parseEQString(moduleName, eqString);
           if (!eqModule) {
-            errors.push(`Invalid EQ values for ${moduleName}. Use: low=X mid=Y high=Z (range: -3 to +3)`);
+            errors.push(`Invalid EQ values for ${moduleName}. Use any of low=X mid=Y high=Z (range: -3 to +3)`);
           }
         }
         continue;

@@ -74,9 +74,41 @@ seq kick: x...x...x...x...`;
     });
   });
 
+  it('should allow partial EQ settings in any order', () => {
+    const pattern = `TEMPO 120
+
+eq master: high=2
+eq kick: mid=-1 low=3
+eq snare: high=1
+
+seq kick: x...x...x...x...
+seq snare: ....x.......x...`;
+
+    const result = PatternParser.parse(pattern);
+
+    expect(result.eqModules!.master).toEqual({
+      name: 'master',
+      low: 0,
+      mid: 0,
+      high: 2
+    });
+    expect(result.eqModules!.kick).toEqual({
+      name: 'kick',
+      low: 3,
+      mid: -1,
+      high: 0
+    });
+    expect(result.eqModules!.snare).toEqual({
+      name: 'snare',
+      low: 0,
+      mid: 0,
+      high: 1
+    });
+  });
+
   it('should validate EQ syntax correctly', () => {
     const validPattern = `TEMPO 120
-eq master: low=0 mid=0 high=0
+eq master: low=0 high=1
 seq kick: x...x...x...x...`;
 
     const invalidPattern = `TEMPO 120
