@@ -54,9 +54,29 @@ describe('PatternService', () => {
 
     it('should handle JSON parse errors gracefully', () => {
       localStorageMock.getItem.mockReturnValue('invalid json');
-      
+
       const patterns = PatternService.getStoredPatterns();
       expect(patterns).toEqual([]);
+    });
+
+    it('should parse content and apply defaults when parsedPattern is missing', () => {
+      const mockPatterns = [
+        {
+          id: 'test-2',
+          content: 'TEMPO 120\nseq kick: x...',
+          complexity: 0.5,
+          createdAt: '2024-01-01T00:00:00.000Z',
+          updatedAt: '2024-01-01T00:00:00.000Z',
+        },
+      ];
+
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(mockPatterns));
+
+      const patterns = PatternService.getStoredPatterns();
+      expect(patterns).toHaveLength(1);
+      expect(patterns[0].parsedPattern).toBeTruthy();
+      expect(patterns[0].name).toBe('Untitled Pattern');
+      expect(patterns[0].category).toBe('Uncategorized');
     });
   });
 
