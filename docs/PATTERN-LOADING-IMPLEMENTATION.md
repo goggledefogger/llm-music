@@ -10,7 +10,7 @@ The ASCII Generative Sequencer now has a **fully functional pattern loading syst
 - **localStorage Integration**: Persistent pattern storage using browser localStorage
 - **CRUD Operations**: Create, Read, Update, Delete patterns with full data validation
 - **Search & Filter**: Advanced search by name, category, and content
-  - **Sample Patterns**: 26 pre-loaded sample patterns across different genres
+  - **Sample Patterns**: 26 pre-loaded sample patterns across different genres, automatically merged into existing storage
 - **Data Validation**: Proper TypeScript typing and data structure validation
 - **Error Handling**: Graceful error handling with fallback mechanisms
 

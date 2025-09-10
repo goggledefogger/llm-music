@@ -927,13 +927,17 @@ seq hihat: xxxxxxxxxxxxxxxx`,
   }
 
   /**
-   * Initialize storage with sample patterns if empty
+   * Ensure sample patterns exist in storage
    */
   static initializeStorage(): void {
     const existingPatterns = this.getStoredPatterns();
-    if (existingPatterns.length === 0) {
-      const samplePatterns = this.getSamplePatterns();
-      this.savePatterns(samplePatterns);
+    const samplePatterns = this.getSamplePatterns();
+
+    const existingIds = new Set(existingPatterns.map(p => p.id));
+    const newPatterns = samplePatterns.filter(p => !existingIds.has(p.id));
+
+    if (newPatterns.length > 0) {
+      this.savePatterns([...existingPatterns, ...newPatterns]);
     }
   }
 

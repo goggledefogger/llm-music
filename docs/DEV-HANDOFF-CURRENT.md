@@ -15,6 +15,7 @@ The ASCII Generative Sequencer now has a **fully modular CSS architecture** that
 - **Pattern Library UI**: Full-featured patterns page with search, filter, and grid layout
 - **Pattern Loading Workflow**: One-click pattern loading with automatic navigation to editor
   - **Sample Patterns**: 26 pre-loaded patterns across different musical genres
+  - **Automatic Updates**: Missing sample patterns are added to existing libraries on load
 - **Search & Filter**: Real-time search by name/category and category filtering
 - **State Management**: Enhanced app state with pattern loading actions and hooks
 - **Testing**: Comprehensive test coverage for all pattern loading functionality

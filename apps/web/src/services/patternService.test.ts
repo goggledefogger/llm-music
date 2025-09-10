@@ -345,18 +345,52 @@ describe('PatternService', () => {
   describe('initializeStorage', () => {
     it('should initialize storage with sample patterns when empty', () => {
       PatternService.initializeStorage();
-      
+
       expect(localStorageMock.setItem).toHaveBeenCalled();
       const callArgs = localStorageMock.setItem.mock.calls[0];
       const savedPatterns = JSON.parse(callArgs[1]);
-        expect(savedPatterns).toHaveLength(26);
+      expect(savedPatterns).toHaveLength(26);
     });
 
-    it('should not initialize storage when patterns already exist', () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify([{ id: 'existing' }]));
-      
+    it('should merge sample patterns with existing patterns', () => {
+      const existingPattern = {
+        id: 'existing',
+        name: 'Existing Pattern',
+        category: 'Custom',
+        content: 'TEMPO 120',
+        parsedPattern: {
+          tempo: 120,
+          instruments: {},
+          sampleModules: {},
+          eqModules: {},
+          ampModules: {},
+          compModules: {},
+          lfoModules: {},
+          totalSteps: 16
+        },
+        complexity: 0.1,
+        createdAt: '2024-01-01T00:00:00.000Z',
+        updatedAt: '2024-01-01T00:00:00.000Z'
+      };
+
+      const partialSample = PatternService.getSamplePatterns()[0];
+      localStorageMock.getItem.mockReturnValue(JSON.stringify([existingPattern, partialSample]));
+
       PatternService.initializeStorage();
-      
+
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+      const savedPatterns = JSON.parse(localStorageMock.setItem.mock.calls[0][1]);
+      expect(savedPatterns).toHaveLength(27);
+      expect(savedPatterns.filter((p: any) => p.id === partialSample.id)).toHaveLength(1);
+      expect(savedPatterns.some((p: any) => p.id === 'existing')).toBe(true);
+    });
+
+    it('should not duplicate patterns when all samples already stored', () => {
+      const allSamples = PatternService.getSamplePatterns();
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSamples));
+
+      PatternService.initializeStorage();
+
       expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
   });

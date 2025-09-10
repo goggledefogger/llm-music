@@ -362,7 +362,7 @@ export class PatternService {
 5. **Editor Integration**: Pattern appears in ASCII editor with full audio integration
 
 #### Sample Patterns
-The system includes 26 pre-loaded sample patterns. Examples include:
+The system includes 26 pre-loaded sample patterns that are automatically added to local storage if missing. Examples include:
 - **Basic House Beat** (House) - 128 BPM, 3 instruments
 - **Minimal Techno** (Techno) - 130 BPM, 2 instruments
 - **Complex Breakbeat** (Breakbeat) - 140 BPM, 3 instruments
