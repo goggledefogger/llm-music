@@ -407,7 +407,7 @@ export class UnifiedAudioEngine {
     const lfoMods = effectsConfig?.lfo || {};
 
     // Determine which instruments need chains (if any of amp/comp/eq/lfo present)
-    const instrumentsToEnsure = new Set<string>();
+    // const instrumentsToEnsure = new Set<string>();
     if (this.currentPattern) {
       const names = new Set<string>(
         Object.keys(this.currentPattern?.instruments || {})

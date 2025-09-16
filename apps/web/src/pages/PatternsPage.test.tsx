@@ -1,4 +1,4 @@
-import React from 'react';
+// import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { PatternsPage } from './PatternsPage';
@@ -36,7 +36,7 @@ describe('PatternsPage', () => {
 
   it('renders the page title and basic structure', async () => {
     render(<PatternsPage />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Pattern Library')).toBeInTheDocument();
     });
@@ -46,7 +46,7 @@ describe('PatternsPage', () => {
 
   it('shows no patterns found when no patterns are available', async () => {
     render(<PatternsPage />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('No patterns found')).toBeInTheDocument();
     });
@@ -56,7 +56,7 @@ describe('PatternsPage', () => {
 
   it('has search and filter controls', async () => {
     render(<PatternsPage />);
-    
+
     await waitFor(() => {
       expect(screen.getByPlaceholderText('Search patterns...')).toBeInTheDocument();
     });
@@ -86,7 +86,7 @@ describe('PatternsPage', () => {
     ]);
 
     render(<PatternsPage />);
-    
+
     await waitFor(() => {
       expect(screen.getByText('Test Pattern')).toBeInTheDocument();
     });

@@ -4,6 +4,8 @@ import { EditorPage } from '../../pages/EditorPage';
 import { AppProvider } from '../../contexts/AppContext';
 
 // Mock the audio engine to avoid complex audio initialization
+import { vi } from 'vitest';
+
 vi.mock('../../services/unifiedAudioEngine', () => ({
   unifiedAudioEngine: {
     initialize: vi.fn().mockResolvedValue(undefined),

@@ -22,7 +22,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
     setTempo,
     setVolume,
     updateParameter,
-    getParameterHistory
+    // getParameterHistory
   } = useUnifiedAudioEngine();
 
   const [performanceMetrics, setPerformanceMetrics] = useState({ fps: 0, uptime: 0 });
