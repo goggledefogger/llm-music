@@ -2,6 +2,11 @@
 
 A browser-based music sequencer that combines ASCII pattern notation with AI assistance for creating and modifying musical sequences.
 
+## Demo: https://llm-music.roytown.net/
+
+<img width="600" alt="image" src="https://github.com/user-attachments/assets/91eb25d1-d473-4330-a255-a0a98aa0ff2f" />
+
+
 ## Features
 
 - 🎵 **ASCII Pattern DSL**: Create music using simple text-based syntax
