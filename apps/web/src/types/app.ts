@@ -57,12 +57,13 @@ export interface DistortModule {
 }
 
 export type LFOWave = 'sine' | 'triangle' | 'square' | 'sawtooth';
+export type LFOTarget = 'amp' | 'filter.freq' | 'filter.q' | 'pan' | 'delay.time' | 'delay.feedback';
 
 export interface LFOModule {
-  // key like 'master.amp' or 'kick.amp'
+  // key like 'master.amp' or 'kick.filter.freq'
   key: string;
   scope: 'master' | 'instrument';
-  target: 'amp';
+  target: LFOTarget;
   name: string; // instrument name or 'master'
   rateHz: number; // 0.1..20
   depth: number;  // 0..1

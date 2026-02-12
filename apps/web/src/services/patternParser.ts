@@ -1,9 +1,10 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, SampleModule, FilterModule, FilterType, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
+import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, LFOTarget, SampleModule, FilterModule, FilterType, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;
   private static readonly MAX_STEPS = 32;
+  private static readonly VALID_LFO_TARGETS: LFOTarget[] = ['amp', 'filter.freq', 'filter.q', 'pan', 'delay.time', 'delay.feedback'];
 
   /**
    * Parse a simple ASCII pattern into a structured format
@@ -324,15 +325,25 @@ export class PatternParser {
   }
 
   /**
-   * Parse LFO string and target: target like 'master.amp' or 'kick.amp'
+   * Parse LFO string and target: supports 2-part (name.amp, name.pan) and
+   * 3-part (name.filter.freq, name.delay.time) dotted paths.
+   * Scope rules: delay targets are master-only, filter and pan are instrument-only, amp works on both.
    */
   private static parseLFOString(target: string, lfoString: string): LFOModule | null {
     const normalizedTarget = target.trim().toLowerCase();
-    const [nameRaw, targetTypeRaw] = normalizedTarget.split('.') as [string, string];
-    if (!nameRaw || !targetTypeRaw) return null;
-    const name = nameRaw;
-    const targetType = targetTypeRaw as 'amp';
-    if (targetType !== 'amp') return null; // currently only amp LFO supported
+    const parts = normalizedTarget.split('.');
+    if (parts.length < 2 || parts.length > 3) return null;
+
+    const name = parts[0];
+    if (!name) return null;
+
+    const targetType = parts.slice(1).join('.') as LFOTarget;
+    if (!this.VALID_LFO_TARGETS.includes(targetType)) return null;
+
+    // Enforce scope rules
+    const scope: 'master' | 'instrument' = name === 'master' ? 'master' : 'instrument';
+    if (scope === 'master' && (targetType === 'filter.freq' || targetType === 'filter.q' || targetType === 'pan')) return null;
+    if (scope === 'instrument' && (targetType === 'delay.time' || targetType === 'delay.feedback')) return null;
 
     const pairs = Array.from(lfoString.matchAll(/(rate|depth|wave)\s*=\s*([^\s]+)/gi));
     const map: Record<string, string> = {};
@@ -360,13 +371,12 @@ export class PatternParser {
     const allowed: LFOWave[] = ['sine', 'triangle', 'square', 'sawtooth'];
     const finalWave = allowed.includes(wave) ? wave : 'sine';
 
-    const scope: 'master' | 'instrument' = name === 'master' ? 'master' : 'instrument';
     const key = `${name}.${targetType}`;
 
     return {
       key,
       scope,
-      target: 'amp',
+      target: targetType,
       name,
       rateHz,
       depth,
@@ -604,12 +614,12 @@ export class PatternParser {
       if (line.startsWith('lfo ')) {
         const lfoMatch = line.match(/lfo\s+([^:]+):\s*(.+)/);
         if (!lfoMatch) {
-          errors.push(`Invalid lfo format: ${line}. Use: lfo name.amp: rate=1Hz depth=0.5 wave=sine`);
+          errors.push(`Invalid lfo format: ${line}. Use: lfo name.<target>: rate=1Hz depth=0.5 wave=sine`);
         } else {
           const [, target, lfoString] = lfoMatch;
           const lfo = this.parseLFOString(target, lfoString);
           if (!lfo) {
-            errors.push(`Invalid lfo values for ${target}. Use: lfo name.amp: rate=1Hz depth=0.5 wave=sine`);
+            errors.push(`Invalid lfo target or values for ${target.trim()}. Valid targets: amp, filter.freq, filter.q, pan (instrument only), delay.time, delay.feedback (master only). Use: lfo name.<target>: rate=1Hz depth=0.5 wave=sine`);
           }
         }
         continue;

@@ -80,10 +80,22 @@ Teach about the DSL, pattern concepts, or music theory. Be educational but conci
   - Example: \`comp kick: threshold=-18 ratio=6 attack=0.005\`
 
 ### LFO (Low Frequency Oscillator)
-- \`lfo <instrument>.amp: [rate=<0.1..20>Hz] [depth=<0..1>] [wave=<sine|triangle|square|sawtooth>]\`
-  - Modulates the amplitude of an instrument or master
-  - Use \`master.amp\` for global tremolo
-  - Example: \`lfo hihat.amp: rate=4Hz depth=0.3 wave=sine\`
+- \`lfo <name>.<target>: [rate=<0.1..20>Hz] [depth=<0..1>] [wave=<sine|triangle|square|sawtooth>]\`
+  - Modulates a parameter over time using an oscillator
+  - **Valid targets:**
+    - \`amp\` — amplitude/volume (tremolo). Works on instruments and master.
+    - \`filter.freq\` — filter cutoff frequency (filter sweep). Instrument only.
+    - \`filter.q\` — filter resonance (resonance wobble). Instrument only.
+    - \`pan\` — stereo position (auto-pan). Instrument only.
+    - \`delay.time\` — delay time (chorus/flanger). Master only.
+    - \`delay.feedback\` — delay feedback (echo swell). Master only.
+  - **Scope rules:** \`filter.*\` and \`pan\` are instrument-only. \`delay.*\` is master-only. \`amp\` works on both.
+  - Examples:
+    - \`lfo hihat.amp: rate=4Hz depth=0.3 wave=sine\` — tremolo on hi-hat
+    - \`lfo kick.filter.freq: rate=0.5Hz depth=0.6 wave=triangle\` — filter sweep on kick
+    - \`lfo hihat.pan: rate=3Hz depth=0.8 wave=sine\` — auto-pan on hi-hat
+    - \`lfo master.delay.time: rate=0.3Hz depth=0.2 wave=triangle\` — subtle chorus
+    - \`lfo master.amp: rate=2Hz depth=0.3 wave=sine\` — global tremolo
 
 ### Filter
 - \`filter <instrument>: type=<lowpass|highpass|bandpass> freq=<20..20000> [q=<0.1..30>]\`

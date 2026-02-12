@@ -494,7 +494,7 @@ seq kick: x...x...x...x...`;
     }
   });
 
-  it('should reject LFO without .amp target', () => {
+  it('should reject LFO with bare "filter" target (not filter.freq or filter.q)', () => {
     const pattern = `TEMPO 120
 lfo kick.filter: rate=1Hz
 seq kick: x...x...x...x...`;
@@ -730,5 +730,165 @@ amp : gain=1`;
     expect(result.isValid).toBe(false);
     // At minimum: invalid eq, invalid amp, no valid sequence
     expect(result.errors.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('PatternParser - LFO Expanded Targets', () => {
+  it('should parse lfo filter.freq target', () => {
+    const pattern = `TEMPO 120
+lfo kick.filter.freq: rate=0.5Hz depth=0.6 wave=triangle
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['kick.filter.freq'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('filter.freq');
+    expect(lfo.scope).toBe('instrument');
+    expect(lfo.name).toBe('kick');
+    expect(lfo.rateHz).toBe(0.5);
+    expect(lfo.depth).toBe(0.6);
+    expect(lfo.wave).toBe('triangle');
+  });
+
+  it('should parse lfo filter.q target', () => {
+    const pattern = `TEMPO 120
+lfo kick.filter.q: rate=1Hz depth=0.4 wave=sine
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['kick.filter.q'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('filter.q');
+    expect(lfo.scope).toBe('instrument');
+  });
+
+  it('should parse lfo pan target', () => {
+    const pattern = `TEMPO 120
+lfo hihat.pan: rate=3Hz depth=0.8 wave=sine
+seq hihat: x.x.x.x.x.x.x.x.`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['hihat.pan'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('pan');
+    expect(lfo.scope).toBe('instrument');
+    expect(lfo.rateHz).toBe(3);
+    expect(lfo.depth).toBe(0.8);
+  });
+
+  it('should parse lfo delay.time target on master', () => {
+    const pattern = `TEMPO 120
+lfo master.delay.time: rate=0.3Hz depth=0.2 wave=triangle
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['master.delay.time'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('delay.time');
+    expect(lfo.scope).toBe('master');
+    expect(lfo.rateHz).toBe(0.3);
+    expect(lfo.depth).toBe(0.2);
+  });
+
+  it('should parse lfo delay.feedback target on master', () => {
+    const pattern = `TEMPO 120
+lfo master.delay.feedback: rate=1Hz depth=0.3 wave=sine
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['master.delay.feedback'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('delay.feedback');
+    expect(lfo.scope).toBe('master');
+  });
+
+  it('should reject delay.time on instrument (master-only)', () => {
+    const pattern = `TEMPO 120
+lfo kick.delay.time: rate=1Hz depth=0.5
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['kick.delay.time']).toBeUndefined();
+  });
+
+  it('should reject delay.feedback on instrument (master-only)', () => {
+    const pattern = `TEMPO 120
+lfo kick.delay.feedback: rate=1Hz depth=0.5
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['kick.delay.feedback']).toBeUndefined();
+  });
+
+  it('should reject filter.freq on master (instrument-only)', () => {
+    const pattern = `TEMPO 120
+lfo master.filter.freq: rate=1Hz depth=0.5
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['master.filter.freq']).toBeUndefined();
+  });
+
+  it('should reject pan on master (instrument-only)', () => {
+    const pattern = `TEMPO 120
+lfo master.pan: rate=1Hz depth=0.5
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['master.pan']).toBeUndefined();
+  });
+
+  it('should support multiple LFOs on the same instrument', () => {
+    const pattern = `TEMPO 120
+lfo kick.amp: rate=2Hz depth=0.3 wave=sine
+lfo kick.filter.freq: rate=0.5Hz depth=0.6 wave=triangle
+lfo kick.pan: rate=1Hz depth=0.4 wave=sine
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['kick.amp']).toBeDefined();
+    expect(result.lfoModules!['kick.filter.freq']).toBeDefined();
+    expect(result.lfoModules!['kick.pan']).toBeDefined();
+    expect(Object.keys(result.lfoModules!)).toHaveLength(3);
+  });
+
+  it('should reject invalid LFO target name', () => {
+    const pattern = `TEMPO 120
+lfo kick.volume: rate=1Hz depth=0.5
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    expect(result.lfoModules!['kick.volume']).toBeUndefined();
+  });
+
+  it('should still parse amp target (backward compatibility)', () => {
+    const pattern = `TEMPO 120
+lfo kick.amp: rate=5Hz depth=0.8 wave=triangle
+seq kick: x...x...x...x...`;
+    const result = PatternParser.parse(pattern);
+    const lfo = result.lfoModules!['kick.amp'];
+    expect(lfo).toBeDefined();
+    expect(lfo.target).toBe('amp');
+    expect(lfo.rateHz).toBe(5);
+    expect(lfo.depth).toBe(0.8);
+    expect(lfo.wave).toBe('triangle');
+  });
+
+  it('should validate expanded LFO targets without error', () => {
+    const pattern = `TEMPO 120
+seq kick: x...x...x...x...
+lfo kick.filter.freq: rate=0.5Hz depth=0.6 wave=triangle
+lfo kick.pan: rate=3Hz depth=0.8 wave=sine
+lfo master.delay.time: rate=0.3Hz depth=0.2 wave=triangle`;
+    const result = PatternParser.validate(pattern);
+    expect(result.isValid).toBe(true);
+    expect(result.errors).toHaveLength(0);
+  });
+
+  it('should report validation error for invalid LFO target', () => {
+    const pattern = `TEMPO 120
+seq kick: x...x...x...x...
+lfo kick.volume: rate=1Hz depth=0.5`;
+    const result = PatternParser.validate(pattern);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('Invalid lfo target'))).toBe(true);
+  });
+
+  it('should report validation error for scope violation', () => {
+    const pattern = `TEMPO 120
+seq kick: x...x...x...x...
+lfo kick.delay.time: rate=1Hz depth=0.5`;
+    const result = PatternParser.validate(pattern);
+    expect(result.isValid).toBe(false);
+    expect(result.errors.some(e => e.includes('lfo'))).toBe(true);
   });
 });

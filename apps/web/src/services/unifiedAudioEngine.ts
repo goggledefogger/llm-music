@@ -1,5 +1,5 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
-import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
+import { ParsedPattern, UnifiedAudioState, LFOModule, LFOTarget, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
 import { PatternParser } from './patternParser';
 import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
@@ -982,7 +982,43 @@ export class UnifiedAudioEngine {
   }
 
   /**
-   * Create or update an LFO targeting master/instrument amp gain
+   * Resolve an LFO target to the correct AudioParam and depth scaling factor.
+   */
+  private resolveLFOTarget(lfoCfg: LFOModule): { param: AudioParam; depthScale: number } | null {
+    const targetType = lfoCfg.target;
+
+    if (lfoCfg.scope === 'master') {
+      this.ensureMasterChain();
+      switch (targetType) {
+        case 'amp':
+          return this.masterPreGain ? { param: this.masterPreGain.gain, depthScale: this.masterPreGain.gain.value } : null;
+        case 'delay.time':
+          return this.masterDelay ? { param: this.masterDelay.delayTime, depthScale: this.masterDelay.delayTime.value * 0.1 } : null;
+        case 'delay.feedback':
+          return this.masterDelayFeedback ? { param: this.masterDelayFeedback.gain, depthScale: this.masterDelayFeedback.gain.value } : null;
+        default:
+          return null;
+      }
+    } else {
+      const chain = this.ensureInstrumentChain(lfoCfg.name.toLowerCase());
+      if (!chain) return null;
+      switch (targetType) {
+        case 'amp':
+          return { param: chain.preGain.gain, depthScale: chain.preGain.gain.value };
+        case 'filter.freq':
+          return { param: chain.filter.frequency, depthScale: chain.filter.frequency.value };
+        case 'filter.q':
+          return { param: chain.filter.Q, depthScale: chain.filter.Q.value };
+        case 'pan':
+          return { param: chain.pan.pan, depthScale: 1 };
+        default:
+          return null;
+      }
+    }
+  }
+
+  /**
+   * Create or update an LFO for any supported target parameter
    */
   private updateLFO(lfoCfg: LFOModule): void {
     if (!this.audioContext) return;
@@ -990,23 +1026,16 @@ export class UnifiedAudioEngine {
     const now = ac.currentTime;
     const key = lfoCfg.key.toLowerCase();
 
-    // Identify target param
-    let targetParam: AudioParam | null = null;
-    if (lfoCfg.scope === 'master') {
-      this.ensureMasterChain();
-      targetParam = this.masterPreGain?.gain || null;
-    } else {
-      const chain = this.ensureInstrumentChain(lfoCfg.name.toLowerCase());
-      targetParam = chain?.preGain.gain || null;
-    }
-    if (!targetParam) return;
+    // Resolve the target AudioParam
+    const resolved = this.resolveLFOTarget(lfoCfg);
+    if (!resolved) return;
+    const { param: targetParam, depthScale } = resolved;
 
     let entry = this.lfoMap.get(key);
     if (!entry) {
       const osc = ac.createOscillator();
       const depthGain = ac.createGain();
       osc.connect(depthGain);
-      // Depth (linear) scale against target base value; we set absolute gain below
       depthGain.connect(targetParam);
       osc.start();
       entry = {
@@ -1034,9 +1063,8 @@ export class UnifiedAudioEngine {
     entry.osc.frequency.setValueAtTime(lfoCfg.rateHz, now);
     entry.depth = lfoCfg.depth;
 
-    // Scale depth by current base value of target param
-    const base = targetParam.value; // current linear gain
-    entry.depthGain.gain.setValueAtTime(base * lfoCfg.depth, now);
+    // Scale depth using resolved depth scaling
+    entry.depthGain.gain.setValueAtTime(depthScale * lfoCfg.depth, now);
   }
 
   private disposeLFO(key: string): void {
