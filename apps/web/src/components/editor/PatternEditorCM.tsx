@@ -379,8 +379,8 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
 
   const parentRef = useRef<HTMLDivElement | null>(null);
   const viewRef = useRef<EditorView | null>(null);
-  const lastExternalContentRef = useRef<string>('');
-  const ignoreNextExternalSync = useRef(false);
+  // Track the last content that came FROM CodeMirror (user typing) to prevent sync loops
+  const lastCMContentRef = useRef<string>('');
 
   const [reduceMotion, setReduceMotion] = useState<boolean>(false);
 
@@ -406,8 +406,8 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
         EditorView.updateListener.of((v) => {
           if (v.docChanged) {
             const newDoc = v.state.doc.toString();
-            // Push updates to app state
-            ignoreNextExternalSync.current = true;
+            // Track what CM produced so the sync effect can skip loop-backs
+            lastCMContentRef.current = newDoc;
             updateContent(newDoc);
           }
         }),
@@ -416,7 +416,6 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
 
     const view = new EditorView({ state, parent: parentRef.current });
     viewRef.current = view;
-    lastExternalContentRef.current = content;
 
     return () => {
       view.destroy();
@@ -425,21 +424,18 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Sync external content changes (e.g., load pattern) into CM, avoid loops
+  // Sync external content changes (e.g., Apply to Editor) into CM, avoid loops.
+  // Uses content comparison instead of a boolean flag so it can't get stuck.
   useEffect(() => {
     const view = viewRef.current;
     if (!view) return;
+    // If this content originated from CM (user typing), skip to prevent loop
+    if (content === lastCMContentRef.current) return;
     const currentDoc = view.state.doc.toString();
-    if (ignoreNextExternalSync.current) {
-      ignoreNextExternalSync.current = false;
-      lastExternalContentRef.current = content;
-      return;
-    }
     if (content !== currentDoc) {
       view.dispatch({
         changes: { from: 0, to: currentDoc.length, insert: content },
       });
-      lastExternalContentRef.current = content;
     }
   }, [content]);
 
