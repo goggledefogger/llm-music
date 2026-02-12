@@ -254,6 +254,65 @@ function computeDSLDecorations(state: EditorState): DecorationSet {
       continue;
     }
 
+    // lfo lines: lfo name.target: rate=XHz depth=Y wave=Z
+    if (trimmed.startsWith('lfo ')) {
+      const lfoIdx = text.indexOf('lfo ');
+      ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + lfoIdx, line.from + lfoIdx + 3)); // 'lfo'
+      // Dotted target path (e.g., kick.amp, kick.filter.freq, master.delay.time)
+      const post = text.slice(lfoIdx + 4);
+      const pathMatch = post.match(/^([\w]+(?:\.[\w]+)+)/);
+      if (pathMatch) {
+        const pathStart = lfoIdx + 4 + (pathMatch.index || 0);
+        ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + pathStart, line.from + pathStart + pathMatch[0].length));
+      }
+      const colonIdx = text.indexOf(':', lfoIdx);
+      if (colonIdx >= 0) {
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + colonIdx, line.from + colonIdx + 1));
+      }
+      // key=value pairs (rate, depth, wave)
+      const attrRegex = /(rate|depth|wave)(=)([^\s]+)/g;
+      let a: RegExpExecArray | null;
+      while ((a = attrRegex.exec(text))) {
+        const [full, key] = a;
+        const base = a.index;
+        ranges.push(Decoration.mark({ class: 'cm-attr' }).range(line.from + base, line.from + base + key.length));
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + base + key.length, line.from + base + key.length + 1));
+        ranges.push(Decoration.mark({ class: 'cm-number' }).range(line.from + base + key.length + 1, line.from + base + full.length));
+      }
+      continue;
+    }
+
+    // Generic effect lines: filter, delay, reverb, distort, comp, amp, pan
+    const effectMatch = trimmed.match(/^(filter|delay|reverb|distort|comp|amp|pan)\s/);
+    if (effectMatch) {
+      const kw = effectMatch[1];
+      const kwIdx = text.indexOf(kw);
+      ranges.push(Decoration.mark({ class: 'cm-kw' }).range(line.from + kwIdx, line.from + kwIdx + kw.length));
+      const post = text.slice(kwIdx + kw.length + 1);
+      const nameMatch = post.match(/^(\w+)/);
+      if (nameMatch) {
+        const nameStart = kwIdx + kw.length + 1 + (nameMatch.index || 0);
+        ranges.push(Decoration.mark({ class: 'cm-ident' }).range(line.from + nameStart, line.from + nameStart + nameMatch[0].length));
+      }
+      const colonIdx = text.indexOf(':', kwIdx);
+      if (colonIdx >= 0) {
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + colonIdx, line.from + colonIdx + 1));
+      }
+      // key=value pairs
+      const attrRegex = /(\w+)(=)([^\s]+)/g;
+      const afterColon = colonIdx >= 0 ? colonIdx + 1 : kwIdx + kw.length;
+      const searchText = text.slice(afterColon);
+      let a: RegExpExecArray | null;
+      while ((a = attrRegex.exec(searchText))) {
+        const [full, key] = a;
+        const base = afterColon + a.index;
+        ranges.push(Decoration.mark({ class: 'cm-attr' }).range(line.from + base, line.from + base + key.length));
+        ranges.push(Decoration.mark({ class: 'cm-punc' }).range(line.from + base + key.length, line.from + base + key.length + 1));
+        ranges.push(Decoration.mark({ class: 'cm-number' }).range(line.from + base + key.length + 1, line.from + base + full.length));
+      }
+      continue;
+    }
+
     // seq lines: seq name: pattern
     const seqIdx = text.indexOf('seq ');
     if (seqIdx >= 0) {
