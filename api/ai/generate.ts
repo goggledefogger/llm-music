@@ -6,12 +6,12 @@
  * Streams the LLM response back via SSE.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { getSystemPrompt } from './system-prompt';
-import { prepareMessages } from './prepare-messages';
-import type { ChatMessage } from './prepare-messages';
-import { streamOpenAI } from './providers/openai';
-import { streamAnthropic } from './providers/anthropic';
-import { streamGemini } from './providers/gemini';
+import { getSystemPrompt } from './system-prompt.js';
+import { prepareMessages } from './prepare-messages.js';
+import type { ChatMessage } from './prepare-messages.js';
+import { streamOpenAI } from './providers/openai.js';
+import { streamAnthropic } from './providers/anthropic.js';
+import { streamGemini } from './providers/gemini.js';
 
 export type { ChatMessage };
 
