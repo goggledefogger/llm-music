@@ -140,14 +140,6 @@
     @apply min-h-screen bg-background;
   }
 
-  .editor-pane {
-    @apply flex-1 bg-background border-r border-border;
-  }
-
-  .chat-pane {
-    @apply w-80 bg-background-secondary border-l border-border;
-  }
-
   /* Transport bar style */
   .transport-bar {
     @apply border-t border-border bg-background-secondary;
@@ -195,15 +187,6 @@
 
   .chat-bubble-assistant {
     @apply bg-background-tertiary text-foreground border border-border rounded-xl rounded-bl-md px-3.5 py-2.5;
-  }
-
-  /* Responsive layout system */
-  .visualization-panel {
-    @apply w-full;
-  }
-
-  .chat-panel {
-    @apply w-full;
   }
 
   /* Responsive component utilities */
@@ -352,58 +335,6 @@
     }
   }
 
-  /* Desktop layout optimizations */
-  @media (min-width: 1024px) {
-    .editor-pane {
-      @apply min-w-0; /* Allow flex shrinking */
-    }
-
-    .visualization-panel {
-      @apply w-80 flex-shrink-0; /* Fixed width for visualizations */
-    }
-
-    .chat-panel {
-      @apply w-80 flex-shrink-0; /* Fixed width for chat */
-    }
-  }
-
-  /* Tablet responsive */
-  @media (max-width: 1023px) and (min-width: 769px) {
-    .visualization-panel {
-      @apply w-64 flex-shrink-0;
-    }
-
-    .chat-panel {
-      @apply w-56 flex-shrink-0;
-    }
-  }
-
-  /* Mobile responsive */
-  @media (max-width: 768px) {
-    .editor-pane {
-      @apply w-full;
-    }
-
-    .visualization-panel {
-      @apply w-full border-l-0 border-t;
-    }
-
-    .chat-panel {
-      @apply w-full border-l-0 border-t;
-    }
-  }
-
-  /* Small mobile responsive */
-  @media (max-width: 480px) {
-    .visualization-panel {
-      @apply w-full;
-    }
-
-    .chat-panel {
-      @apply w-full;
-    }
-  }
-
   /* Resize handle styles */
   .resize-handle {
     @apply w-1 cursor-col-resize bg-border/50 hover:bg-accent/60 transition-all duration-150 flex-shrink-0;
@@ -501,15 +432,6 @@
     .visualization-section .collapsible-content {
       @apply max-h-48;
     }
-  }
-
-  /* Prevent horizontal overflow in visualization panel */
-  .visualization-panel {
-    @apply overflow-x-hidden;
-  }
-
-  .visualization-panel * {
-    @apply max-w-full;
   }
 
   /* Base visualization component styles */
