@@ -7,14 +7,13 @@
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 import { getSystemPrompt } from './system-prompt';
+import { prepareMessages } from './prepare-messages';
+import type { ChatMessage } from './prepare-messages';
 import { streamOpenAI } from './providers/openai';
 import { streamAnthropic } from './providers/anthropic';
 import { streamGemini } from './providers/gemini';
 
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-}
+export type { ChatMessage };
 
 interface GenerateRequestBody {
   messages: ChatMessage[];
@@ -74,18 +73,8 @@ export default async function handler(
   // Build the system prompt (unified, no mode parameter)
   const systemPrompt = getSystemPrompt();
 
-  // If there's a current pattern, inject it into the last user message
-  // so the LLM sees it adjacent to the request (better attention)
-  const messages: ChatMessage[] = [...body.messages];
-  if (body.currentPattern) {
-    const last = messages[messages.length - 1];
-    if (last && last.role === 'user') {
-      messages[messages.length - 1] = {
-        ...last,
-        content: `I want you to modify my existing pattern below. Do NOT generate a new pattern from scratch — start from my exact pattern and only change what I ask for. Every line I don't mention must stay exactly the same.\n\nMy current pattern:\n\`\`\`pattern\n${body.currentPattern}\n\`\`\`\n\nWhat I want changed: ${last.content}`,
-      };
-    }
-  }
+  // Prepare messages (injects pattern into last user message if present)
+  const messages = prepareMessages(body.messages, body.currentPattern);
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
