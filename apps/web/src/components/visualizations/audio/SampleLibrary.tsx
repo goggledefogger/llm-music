@@ -77,13 +77,13 @@ export const SampleLibrary: React.FC<SampleLibraryProps> = ({ className = '' }) 
         </div>
         <div className="grid grid-cols-2 gap-2">
           {BUILT_IN_SAMPLES.map(s => (
-            <div key={s.id} className="border border-border rounded p-2 bg-background flex items-center justify-between">
-              <div>
-                <div className="text-sm font-medium">{s.label}</div>
-                <div className="text-xs text-foreground-muted font-mono">sample {s.id}: {s.id}</div>
+            <div key={s.id} className="border border-border rounded p-2 bg-background flex items-center justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium truncate">{s.label}</div>
+                <div className="text-xs text-foreground-muted font-mono truncate">sample {s.id}: {s.id}</div>
               </div>
               <button
-                className="btn btn-primary btn-sm text-xs"
+                className="btn btn-primary btn-sm text-xs flex-shrink-0 whitespace-nowrap"
                 onClick={() => upsertSampleLine(s.id, s.id)}
               >
                 Insert

@@ -120,30 +120,38 @@ export const QuickStatsBar: React.FC<QuickStatsBarProps> = ({
       variant="ultra-compact"
     >
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
-        <StatCard
-          label="Complexity"
-          value={stats.complexity.label}
-          color={stats.complexity.color}
-          subtitle={stats.complexity.value}
-        />
-        <StatCard
-          label="Density"
-          value={stats.density.label}
-          color={stats.density.color}
-          subtitle={stats.density.subtitle}
-        />
-        <StatCard
-          label="Tempo"
-          value={stats.tempo.label}
-          color={stats.tempo.color}
-          subtitle={stats.tempo.subtitle}
-        />
-        <StatCard
-          label="Instruments"
-          value={stats.instruments.label}
-          color={stats.instruments.color}
-          subtitle={stats.instruments.value}
-        />
+        <div className="min-w-0">
+          <StatCard
+            label="Complexity"
+            value={stats.complexity.label}
+            color={stats.complexity.color}
+            subtitle={stats.complexity.value}
+          />
+        </div>
+        <div className="min-w-0">
+          <StatCard
+            label="Density"
+            value={stats.density.label}
+            color={stats.density.color}
+            subtitle={stats.density.subtitle}
+          />
+        </div>
+        <div className="min-w-0">
+          <StatCard
+            label="Tempo"
+            value={stats.tempo.label}
+            color={stats.tempo.color}
+            subtitle={stats.tempo.subtitle}
+          />
+        </div>
+        <div className="min-w-0">
+          <StatCard
+            label="Instruments"
+            value={stats.instruments.label}
+            color={stats.instruments.color}
+            subtitle={stats.instruments.value}
+          />
+        </div>
       </div>
     </BaseVisualization>
   );
