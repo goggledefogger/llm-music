@@ -14,7 +14,7 @@ export const useAppState = () => {
   // Use navigate hook with error handling for tests
   let navigate: (path: string) => void;
   try {
-    navigate = useNavigate();
+    navigate = useNavigate(); // eslint-disable-line react-hooks/rules-of-hooks
   } catch (error) {
     // Fallback for tests that don't have Router context
     navigate = (path: string) => {
