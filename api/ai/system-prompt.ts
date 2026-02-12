@@ -68,9 +68,9 @@ export function getSystemPrompt(mode: 'generate' | 'modify' | 'teach'): string {
   - Example: \`pan hihat: 0.3\`
 
 ### Distortion (New)
-- \`distort <instrument>: amount=<0..100> [mix=<0..1>]\`
-  - Apply distortion/overdrive
-  - Example: \`distort bass: amount=30 mix=0.5\`
+- \`distort <instrument>: amount=<0..1> [mix=<0..1>]\`
+  - Apply distortion/overdrive (amount 0 = clean, 1 = max distortion)
+  - Example: \`distort bass: amount=0.3 mix=0.5\`
 
 ## Pattern Guidelines
 - Always start with \`TEMPO\`
