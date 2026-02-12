@@ -22,6 +22,40 @@ export interface CompModule {
   knee: number;      // dB (0..40)
 }
 
+export type FilterType = 'lowpass' | 'highpass' | 'bandpass' | 'notch';
+
+export interface FilterModule {
+  name: string;
+  type: FilterType;   // filter type
+  freq: number;       // 20-20000 Hz
+  Q: number;          // 0.1-30
+}
+
+export interface DelayModule {
+  name: string;
+  time: number;       // 0.01-2.0 seconds
+  feedback: number;   // 0-0.95
+  mix: number;        // 0-1 (dry/wet)
+}
+
+export interface ReverbModule {
+  name: string;
+  mix: number;        // 0-1 (dry/wet)
+  decay: number;      // 0.1-10 seconds
+  predelay: number;   // 0-0.1 seconds
+}
+
+export interface PanModule {
+  name: string;
+  value: number;      // -1 (left) to 1 (right)
+}
+
+export interface DistortModule {
+  name: string;
+  amount: number;     // 0-1
+  mix: number;        // 0-1 (dry/wet)
+}
+
 export type LFOWave = 'sine' | 'triangle' | 'square' | 'sawtooth';
 
 export interface LFOModule {
@@ -63,6 +97,21 @@ export interface ParsedPattern {
   };
   compModules?: {
     [moduleName: string]: CompModule;
+  };
+  filterModules?: {
+    [moduleName: string]: FilterModule;
+  };
+  delayModules?: {
+    [moduleName: string]: DelayModule;
+  };
+  reverbModules?: {
+    [moduleName: string]: ReverbModule;
+  };
+  panModules?: {
+    [moduleName: string]: PanModule;
+  };
+  distortModules?: {
+    [moduleName: string]: DistortModule;
   };
   lfoModules?: {
     [key: string]: LFOModule; // keyed by 'name.target' (e.g., 'kick.amp')

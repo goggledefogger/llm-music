@@ -1,5 +1,5 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, SampleModule } from '../types/app';
+import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, SampleModule, FilterModule, FilterType, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;
@@ -18,6 +18,11 @@ export class PatternParser {
     const sampleModules: ParsedPattern['sampleModules'] = {};
     const ampModules: ParsedPattern['ampModules'] = {};
     const compModules: ParsedPattern['compModules'] = {};
+    const filterModules: ParsedPattern['filterModules'] = {};
+    const delayModules: ParsedPattern['delayModules'] = {};
+    const reverbModules: ParsedPattern['reverbModules'] = {};
+    const panModules: ParsedPattern['panModules'] = {};
+    const distortModules: ParsedPattern['distortModules'] = {};
     const lfoModules: ParsedPattern['lfoModules'] = {};
 
     for (const line of lines) {
@@ -82,6 +87,71 @@ export class PatternParser {
         continue;
       }
 
+      // Parse FILTER modules
+      if (line.startsWith('filter ')) {
+        const filterMatch = line.match(/filter\s+(\w+):\s*(.+)/);
+        if (filterMatch) {
+          const [, moduleName, filterString] = filterMatch;
+          const filterModule = this.parseFilterString(moduleName, filterString);
+          if (filterModule) {
+            filterModules[moduleName.toLowerCase()] = filterModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse DELAY modules
+      if (line.startsWith('delay ')) {
+        const delayMatch = line.match(/delay\s+(\w+):\s*(.+)/);
+        if (delayMatch) {
+          const [, moduleName, delayString] = delayMatch;
+          const delayModule = this.parseDelayString(moduleName, delayString);
+          if (delayModule) {
+            delayModules[moduleName.toLowerCase()] = delayModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse REVERB modules
+      if (line.startsWith('reverb ')) {
+        const reverbMatch = line.match(/reverb\s+(\w+):\s*(.+)/);
+        if (reverbMatch) {
+          const [, moduleName, reverbString] = reverbMatch;
+          const reverbModule = this.parseReverbString(moduleName, reverbString);
+          if (reverbModule) {
+            reverbModules[moduleName.toLowerCase()] = reverbModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse PAN modules
+      if (line.startsWith('pan ')) {
+        const panMatch = line.match(/pan\s+(\w+):\s*(.+)/);
+        if (panMatch) {
+          const [, moduleName, panString] = panMatch;
+          const panModule = this.parsePanString(moduleName, panString);
+          if (panModule) {
+            panModules[moduleName.toLowerCase()] = panModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse DISTORT modules
+      if (line.startsWith('distort ')) {
+        const distortMatch = line.match(/distort\s+(\w+):\s*(.+)/);
+        if (distortMatch) {
+          const [, moduleName, distortString] = distortMatch;
+          const distortModule = this.parseDistortString(moduleName, distortString);
+          if (distortModule) {
+            distortModules[moduleName.toLowerCase()] = distortModule;
+          }
+        }
+        continue;
+      }
+
       // Parse LFO modules: lfo target: rate=5Hz depth=0.5 wave=sine
       if (line.startsWith('lfo ')) {
         const lfoMatch = line.match(/lfo\s+([^:]+):\s*(.+)/);
@@ -125,6 +195,11 @@ export class PatternParser {
       eqModules,
       ampModules,
       compModules,
+      filterModules,
+      delayModules,
+      reverbModules,
+      panModules,
+      distortModules,
       lfoModules,
       totalSteps
     };
@@ -300,6 +375,128 @@ export class PatternParser {
   }
 
   /**
+   * Parse FILTER string like "type=lowpass freq=800 Q=1.0"
+   */
+  private static parseFilterString(moduleName: string, filterString: string): FilterModule | null {
+    const pairs = Array.from(filterString.matchAll(/(type|freq|Q)\s*=\s*([^\s]+)/gi));
+    const map: Record<string, string> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = String(value);
+    }
+
+    const allowedTypes: FilterType[] = ['lowpass', 'highpass', 'bandpass', 'notch'];
+    const type = (map['type']?.toLowerCase() as FilterType) || 'lowpass';
+    const finalType = allowedTypes.includes(type) ? type : 'lowpass';
+
+    let freq = map['freq'] ? parseFloat(map['freq']) : 20000;
+    if (Number.isNaN(freq)) freq = 20000;
+    freq = Math.max(20, Math.min(20000, freq));
+
+    // Q is case-insensitive in matchAll but key is lowered
+    let Q = map['q'] ? parseFloat(map['q']) : 1;
+    if (Number.isNaN(Q)) Q = 1;
+    Q = Math.max(0.1, Math.min(30, Q));
+
+    return { name: moduleName.toLowerCase(), type: finalType, freq, Q };
+  }
+
+  /**
+   * Parse DELAY string like "time=0.25 feedback=0.4 mix=0.3"
+   */
+  private static parseDelayString(moduleName: string, delayString: string): DelayModule | null {
+    const pairs = Array.from(delayString.matchAll(/(time|feedback|mix)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let time = map['time'] ?? 0.25;
+    let feedback = map['feedback'] ?? 0.4;
+    let mix = map['mix'] ?? 0.3;
+
+    if (Number.isNaN(time)) time = 0.25;
+    if (Number.isNaN(feedback)) feedback = 0.4;
+    if (Number.isNaN(mix)) mix = 0.3;
+
+    time = Math.max(0.01, Math.min(2.0, time));
+    feedback = Math.max(0, Math.min(0.95, feedback));
+    mix = Math.max(0, Math.min(1, mix));
+
+    return { name: moduleName.toLowerCase(), time, feedback, mix };
+  }
+
+  /**
+   * Parse REVERB string like "mix=0.3 decay=2.5 predelay=0.02"
+   */
+  private static parseReverbString(moduleName: string, reverbString: string): ReverbModule | null {
+    const pairs = Array.from(reverbString.matchAll(/(mix|decay|predelay)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let mix = map['mix'] ?? 0.3;
+    let decay = map['decay'] ?? 2.5;
+    let predelay = map['predelay'] ?? 0.02;
+
+    if (Number.isNaN(mix)) mix = 0.3;
+    if (Number.isNaN(decay)) decay = 2.5;
+    if (Number.isNaN(predelay)) predelay = 0.02;
+
+    mix = Math.max(0, Math.min(1, mix));
+    decay = Math.max(0.1, Math.min(10, decay));
+    predelay = Math.max(0, Math.min(0.1, predelay));
+
+    return { name: moduleName.toLowerCase(), mix, decay, predelay };
+  }
+
+  /**
+   * Parse PAN string like "0.3" or "value=-0.5"
+   * Accepts both bare number and key=value format per DSL spec.
+   */
+  private static parsePanString(moduleName: string, panString: string): PanModule | null {
+    // Try key=value format first
+    const m = panString.match(/value\s*=\s*([\-\d\.]+)/i);
+    if (m) {
+      let value = parseFloat(m[1]);
+      if (Number.isNaN(value)) return null;
+      value = Math.max(-1, Math.min(1, value));
+      return { name: moduleName.toLowerCase(), value };
+    }
+    // Fall back to bare number (e.g., "pan hihat: 0.3")
+    const bare = panString.trim().match(/^([\-\d\.]+)$/);
+    if (bare) {
+      let value = parseFloat(bare[1]);
+      if (Number.isNaN(value)) return null;
+      value = Math.max(-1, Math.min(1, value));
+      return { name: moduleName.toLowerCase(), value };
+    }
+    return null;
+  }
+
+  /**
+   * Parse DISTORT string like "amount=0.5 mix=0.3"
+   */
+  private static parseDistortString(moduleName: string, distortString: string): DistortModule | null {
+    const pairs = Array.from(distortString.matchAll(/(amount|mix)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let amount = map['amount'] ?? 0.5;
+    let mix = map['mix'] ?? 0.3;
+
+    if (Number.isNaN(amount)) amount = 0.5;
+    if (Number.isNaN(mix)) mix = 0.3;
+
+    amount = Math.max(0, Math.min(1, amount));
+    mix = Math.max(0, Math.min(1, mix));
+
+    return { name: moduleName.toLowerCase(), amount, mix };
+  }
+
+  /**
    * Validate a pattern string with detailed error reporting
    */
   static validate(pattern: string): {
@@ -413,6 +610,81 @@ export class PatternParser {
           const lfo = this.parseLFOString(target, lfoString);
           if (!lfo) {
             errors.push(`Invalid lfo values for ${target}. Use: lfo name.amp: rate=1Hz depth=0.5 wave=sine`);
+          }
+        }
+        continue;
+      }
+
+      // Check FILTER format
+      if (line.startsWith('filter ')) {
+        const filterMatch = line.match(/filter\s+(\w+):\s*(.+)/);
+        if (!filterMatch) {
+          errors.push(`Invalid filter format: ${line}. Use: filter name: type=lowpass freq=800 Q=1.0`);
+        } else {
+          const [, moduleName, filterString] = filterMatch;
+          const filterModule = this.parseFilterString(moduleName, filterString);
+          if (!filterModule) {
+            errors.push(`Invalid filter values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check DELAY format
+      if (line.startsWith('delay ')) {
+        const delayMatch = line.match(/delay\s+(\w+):\s*(.+)/);
+        if (!delayMatch) {
+          errors.push(`Invalid delay format: ${line}. Use: delay name: time=0.25 feedback=0.4 mix=0.3`);
+        } else {
+          const [, moduleName, delayString] = delayMatch;
+          const delayModule = this.parseDelayString(moduleName, delayString);
+          if (!delayModule) {
+            errors.push(`Invalid delay values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check REVERB format
+      if (line.startsWith('reverb ')) {
+        const reverbMatch = line.match(/reverb\s+(\w+):\s*(.+)/);
+        if (!reverbMatch) {
+          errors.push(`Invalid reverb format: ${line}. Use: reverb name: mix=0.3 decay=2.5 predelay=0.02`);
+        } else {
+          const [, moduleName, reverbString] = reverbMatch;
+          const reverbModule = this.parseReverbString(moduleName, reverbString);
+          if (!reverbModule) {
+            errors.push(`Invalid reverb values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check PAN format
+      if (line.startsWith('pan ')) {
+        const panMatch = line.match(/pan\s+(\w+):\s*(.+)/);
+        if (!panMatch) {
+          errors.push(`Invalid pan format: ${line}. Use: pan name: <-1..1>`);
+        } else {
+          const [, moduleName, panString] = panMatch;
+          const panModule = this.parsePanString(moduleName, panString);
+          if (!panModule) {
+            errors.push(`Invalid pan values for ${moduleName}. Use: pan name: <value> (range: -1 to 1)`);
+          }
+        }
+        continue;
+      }
+
+      // Check DISTORT format
+      if (line.startsWith('distort ')) {
+        const distortMatch = line.match(/distort\s+(\w+):\s*(.+)/);
+        if (!distortMatch) {
+          errors.push(`Invalid distort format: ${line}. Use: distort name: amount=0.5 mix=0.3`);
+        } else {
+          const [, moduleName, distortString] = distortMatch;
+          const distortModule = this.parseDistortString(moduleName, distortString);
+          if (!distortModule) {
+            errors.push(`Invalid distort values for ${moduleName}`);
           }
         }
         continue;

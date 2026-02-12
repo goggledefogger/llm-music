@@ -1,5 +1,5 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
-import { ParsedPattern, UnifiedAudioState, LFOModule } from '../types/app';
+import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
 import { PatternParser } from './patternParser';
 import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
@@ -40,16 +40,32 @@ export class UnifiedAudioEngine {
   private masterComp: DynamicsCompressorNode | null = null;
   private masterPreGain: GainNode | null = null; // for master amp
   private masterChainInput: AudioNode | null = null; // first node in chain
+  // Master effects: Distortion, Delay, Reverb (inserted between Comp and PreGain)
+  private masterDistortion: WaveShaperNode | null = null;
+  private masterDistortDryGain: GainNode | null = null;
+  private masterDistortWetGain: GainNode | null = null;
+  private masterDistortMerge: GainNode | null = null;
+  private masterDelay: DelayNode | null = null;
+  private masterDelayFeedback: GainNode | null = null;
+  private masterDelayDryGain: GainNode | null = null;
+  private masterDelayWetGain: GainNode | null = null;
+  private masterDelayMerge: GainNode | null = null;
+  private masterReverb: ConvolverNode | null = null;
+  private masterReverbDryGain: GainNode | null = null;
+  private masterReverbWetGain: GainNode | null = null;
+  private masterReverbMerge: GainNode | null = null;
 
   // Per-instrument chains
   private instrumentChains: Map<string, {
     preGain: GainNode;
+    filter: BiquadFilterNode;
     comp: DynamicsCompressorNode;
     eqLow: BiquadFilterNode;
     eqMid: BiquadFilterNode;
     eqHigh: BiquadFilterNode;
+    pan: StereoPannerNode;
     input: AudioNode; // alias to preGain
-    output: AudioNode; // eqHigh
+    output: AudioNode; // pan
   }> = new Map();
 
   // LFOs
@@ -168,11 +184,16 @@ export class UnifiedAudioEngine {
       // Apply EQ changes in real-time (always pass object to allow reset)
       this.updateParameter('eq', newPattern.eqModules || {});
 
-      // Apply effects changes in real-time (amp/comp/lfo)
+      // Apply effects changes in real-time (amp/comp/lfo/filter/delay/reverb/pan/distort)
       this.updateParameter('effects', {
         amp: newPattern.ampModules || {},
         comp: newPattern.compModules || {},
         lfo: newPattern.lfoModules || {},
+        filter: newPattern.filterModules || {},
+        delay: newPattern.delayModules || {},
+        reverb: newPattern.reverbModules || {},
+        pan: newPattern.panModules || {},
+        distort: newPattern.distortModules || {},
       });
 
       console.log('Pattern loaded with real-time updates:', this.currentPattern);
@@ -406,8 +427,13 @@ export class UnifiedAudioEngine {
     const compMods = effectsConfig?.comp || {};
     const lfoMods = effectsConfig?.lfo || {};
 
-    // Determine which instruments need chains (if any of amp/comp/eq/lfo present)
-    // const instrumentsToEnsure = new Set<string>();
+    const filterMods = effectsConfig?.filter || {};
+    const delayMods = effectsConfig?.delay || {};
+    const reverbMods = effectsConfig?.reverb || {};
+    const panMods = effectsConfig?.pan || {};
+    const distortMods = effectsConfig?.distort || {};
+
+    // Determine which instruments need chains (if any of amp/comp/eq/lfo/filter/pan present)
     if (this.currentPattern) {
       const names = new Set<string>(
         Object.keys(this.currentPattern?.instruments || {})
@@ -415,6 +441,8 @@ export class UnifiedAudioEngine {
       Object.keys(this.currentPattern?.eqModules || {}).forEach(n => names.add(n.toLowerCase()));
       Object.keys(ampMods).forEach((n: string) => names.add(n.toLowerCase()));
       Object.keys(compMods).forEach((n: string) => names.add(n.toLowerCase()));
+      Object.keys(filterMods).forEach((n: string) => names.add(n.toLowerCase()));
+      Object.keys(panMods).forEach((n: string) => names.add(n.toLowerCase()));
       Object.values(lfoMods as Record<string, LFOModule>).forEach(l => {
         if (l.scope === 'instrument') names.add(l.name.toLowerCase());
       });
@@ -465,6 +493,67 @@ export class UnifiedAudioEngine {
         this.disposeLFO(key);
       }
     });
+
+    // Apply per-instrument FILTER
+    Object.entries(filterMods as Record<string, FilterModule>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      if (lower === 'master') return;
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        chain.filter.type = cfg.type as BiquadFilterType;
+        chain.filter.frequency.setValueAtTime(cfg.freq, now);
+        chain.filter.Q.setValueAtTime(cfg.Q, now);
+      }
+    });
+
+    // Apply per-instrument PAN
+    Object.entries(panMods as Record<string, PanModule>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      if (lower === 'master') return;
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        chain.pan.pan.setValueAtTime(cfg.value, now);
+      }
+    });
+
+    // Apply master DISTORTION
+    this.ensureMasterChain();
+    const masterDistort = distortMods['master'] as DistortModule | undefined;
+    if (masterDistort && this.masterDistortion && this.masterDistortDryGain && this.masterDistortWetGain) {
+      this.masterDistortion.curve = this.makeDistortionCurve(masterDistort.amount);
+      this.masterDistortion.oversample = '4x';
+      this.masterDistortDryGain.gain.setValueAtTime(1 - masterDistort.mix, now);
+      this.masterDistortWetGain.gain.setValueAtTime(masterDistort.mix, now);
+    } else if (this.masterDistortDryGain && this.masterDistortWetGain) {
+      // Reset: full dry
+      this.masterDistortDryGain.gain.setValueAtTime(1, now);
+      this.masterDistortWetGain.gain.setValueAtTime(0, now);
+    }
+
+    // Apply master DELAY
+    const masterDelay = delayMods['master'] as DelayModule | undefined;
+    if (masterDelay && this.masterDelay && this.masterDelayFeedback && this.masterDelayDryGain && this.masterDelayWetGain) {
+      this.masterDelay.delayTime.setValueAtTime(masterDelay.time, now);
+      this.masterDelayFeedback.gain.setValueAtTime(masterDelay.feedback, now);
+      this.masterDelayDryGain.gain.setValueAtTime(1 - masterDelay.mix, now);
+      this.masterDelayWetGain.gain.setValueAtTime(masterDelay.mix, now);
+    } else if (this.masterDelayDryGain && this.masterDelayWetGain) {
+      // Reset: full dry
+      this.masterDelayDryGain.gain.setValueAtTime(1, now);
+      this.masterDelayWetGain.gain.setValueAtTime(0, now);
+    }
+
+    // Apply master REVERB
+    const masterReverb = reverbMods['master'] as ReverbModule | undefined;
+    if (masterReverb && this.masterReverb && this.masterReverbDryGain && this.masterReverbWetGain) {
+      this.masterReverb.buffer = this.generateImpulseResponse(masterReverb.decay, masterReverb.predelay);
+      this.masterReverbDryGain.gain.setValueAtTime(1 - masterReverb.mix, now);
+      this.masterReverbWetGain.gain.setValueAtTime(masterReverb.mix, now);
+    } else if (this.masterReverbDryGain && this.masterReverbWetGain) {
+      // Reset: full dry
+      this.masterReverbDryGain.gain.setValueAtTime(1, now);
+      this.masterReverbWetGain.gain.setValueAtTime(0, now);
+    }
   }
 
   /**
@@ -589,7 +678,7 @@ export class UnifiedAudioEngine {
       currentTime,
       volume,
       error: null,
-      effectsEnabled: false, // TODO: Implement effects
+      effectsEnabled: true,
       audioQuality: 'high',
       overflowMode: this.overflowMode
     };
@@ -615,7 +704,7 @@ export class UnifiedAudioEngine {
 
   /**
    * Ensure master chain is created and connected:
-   * EQLow -> EQMid -> EQHigh -> Comp -> PreGain -> MasterGain
+   * EQLow -> EQMid -> EQHigh -> Comp -> Distortion(dry/wet) -> Delay(dry/wet) -> Reverb(dry/wet) -> PreGain -> MasterGain
    */
   private ensureMasterChain(): void {
     if (!this.audioContext || !this.masterGain) return;
@@ -648,14 +737,69 @@ export class UnifiedAudioEngine {
     this.masterComp.release.setValueAtTime(0.25, ac.currentTime);
     this.masterComp.knee.setValueAtTime(30, ac.currentTime);
 
+    // Distortion with dry/wet mix (defaults to full dry = passthrough)
+    this.masterDistortion = ac.createWaveShaper();
+    this.masterDistortion.oversample = '4x';
+    this.masterDistortDryGain = ac.createGain();
+    this.masterDistortDryGain.gain.setValueAtTime(1, ac.currentTime);
+    this.masterDistortWetGain = ac.createGain();
+    this.masterDistortWetGain.gain.setValueAtTime(0, ac.currentTime);
+    this.masterDistortMerge = ac.createGain();
+
+    // Delay with feedback and dry/wet mix (defaults to full dry = passthrough)
+    this.masterDelay = ac.createDelay(2.0);
+    this.masterDelay.delayTime.setValueAtTime(0.25, ac.currentTime);
+    this.masterDelayFeedback = ac.createGain();
+    this.masterDelayFeedback.gain.setValueAtTime(0, ac.currentTime);
+    this.masterDelayDryGain = ac.createGain();
+    this.masterDelayDryGain.gain.setValueAtTime(1, ac.currentTime);
+    this.masterDelayWetGain = ac.createGain();
+    this.masterDelayWetGain.gain.setValueAtTime(0, ac.currentTime);
+    this.masterDelayMerge = ac.createGain();
+
+    // Reverb with dry/wet mix (defaults to full dry = passthrough)
+    this.masterReverb = ac.createConvolver();
+    // Generate a default short impulse response
+    this.masterReverb.buffer = this.generateImpulseResponse(1.0, 0.01);
+    this.masterReverbDryGain = ac.createGain();
+    this.masterReverbDryGain.gain.setValueAtTime(1, ac.currentTime);
+    this.masterReverbWetGain = ac.createGain();
+    this.masterReverbWetGain.gain.setValueAtTime(0, ac.currentTime);
+    this.masterReverbMerge = ac.createGain();
+
     this.masterPreGain = ac.createGain();
     this.masterPreGain.gain.setValueAtTime(1, ac.currentTime);
 
-    // Connect chain into masterGain
+    // Connect chain: EQLow -> EQMid -> EQHigh -> Comp -> Distortion(dry/wet) -> Delay(dry/wet) -> Reverb(dry/wet) -> PreGain -> MasterGain
     this.masterEQLow.connect(this.masterEQMid);
     this.masterEQMid.connect(this.masterEQHigh);
     this.masterEQHigh.connect(this.masterComp);
-    this.masterComp.connect(this.masterPreGain);
+
+    // Comp -> Distortion dry/wet
+    this.masterComp.connect(this.masterDistortDryGain);
+    this.masterComp.connect(this.masterDistortion);
+    this.masterDistortion.connect(this.masterDistortWetGain);
+    this.masterDistortDryGain.connect(this.masterDistortMerge);
+    this.masterDistortWetGain.connect(this.masterDistortMerge);
+
+    // Distortion merge -> Delay dry/wet
+    this.masterDistortMerge.connect(this.masterDelayDryGain);
+    this.masterDistortMerge.connect(this.masterDelay);
+    this.masterDelay.connect(this.masterDelayFeedback);
+    this.masterDelayFeedback.connect(this.masterDelay); // feedback loop
+    this.masterDelay.connect(this.masterDelayWetGain);
+    this.masterDelayDryGain.connect(this.masterDelayMerge);
+    this.masterDelayWetGain.connect(this.masterDelayMerge);
+
+    // Delay merge -> Reverb dry/wet
+    this.masterDelayMerge.connect(this.masterReverbDryGain);
+    this.masterDelayMerge.connect(this.masterReverb);
+    this.masterReverb.connect(this.masterReverbWetGain);
+    this.masterReverbDryGain.connect(this.masterReverbMerge);
+    this.masterReverbWetGain.connect(this.masterReverbMerge);
+
+    // Reverb merge -> PreGain -> MasterGain
+    this.masterReverbMerge.connect(this.masterPreGain);
     this.masterPreGain.connect(this.masterGain);
 
     this.masterChainInput = this.masterEQLow;
@@ -761,6 +905,7 @@ export class UnifiedAudioEngine {
 
   /**
    * Ensure per-instrument chain exists and is connected to master chain input
+   * Chain: preGain -> filter -> comp -> eqLow -> eqMid -> eqHigh -> pan -> masterChainInput
    */
   private ensureInstrumentChain(name: string) {
     if (!this.audioContext) return null;
@@ -771,6 +916,12 @@ export class UnifiedAudioEngine {
     const ac = this.audioContext;
     const preGain = ac.createGain();
     preGain.gain.setValueAtTime(1, ac.currentTime);
+
+    // Filter defaults to lowpass at 20000Hz (passthrough)
+    const filter = ac.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(20000, ac.currentTime);
+    filter.Q.setValueAtTime(1, ac.currentTime);
 
     const comp = ac.createDynamicsCompressor();
     comp.threshold.setValueAtTime(-24, ac.currentTime);
@@ -795,21 +946,27 @@ export class UnifiedAudioEngine {
     eqHigh.frequency.setValueAtTime(6000, ac.currentTime);
     eqHigh.gain.setValueAtTime(0, ac.currentTime);
 
-    // Connect chain: preGain -> comp -> eqLow -> eqMid -> eqHigh -> masterChainInput
-    preGain.connect(comp);
+    // Pan defaults to center (0)
+    const pan = ac.createStereoPanner();
+    pan.pan.setValueAtTime(0, ac.currentTime);
+
+    // Connect chain: preGain -> filter -> comp -> eqLow -> eqMid -> eqHigh -> pan -> masterChainInput
+    preGain.connect(filter);
+    filter.connect(comp);
     comp.connect(eqLow);
     eqLow.connect(eqMid);
     eqMid.connect(eqHigh);
+    eqHigh.connect(pan);
 
     // Ensure master input
     this.ensureMasterChain();
     if (this.masterChainInput) {
-      eqHigh.connect(this.masterChainInput);
+      pan.connect(this.masterChainInput);
     } else if (this.masterGain) {
-      eqHigh.connect(this.masterGain);
+      pan.connect(this.masterGain);
     }
 
-    const chain = { preGain, comp, eqLow, eqMid, eqHigh, input: preGain, output: eqHigh };
+    const chain = { preGain, filter, comp, eqLow, eqMid, eqHigh, pan, input: preGain, output: pan };
     this.instrumentChains.set(n, chain);
     return chain;
   }
@@ -889,6 +1046,38 @@ export class UnifiedAudioEngine {
     try { entry.osc.disconnect(); } catch {}
     try { entry.depthGain.disconnect(); } catch {}
     this.lfoMap.delete(key);
+  }
+
+  /**
+   * Generate an impulse response for convolution reverb
+   */
+  private generateImpulseResponse(decay: number, predelay: number): AudioBuffer {
+    const sampleRate = this.audioContext!.sampleRate;
+    const length = Math.floor(sampleRate * decay);
+    const buffer = this.audioContext!.createBuffer(2, length, sampleRate);
+    for (let channel = 0; channel < 2; channel++) {
+      const data = buffer.getChannelData(channel);
+      const predelaySamples = Math.floor(predelay * sampleRate);
+      for (let i = predelaySamples; i < length; i++) {
+        const t = (i - predelaySamples) / (length - predelaySamples);
+        data[i] = (Math.random() * 2 - 1) * Math.pow(1 - t, 2);
+      }
+    }
+    return buffer;
+  }
+
+  /**
+   * Generate a waveshaper distortion transfer curve
+   */
+  private makeDistortionCurve(amount: number): Float32Array {
+    const samples = 44100;
+    const curve = new Float32Array(samples);
+    const k = amount * 100;
+    for (let i = 0; i < samples; i++) {
+      const x = (i * 2) / samples - 1;
+      curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
   }
 
   /**
@@ -994,7 +1183,9 @@ export class UnifiedAudioEngine {
     const hasInstrumentEffects = !!(
       this.currentPattern?.eqModules?.[lowerName] ||
       this.currentPattern?.ampModules?.[lowerName] ||
-      this.currentPattern?.compModules?.[lowerName]
+      this.currentPattern?.compModules?.[lowerName] ||
+      this.currentPattern?.filterModules?.[lowerName] ||
+      this.currentPattern?.panModules?.[lowerName]
     );
     const targetChain = hasInstrumentEffects ? this.ensureInstrumentChain(lowerName) : null;
     if (targetChain) {
