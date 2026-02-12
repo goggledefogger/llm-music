@@ -17,15 +17,15 @@ describe('EditorPage', () => {
   it('renders without crashing', () => {
     render(<EditorPage />);
     // Just verify the main page elements are present
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
   });
 
   it('displays ASCII editor in the left panel', () => {
     render(<EditorPage />);
 
     // Check for the editor section
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
-    expect(screen.getByText('Live playhead highlights update inline without breaking editing.')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Click steps to toggle. Playhead highlights update live.')).toBeInTheDocument();
   });
 
   it('displays step sequencer grid in the right panel', () => {
@@ -60,21 +60,21 @@ describe('EditorPage', () => {
     render(<EditorPage />);
 
     // Just verify the page renders without crashing
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
   });
 
   it('shows audio status in editor', () => {
     render(<EditorPage />);
 
     // Check that the editor section is present
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
   });
 
   it('displays validation status correctly', () => {
     render(<EditorPage />);
 
     // Just verify the editor interface is present
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
   });
 
   it('handles tempo changes', () => {

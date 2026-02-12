@@ -172,7 +172,7 @@ export const EditorPage: React.FC = () => {
               <div className="flex-1 min-h-0 overflow-hidden">
                 <PatternEditorCM />
               </div>
-              <div className="flex-shrink-0 border-t border-border bg-background-secondary">
+              <div className="flex-shrink-0">
                 <TransportControls />
               </div>
             </>
@@ -209,8 +209,8 @@ export const EditorPage: React.FC = () => {
           <PatternEditorCM />
         </div>
 
-        {/* Compact Transport Controls */}
-        <div className="flex-shrink-0 border-t border-border bg-background-secondary">
+        {/* Transport Controls */}
+        <div className="flex-shrink-0">
           <TransportControls />
         </div>
       </div>

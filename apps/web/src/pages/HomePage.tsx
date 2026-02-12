@@ -24,12 +24,14 @@ export const HomePage: React.FC = () => {
 
   return (
     <div className="page-container">
-      <div className="page-header">
-        <h1 className="page-title text-5xl tracking-tight">
+      <div className="page-header pt-8 pb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-accent mb-3">Text-based music creation</p>
+        <h1 className="text-4xl sm:text-5xl font-bold text-foreground mb-4 tracking-tight">
           ASCII Generative Sequencer
         </h1>
-        <p className="page-subtitle text-foreground-secondary">
-          Create music with ASCII patterns and AI assistance
+        <p className="text-lg text-foreground-secondary mb-8 max-w-2xl mx-auto leading-relaxed">
+          Create music with ASCII patterns and AI assistance.
+          Define instruments, sequences, and effects with simple text commands.
         </p>
         <div className="flex justify-center gap-4">
           <Link to="/editor" className="btn btn-primary btn-lg">
