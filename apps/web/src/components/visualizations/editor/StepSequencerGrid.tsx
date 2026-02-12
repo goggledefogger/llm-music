@@ -72,7 +72,7 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
               </div>
               
               {/* Step Grid */}
-              <div className="flex space-x-0.5 sm:space-x-1 flex-1 min-w-0 overflow-hidden max-w-0">
+              <div className="flex space-x-0.5 sm:space-x-1 flex-1 min-w-0 overflow-hidden">
                 {gridData.steps.map((stepIndex) => {
                   const isActive = stepIndex < steps.length ? steps[stepIndex] : false;
                   const isCurrentStep = stepIndex === currentStep;
