@@ -39,7 +39,16 @@
       ]
     }
   ],
+  "functions": {
+    "api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
   "rewrites": [
+    {
+      "source": "/api/ai/generate",
+      "destination": "/api/ai/generate"
+    },
     {
       "source": "/(.*)",
       "destination": "/index.html"
