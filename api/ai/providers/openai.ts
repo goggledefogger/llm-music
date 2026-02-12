@@ -3,7 +3,7 @@
  * Wraps the OpenAI SDK to provide streaming chat completions.
  */
 import OpenAI from 'openai';
-import type { ChatMessage } from '../generate';
+import type { ChatMessage } from '../prepare-messages';
 
 const DEFAULT_MODEL = 'gpt-4o-mini';
 

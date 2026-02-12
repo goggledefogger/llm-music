@@ -3,7 +3,7 @@
  * Wraps the Google Generative AI SDK to provide streaming chat completions.
  */
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import type { ChatMessage } from '../generate';
+import type { ChatMessage } from '../prepare-messages';
 
 const DEFAULT_MODEL = 'gemini-2.5-flash';
 

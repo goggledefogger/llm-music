@@ -3,7 +3,7 @@
  * Wraps the Anthropic SDK to provide streaming chat completions.
  */
 import Anthropic from '@anthropic-ai/sdk';
-import type { ChatMessage } from '../generate';
+import type { ChatMessage } from '../prepare-messages';
 
 const DEFAULT_MODEL = 'claude-sonnet-4-5-20250929';
 
