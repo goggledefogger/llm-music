@@ -1069,9 +1069,9 @@ export class UnifiedAudioEngine {
   /**
    * Generate a waveshaper distortion transfer curve
    */
-  private makeDistortionCurve(amount: number): Float32Array {
+  private makeDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
     const samples = 44100;
-    const curve = new Float32Array(samples);
+    const curve = new Float32Array(new ArrayBuffer(samples * 4));
     const k = amount * 100;
     for (let i = 0; i < samples; i++) {
       const x = (i * 2) / samples - 1;

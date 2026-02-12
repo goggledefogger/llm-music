@@ -60,7 +60,6 @@ describe('ChatInterface', () => {
     // Button is disabled so click should not add messages
     fireEvent.click(sendButton);
     // Only the initial greeting should be present
-    const messages = screen.getAllByText(/./);
     expect(screen.queryByText('user')).not.toBeInTheDocument();
   });
 

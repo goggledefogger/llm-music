@@ -17,7 +17,7 @@
     "dev": "tsup --watch",
     "clean": "rm -rf dist",
     "type-check": "tsc --noEmit",
-    "lint": "eslint src --ext .ts,.tsx"
+    "lint": "eslint src"
   },
   "dependencies": {
     "zod": "^3.23.0"
