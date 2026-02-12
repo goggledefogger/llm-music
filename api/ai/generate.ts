@@ -82,7 +82,7 @@ export default async function handler(
     if (last && last.role === 'user') {
       messages[messages.length - 1] = {
         ...last,
-        content: `Here is my current pattern:\n\`\`\`pattern\n${body.currentPattern}\n\`\`\`\n\nRequest: ${last.content}`,
+        content: `I want you to modify my existing pattern below. Do NOT generate a new pattern from scratch — start from my exact pattern and only change what I ask for. Every line I don't mention must stay exactly the same.\n\nMy current pattern:\n\`\`\`pattern\n${body.currentPattern}\n\`\`\`\n\nWhat I want changed: ${last.content}`,
       };
     }
   }
