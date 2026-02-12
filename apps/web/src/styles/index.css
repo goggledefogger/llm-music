@@ -10,10 +10,18 @@
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   html {
     scroll-behavior: smooth;
+  }
+
+  /* Prevent pure white text for accessibility */
+  ::selection {
+    background: rgba(0, 232, 123, 0.25);
+    color: #e8e8ed;
   }
 }
 
@@ -45,6 +53,7 @@
   /* CodeMirror custom styles */
   .cm-editor {
     @apply font-mono text-sm;
+    background-color: #0d0d0f;
   }
 
   .cm-focused {
@@ -57,6 +66,34 @@
 
   .cm-editor .cm-line {
     @apply leading-relaxed;
+  }
+
+  .cm-editor .cm-gutters {
+    background-color: #111114;
+    border-right: 1px solid #2a2a32;
+    color: #5c5c6b;
+  }
+
+  .cm-editor .cm-activeLineGutter {
+    background-color: #1c1c21;
+    color: #9d9daa;
+  }
+
+  .cm-editor .cm-activeLine {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .cm-editor .cm-selectionBackground {
+    background-color: rgba(0, 232, 123, 0.15) !important;
+  }
+
+  .cm-editor .cm-cursor {
+    border-left-color: #00e87b;
+  }
+
+  .cm-editor .cm-matchingBracket {
+    background-color: rgba(0, 232, 123, 0.2);
+    outline: 1px solid rgba(0, 232, 123, 0.4);
   }
 
   /* Audio visualization styles */
@@ -78,19 +115,19 @@
 
   /* Button styles */
   .btn {
-    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none;
+    @apply inline-flex items-center justify-center rounded-md text-sm font-medium transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/50 focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:opacity-40 disabled:pointer-events-none;
   }
 
   .btn-primary {
-    @apply bg-accent text-background hover:bg-accent-secondary;
+    @apply bg-accent text-background font-semibold hover:bg-accent-secondary hover:shadow-lg hover:shadow-accent/20 active:scale-[0.98];
   }
 
   .btn-secondary {
-    @apply bg-background-secondary text-foreground hover:bg-background-tertiary;
+    @apply bg-background-tertiary text-foreground border border-border hover:bg-background-elevated hover:border-border-secondary active:scale-[0.98];
   }
 
   .btn-ghost {
-    @apply hover:bg-background-secondary;
+    @apply hover:bg-background-tertiary text-foreground-secondary hover:text-foreground;
   }
 
   .btn-sm {
@@ -107,80 +144,84 @@
 
   /* Input styles */
   .input {
-    @apply flex h-10 w-full rounded-md border border-border bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50;
+    @apply flex h-10 w-full rounded-md border border-border bg-background-secondary px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-foreground-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 focus-visible:border-accent/40 disabled:cursor-not-allowed disabled:opacity-40 transition-colors;
   }
 
   /* Card styles */
   .card {
-    @apply rounded-lg border border-border bg-background-secondary text-foreground shadow-sm;
+    @apply rounded-lg border border-border bg-background-secondary text-foreground shadow-sm shadow-black/20 transition-colors duration-200;
   }
 
   .card-header {
-    @apply flex flex-col space-y-1.5 p-6;
+    @apply flex flex-col space-y-1.5 p-4 sm:p-5;
   }
 
   .card-content {
-    @apply p-6 pt-0;
+    @apply p-4 pt-0 sm:p-5 sm:pt-0;
   }
 
   .card-footer {
-    @apply flex items-center p-6 pt-0;
+    @apply flex items-center p-4 pt-0 sm:p-5 sm:pt-0;
+  }
+
+  /* Keyboard shortcut badge */
+  kbd {
+    @apply bg-background-tertiary px-1.5 py-0.5 rounded border border-border text-xs font-mono text-foreground-secondary;
+    box-shadow: 0 1px 0 #2a2a32;
   }
 
   /* Layout styles */
   .main-layout {
-    @apply min-h-screen bg-background;
+    @apply h-screen bg-background overflow-hidden;
   }
 
-  .editor-pane {
-    @apply flex-1 bg-background border-r border-border;
-  }
-
-  .chat-pane {
-    @apply w-80 bg-background-secondary border-l border-border;
+  /* Transport bar style */
+  .transport-bar {
+    @apply border-t border-border bg-background-secondary;
+    background: linear-gradient(to bottom, #141417, #111114);
   }
 
   /* Page container styles */
   .page-container {
-    @apply p-8 max-w-6xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto;
   }
 
   .page-container-sm {
-    @apply p-8 max-w-4xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto;
   }
 
   .page-container-lg {
-    @apply p-8 max-w-7xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto;
   }
 
   .page-header {
-    @apply text-center mb-12;
+    @apply text-center mb-8 sm:mb-12;
   }
 
   .page-title {
-    @apply text-4xl font-bold text-accent mb-4;
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold text-accent mb-4;
   }
 
   .page-subtitle {
-    @apply text-xl text-foreground-secondary mb-8;
+    @apply text-base sm:text-lg lg:text-xl text-foreground-secondary mb-6 sm:mb-8;
   }
 
   /* Chat interface styles */
   .chat-header {
     @apply border-b border-border p-4;
+    background: linear-gradient(to bottom, #18181d, #141417);
   }
 
   .chat-messages {
-    @apply flex-1 overflow-y-auto p-4 space-y-4 custom-scrollbar;
+    @apply flex-1 overflow-y-auto p-4 space-y-3 custom-scrollbar;
   }
 
-  /* Responsive layout system */
-  .visualization-panel {
-    @apply w-full;
+  .chat-bubble-user {
+    @apply bg-accent/15 text-foreground border border-accent/20 rounded-xl rounded-br-md px-3.5 py-2.5;
   }
 
-  .chat-panel {
-    @apply w-full;
+  .chat-bubble-assistant {
+    @apply bg-background-tertiary text-foreground border border-border rounded-xl rounded-bl-md px-3.5 py-2.5;
   }
 
   /* Responsive component utilities */
@@ -329,56 +370,57 @@
     }
   }
 
-  /* Desktop layout optimizations */
-  @media (min-width: 1024px) {
-    .editor-pane {
-      @apply min-w-0; /* Allow flex shrinking */
-    }
-    
-    .visualization-panel {
-      @apply w-80 flex-shrink-0; /* Fixed width for visualizations */
-    }
-    
-    .chat-panel {
-      @apply w-64 flex-shrink-0; /* Fixed width for chat */
-    }
+  /* Resize handle styles */
+  .resize-handle {
+    @apply w-1 cursor-col-resize bg-border/50 hover:bg-accent/60 transition-all duration-150 flex-shrink-0;
   }
 
-  /* Tablet responsive */
-  @media (max-width: 1023px) and (min-width: 769px) {
-    .visualization-panel {
-      @apply w-64 flex-shrink-0;
-    }
-    
-    .chat-panel {
-      @apply w-48 flex-shrink-0;
-    }
+  .resize-handle:hover,
+  .resize-handle.active {
+    @apply w-1 bg-accent/60;
+    box-shadow: 0 0 6px rgba(0, 232, 123, 0.2);
   }
 
-  /* Mobile responsive */
-  @media (max-width: 768px) {
-    .editor-pane {
-      @apply w-full;
-    }
-    
-    .visualization-panel {
-      @apply w-full border-l-0 border-t;
-    }
-    
-    .chat-panel {
-      @apply w-full border-l-0 border-t;
-    }
+  /* Mobile tab bar */
+  .mobile-tab-bar {
+    @apply flex border-b border-border bg-background-secondary;
   }
 
-  /* Small mobile responsive */
-  @media (max-width: 480px) {
-    .visualization-panel {
-      @apply w-full;
-    }
-    
-    .chat-panel {
-      @apply w-full;
-    }
+  .mobile-tab-bar button {
+    @apply flex-1 py-2.5 px-3 text-sm font-medium text-foreground-muted transition-colors;
+  }
+
+  .mobile-tab-bar button.active {
+    @apply text-accent border-b-2 border-accent bg-background;
+  }
+
+  .mobile-tab-bar button:not(.active):hover {
+    @apply text-foreground bg-background-tertiary;
+  }
+
+  /* Markdown rendering in chat messages */
+  .chat-markdown code {
+    @apply bg-background-elevated px-1.5 py-0.5 rounded text-xs font-mono text-accent;
+  }
+
+  .chat-markdown pre {
+    @apply bg-background rounded-md border border-border p-3 my-2 overflow-x-auto text-xs;
+  }
+
+  .chat-markdown pre code {
+    @apply bg-transparent p-0 text-foreground;
+  }
+
+  .chat-markdown strong {
+    @apply font-semibold text-foreground;
+  }
+
+  .chat-markdown em {
+    @apply italic;
+  }
+
+  .chat-markdown p {
+    @apply mb-1.5 last:mb-0 leading-relaxed;
   }
 
   /* Animation utilities */
@@ -425,15 +467,6 @@
     .visualization-section .collapsible-content {
       @apply max-h-48;
     }
-  }
-
-  /* Prevent horizontal overflow in visualization panel */
-  .visualization-panel {
-    @apply overflow-x-hidden;
-  }
-
-  .visualization-panel * {
-    @apply max-w-full;
   }
 
   /* Base visualization component styles */
@@ -486,6 +519,28 @@
     60% { content: '..'; }
     80%, 100% { content: '...'; }
   }
+
+  /* Status dot pulse for playing state */
+  .status-dot-playing {
+    animation: status-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 232, 123, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(0, 232, 123, 0); }
+  }
+
+  /* Tooltip base */
+  .tooltip {
+    @apply absolute z-50 px-2 py-1 text-xs bg-background-elevated text-foreground border border-border rounded shadow-lg;
+    pointer-events: none;
+  }
+
+  /* Panel separator - used between resizable panels */
+  .panel-separator {
+    @apply bg-border/30;
+    width: 1px;
+  }
 }
 
 @layer utilities {
@@ -501,4 +556,57 @@
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+}
+
+/* Range slider styling for DAW feel */
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: #2a2a32;
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e8e8ed;
+  border: 2px solid #2a2a32;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+input[type="range"]::-webkit-slider-thumb:hover {
+  background: #00e87b;
+  border-color: #00e87b;
+  box-shadow: 0 0 6px rgba(0, 232, 123, 0.4);
+}
+
+input[type="range"]::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #e8e8ed;
+  border: 2px solid #2a2a32;
+  cursor: pointer;
+}
+
+input[type="range"]::-moz-range-thumb:hover {
+  background: #00e87b;
+  border-color: #00e87b;
+}
+
+/* Number input spinner styling */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
 }

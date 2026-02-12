@@ -275,48 +275,70 @@ function computeDSLDecorations(state: EditorState): DecorationSet {
   return Decoration.set(ranges, true);
 }
 
-// Theme: keep layout stable; only use color/glow.
+// Theme: professional code editor feel with DAW-like coloring
 const editorTheme = EditorView.theme({
   '&': {
-    fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace',
+    fontFamily: '"JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
     fontSize: '0.875rem',
-    backgroundColor: 'transparent',
+    backgroundColor: '#0d0d0f',
     height: '100%',
   },
   '.cm-content': {
-    caretColor: 'var(--cm-caret, #22c55e)',
+    caretColor: '#00e87b',
+    padding: '16px',
   },
   '.cm-scroller': {
-    lineHeight: '1.5',
+    lineHeight: '1.65',
     overflow: 'auto',
   },
-  // DSL tokens
-  '.cm-kw': { color: '#60a5fa', fontWeight: '600' }, // blue-400
-  '.cm-number': { color: '#a78bfa' }, // violet-400
-  '.cm-attr': { color: '#34d399' }, // green-400
-  '.cm-ident': { color: '#f472b6' }, // pink-400
-  '.cm-punc': { color: '#94a3b8' }, // slate-400
-  '.cm-comment': { color: '#9ca3af', fontStyle: 'italic' },
+  '.cm-gutters': {
+    backgroundColor: '#0d0d0f',
+    borderRight: '1px solid #1c1c21',
+    color: '#5c5c6b',
+  },
+  '.cm-activeLineGutter': {
+    backgroundColor: '#141417',
+  },
+  '.cm-activeLine': {
+    backgroundColor: 'rgba(255, 255, 255, 0.03)',
+  },
+  '.cm-selectionBackground': {
+    backgroundColor: 'rgba(0, 232, 123, 0.12) !important',
+  },
+  '.cm-cursor': {
+    borderLeftColor: '#00e87b',
+    borderLeftWidth: '2px',
+  },
+  // DSL tokens - refined palette
+  '.cm-kw': { color: '#60a5fa', fontWeight: '600' },
+  '.cm-number': { color: '#c4b5fd' },
+  '.cm-attr': { color: '#34d399' },
+  '.cm-ident': { color: '#f0abfc' },
+  '.cm-punc': { color: '#6b7280' },
+  '.cm-comment': { color: '#4b5563', fontStyle: 'italic' },
 
   // Base steps
-  '.cm-step-hit': { color: '#22c55e' }, // green-500
-  '.cm-step-dot': { color: '#6b7280' }, // gray-500
-  '.cm-step-ghost': { color: '#93c5fd' }, // blue-300
-  '.cm-step-flam': { color: '#fca5a5' }, // red-300
-  '.cm-step-roll': { color: '#fde68a' }, // yellow-300
+  '.cm-step-hit': { color: '#00e87b', fontWeight: '500' },
+  '.cm-step-dot': { color: '#3f3f4a' },
+  '.cm-step-ghost': { color: '#93c5fd' },
+  '.cm-step-flam': { color: '#fca5a5' },
+  '.cm-step-roll': { color: '#fde68a' },
 
-  // Current step overlay (stronger specificity to override base)
+  // Current step overlay (playhead)
   '.cm-step-current': {
-    color: '#111827', // near-black for contrast when background used
-    backgroundColor: 'var(--cm-playhead-bg, rgba(251, 191, 36, 0.35))',
-    boxShadow: 'inset 0 -1px 0 rgba(251, 191, 36, 0.65), inset 0 1px 0 rgba(251, 191, 36, 0.65)',
+    color: '#0d0d0f',
+    backgroundColor: 'var(--cm-playhead-bg, rgba(251, 191, 36, 0.4))',
+    borderRadius: '2px',
     textShadow: 'var(--cm-glow, 0 0 6px rgba(251, 191, 36, 0.55))',
   },
-  '.cm-step-active': {
-    // keep as is; class is used for targeting
-  },
+  '.cm-step-active': {},
   '.cm-step-rest': {
-    color: '#111827',
+    color: '#0d0d0f',
+  },
+  // Placeholder
+  '.cm-placeholder': {
+    color: '#5c5c6b',
+    fontStyle: 'italic',
   },
 });
 
@@ -444,28 +466,29 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
       ['--cm-glow' as any]: reduceMotion ? 'none' : '0 0 6px rgba(251, 191, 36, 0.55)',
       ['--cm-playhead-bg' as any]: reduceMotion ? 'rgba(251, 191, 36, 0.25)' : 'rgba(251, 191, 36, 0.35)'
     }}>
-      <div className="border-b border-border p-4">
-        <h2 className="text-lg font-semibold">ASCII Pattern Editor</h2>
-        <p className="text-sm text-foreground-muted">
-          Live playhead highlights update inline without breaking editing.
-        </p>
-        <div className="mt-2 flex items-center gap-3">
-          <label className="text-sm flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={reduceMotion}
-              onChange={(e) => setReduceMotion(e.target.checked)}
-            />
-            Reduce motion
-          </label>
+      <div className="border-b border-border px-4 py-3 flex items-center justify-between" style={{ background: 'linear-gradient(to bottom, #111114, #0d0d0f)' }}>
+        <div>
+          <h2 className="text-sm font-semibold text-foreground">Pattern Editor</h2>
+          <p className="text-xs text-foreground-muted">
+            Click steps to toggle. Playhead highlights update live.
+          </p>
         </div>
+        <label className="text-xs text-foreground-muted flex items-center gap-1.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={reduceMotion}
+            onChange={(e) => setReduceMotion(e.target.checked)}
+            className="accent-accent"
+          />
+          Reduce motion
+        </label>
       </div>
 
       {/* Validation Status */}
       {validation && validation.errors.length > 0 && (
-        <div className="border-b border-border p-4 bg-red-50">
-          <h3 className="text-sm font-semibold text-red-700 mb-2">Validation Errors:</h3>
-          <ul className="text-sm text-red-600 space-y-1">
+        <div className="border-b border-border p-4 bg-error/10">
+          <h3 className="text-sm font-semibold text-error mb-2">Validation Errors:</h3>
+          <ul className="text-sm text-error/80 space-y-1">
             {validation.errors.map((error, index) => (
               <li key={index}>• {error}</li>
             ))}
@@ -474,9 +497,9 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
       )}
 
       {validation && validation.warnings.length > 0 && (
-        <div className="border-b border-border p-4 bg-yellow-50">
-          <h3 className="text-sm font-semibold text-yellow-700 mb-2">Warnings:</h3>
-          <ul className="text-sm text-yellow-600 space-y-1">
+        <div className="border-b border-border p-4 bg-warning/10">
+          <h3 className="text-sm font-semibold text-warning mb-2">Warnings:</h3>
+          <ul className="text-sm text-warning/80 space-y-1">
             {validation.warnings.map((warning, index) => (
               <li key={index}>• {warning}</li>
             ))}
@@ -484,11 +507,9 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
         </div>
       )}
 
-      {/* Editor container with border/padding for consistent layout */}
-      <div className="flex-1 p-4">
-        <div className={`w-full h-full border rounded ${validation?.isValid ? 'border-green-300' : 'border-red-300'}`}>
-          <div ref={parentRef} className="w-full h-full p-4" />
-        </div>
+      {/* Editor container */}
+      <div className="flex-1 min-h-0">
+        <div ref={parentRef} className="w-full h-full" />
       </div>
     </div>
   );

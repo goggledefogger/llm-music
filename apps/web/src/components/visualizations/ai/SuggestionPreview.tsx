@@ -27,19 +27,21 @@ export const SuggestionPreview: React.FC<SuggestionPreviewProps> = ({
 }) => {
   const getInstrumentColor = (instrument: string) => {
     const colors = {
-      kick: 'bg-red-500',
-      snare: 'bg-blue-500',
-      hihat: 'bg-green-500',
-      hat: 'bg-green-500',
-      default: 'bg-gray-500'
+      kick: 'bg-audio-kick',
+      snare: 'bg-audio-snare',
+      hihat: 'bg-audio-hihat',
+      hat: 'bg-audio-hihat',
+      pad: 'bg-audio-pad',
+      bass: 'bg-audio-bass',
+      default: 'bg-foreground-muted'
     };
     return colors[instrument.toLowerCase() as keyof typeof colors] || colors.default;
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600 bg-green-100';
-    if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+    if (confidence >= 0.8) return 'text-green-400 bg-green-500/15';
+    if (confidence >= 0.6) return 'text-yellow-400 bg-yellow-500/15';
+    return 'text-red-400 bg-red-500/15';
   };
 
   const getConfidenceLabel = (confidence: number) => {
@@ -79,7 +81,7 @@ export const SuggestionPreview: React.FC<SuggestionPreviewProps> = ({
                           ? `${getInstrumentColor(instrument)} text-white border-transparent` 
                           : 'bg-background border-border'
                         }
-                        ${hasChange ? 'ring-2 ring-yellow-400 ring-opacity-75' : ''}
+                        ${hasChange ? 'ring-2 ring-warning ring-opacity-75' : ''}
                       `}
                     >
                       {i + 1}
@@ -148,13 +150,13 @@ export const SuggestionPreview: React.FC<SuggestionPreviewProps> = ({
                   </div>
                   <div className="flex items-center space-x-2">
                     <span className={`px-2 py-1 rounded text-xs ${
-                      change.original ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'
+                      change.original ? 'bg-red-500/15 text-red-400' : 'bg-background-tertiary text-foreground-muted'
                     }`}>
                       {change.original ? 'ON' : 'OFF'}
                     </span>
                     <span className="text-foreground-muted">→</span>
                     <span className={`px-2 py-1 rounded text-xs ${
-                      change.suggested ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                      change.suggested ? 'bg-green-500/15 text-green-400' : 'bg-background-tertiary text-foreground-muted'
                     }`}>
                       {change.suggested ? 'ON' : 'OFF'}
                     </span>
@@ -189,13 +191,13 @@ export const SuggestionPreview: React.FC<SuggestionPreviewProps> = ({
       <div className="flex space-x-3">
         <button
           onClick={onAccept}
-          className="flex-1 bg-green-600 text-white py-2 px-4 rounded hover:bg-green-700 transition-colors"
+          className="btn btn-primary flex-1"
         >
           Accept Suggestion
         </button>
         <button
           onClick={onReject}
-          className="flex-1 bg-red-600 text-white py-2 px-4 rounded hover:bg-red-700 transition-colors"
+          className="btn btn-secondary flex-1"
         >
           Reject Suggestion
         </button>

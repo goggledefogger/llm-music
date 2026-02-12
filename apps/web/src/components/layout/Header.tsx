@@ -13,16 +13,17 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="border-b border-border bg-background-secondary">
-      <div className="flex items-center justify-between px-6 py-4">
+    <header className="flex-shrink-0 border-b border-border bg-background-secondary" style={{ background: 'linear-gradient(to bottom, #18181d, #141417)' }}>
+      <div className="flex items-center justify-between px-3 sm:px-6 py-3">
         <div className="flex items-center space-x-2">
-          <h1 className="text-xl font-bold text-accent">ASCII Sequencer</h1>
-          <span className="text-xs text-foreground-muted bg-background-tertiary px-2 py-1 rounded">
+          <h1 className="text-lg font-bold text-accent tracking-tight hidden sm:block">ASCII Sequencer</h1>
+          <h1 className="text-lg font-bold text-accent tracking-tight sm:hidden">ASQ</h1>
+          <span className="text-[10px] text-foreground-muted bg-background-tertiary px-1.5 py-0.5 rounded font-mono hidden sm:inline">
             v0.1.0
           </span>
         </div>
 
-        <nav className="hidden md:flex items-center space-x-1">
+        <nav className="flex items-center space-x-0.5 sm:space-x-1">
           {navItems.map((item) => (
             <Link
               key={item.path}
@@ -32,20 +33,20 @@ export const Header: React.FC = () => {
                 location.pathname === item.path && 'bg-background-tertiary'
               )}
             >
-              <span className="mr-2">{item.icon}</span>
-              {item.label}
+              <span className="md:mr-2">{item.icon}</span>
+              <span className="hidden md:inline">{item.label}</span>
             </Link>
           ))}
         </nav>
 
-        <div className="flex items-center space-x-2">
+        <div className="flex items-center space-x-1 sm:space-x-2">
           <button className="btn btn-ghost btn-sm">
-            <span className="mr-2">🎧</span>
-            Audio
+            <span className="sm:mr-2">🎧</span>
+            <span className="hidden sm:inline">Audio</span>
           </button>
           <button className="btn btn-ghost btn-sm">
-            <span className="mr-2">🤖</span>
-            AI
+            <span className="sm:mr-2">🤖</span>
+            <span className="hidden sm:inline">AI</span>
           </button>
         </div>
       </div>

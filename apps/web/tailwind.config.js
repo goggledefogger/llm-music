@@ -15,39 +15,42 @@ export default {
     },
     extend: {
       colors: {
-        // Dark theme colors for music production
+        // Dark theme colors - professional DAW aesthetic
         background: {
-          DEFAULT: '#0a0a0a',
-          secondary: '#1a1a1a',
-          tertiary: '#2a2a2a',
+          DEFAULT: '#0d0d0f',
+          secondary: '#141417',
+          tertiary: '#1c1c21',
+          elevated: '#222228',
         },
         foreground: {
-          DEFAULT: '#ffffff',
-          secondary: '#a0a0a0',
-          muted: '#666666',
+          DEFAULT: '#e8e8ed',
+          secondary: '#9d9daa',
+          muted: '#5c5c6b',
         },
         accent: {
-          DEFAULT: '#00ff88',
-          secondary: '#00cc6a',
-          muted: '#006633',
+          DEFAULT: '#00e87b',
+          secondary: '#00c968',
+          muted: '#00582e',
+          dim: '#0a3d22',
         },
         border: {
-          DEFAULT: '#333333',
-          secondary: '#444444',
+          DEFAULT: '#2a2a32',
+          secondary: '#383842',
+          hover: '#4a4a56',
         },
         // Audio-specific colors
         audio: {
-          kick: '#ff4444',
-          snare: '#44ff44',
-          hihat: '#4444ff',
-          pad: '#ff44ff',
-          bass: '#ffff44',
+          kick: '#ef4444',
+          snare: '#22c55e',
+          hihat: '#3b82f6',
+          pad: '#c084fc',
+          bass: '#eab308',
         },
         // Status colors
-        success: '#00ff88',
-        warning: '#ffaa00',
-        error: '#ff4444',
-        info: '#4488ff',
+        success: '#00e87b',
+        warning: '#f59e0b',
+        error: '#ef4444',
+        info: '#3b82f6',
       },
       fontFamily: {
         mono: ['JetBrains Mono', 'Fira Code', 'Monaco', 'Consolas', 'monospace'],

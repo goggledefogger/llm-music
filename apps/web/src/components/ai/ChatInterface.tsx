@@ -137,14 +137,20 @@ export const ChatInterface: React.FC = () => {
   );
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background-secondary">
       {/* Header */}
       <div className="chat-header">
         <div className="flex items-center justify-between mb-1">
-          <h2 className="text-sm font-semibold">AI Assistant</h2>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-accent" />
+            <h2 className="text-sm font-semibold text-foreground">AI Assistant</h2>
+          </div>
           <ProviderSelector provider={provider} onChange={handleProviderChange} />
         </div>
-        <div className="flex items-center gap-2">
+        <p className="text-xs text-foreground-muted mt-1">
+          Get help creating and modifying patterns
+        </p>
+        <div className="flex items-center gap-2 mt-1">
           <button
             className={`text-xs px-2 py-0.5 rounded ${
               mode === 'generate'
@@ -192,20 +198,20 @@ export const ChatInterface: React.FC = () => {
       </div>
 
       {/* Input */}
-      <div className="border-t border-border p-3">
-        <div className="flex space-x-2">
+      <div className="border-t border-border p-3 bg-background-secondary">
+        <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Ask me about your pattern..."
-            className="input flex-1 text-sm h-9"
+            placeholder="Ask about your pattern..."
+            className="input flex-1 h-9 text-sm"
             disabled={isStreaming}
           />
           <button
             onClick={handleSend}
-            className="btn btn-primary btn-sm"
+            className="btn btn-primary h-9 px-4 text-sm"
             disabled={!input.trim() || isStreaming}
           >
             {isStreaming ? '...' : 'Send'}

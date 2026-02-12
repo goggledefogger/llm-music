@@ -15,7 +15,7 @@ export const Sidebar: React.FC = () => {
 
   return (
     <aside className={clsx(
-      'bg-background-secondary border-r border-border transition-all duration-300',
+      'hidden lg:block bg-background-secondary border-r border-border transition-all duration-300 flex-shrink-0',
       isCollapsed ? 'w-16' : 'w-64'
     )}>
       <div className="flex flex-col h-full">
@@ -49,10 +49,19 @@ export const Sidebar: React.FC = () => {
         <div className="p-4 border-t border-border">
           <div className="text-xs text-foreground-muted">
             {!isCollapsed && (
-              <div className="space-y-1">
-                <div>Status: Ready</div>
-                <div>Audio: Connected</div>
-                <div>AI: Available</div>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                  Status: Ready
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                  Audio: Connected
+                </div>
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-accent"></span>
+                  AI: Available
+                </div>
               </div>
             )}
           </div>

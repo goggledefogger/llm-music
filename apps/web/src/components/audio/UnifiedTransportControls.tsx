@@ -81,7 +81,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
   };
 
   return (
-    <div className={`bg-gray-800 rounded-lg p-4 ${className}`}>
+    <div className={`transport-bar rounded-lg p-4 ${className}`}>
       {/* Main Transport Controls */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-3">
@@ -91,18 +91,27 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
             disabled={!state.isInitialized || !!state.error}
             className={`
               w-12 h-12 rounded-full flex items-center justify-center text-xl
-              transition-all duration-200
+              transition-all duration-150
               ${state.isPlaying
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
+                ? 'bg-foreground/10 text-foreground hover:bg-foreground/15'
+                : 'bg-accent text-background hover:bg-accent-secondary hover:shadow-lg hover:shadow-accent/25'
               }
               ${!state.isInitialized || state.error
-                ? 'opacity-50 cursor-not-allowed'
+                ? 'opacity-40 cursor-not-allowed'
                 : 'hover:scale-105 active:scale-95'
               }
             `}
           >
-            {state.isPlaying ? '⏸️' : '▶️'}
+            {state.isPlaying ? (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                <rect x="3" y="2" width="4" height="12" rx="1" />
+                <rect x="9" y="2" width="4" height="12" rx="1" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor" className="ml-0.5">
+                <path d="M4 2.5v11l10-5.5z" />
+              </svg>
+            )}
           </button>
 
           {/* Stop Button */}
@@ -110,25 +119,27 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
             onClick={stop}
             disabled={!state.isInitialized || !!state.error}
             className={`
-              w-10 h-10 rounded-full flex items-center justify-center text-lg
-              transition-all duration-200
-              bg-gray-600 hover:bg-gray-700 text-white
+              w-10 h-10 rounded-full flex items-center justify-center
+              transition-all duration-150
+              bg-background-tertiary text-foreground-secondary border border-border hover:bg-background-elevated hover:text-foreground
               ${!state.isInitialized || state.error
-                ? 'opacity-50 cursor-not-allowed'
+                ? 'opacity-40 cursor-not-allowed'
                 : 'hover:scale-105 active:scale-95'
               }
             `}
           >
-            ⏹️
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+              <rect x="1" y="1" width="10" height="10" rx="1.5" />
+            </svg>
           </button>
         </div>
 
         {/* Time Display */}
         <div className="text-center">
-          <div className="text-2xl font-mono text-white">
+          <div className="text-2xl font-mono text-foreground tabular-nums">
             {formatTime(state.currentTime)}
           </div>
-          <div className="text-sm text-gray-400">
+          <div className="text-sm text-foreground-muted">
             {state.isPlaying ? 'Playing' : state.isPaused ? 'Paused' : 'Stopped'}
           </div>
         </div>
@@ -136,7 +147,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
         {/* Advanced Controls Toggle */}
         <button
           onClick={() => setShowAdvancedControls(!showAdvancedControls)}
-          className="text-gray-400 hover:text-white transition-colors"
+          className="text-foreground-muted hover:text-foreground transition-colors text-sm"
         >
           {showAdvancedControls ? '▼' : '▶'} Advanced
         </button>
@@ -144,42 +155,42 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
 
       {/* Error Display */}
       {state.error && (
-        <div className="mb-4 p-3 bg-red-900 border border-red-700 rounded text-red-200 text-sm">
+        <div className="mb-4 p-3 bg-error/10 border border-error/30 rounded text-error text-sm">
           <strong>Audio Error:</strong> {state.error}
         </div>
       )}
 
       {/* Advanced Controls */}
       {showAdvancedControls && (
-        <div className="space-y-4 border-t border-gray-700 pt-4">
+        <div className="space-y-4 border-t border-border pt-4">
           {/* Tempo Control */}
           <div className="flex items-center space-x-3">
-            <label className="text-white text-sm font-medium w-16">Tempo:</label>
+            <label className="text-foreground text-sm font-medium w-16">Tempo:</label>
             <input
               type="range"
               min="60"
               max="200"
               value={state.tempo}
               onChange={handleTempoChange}
-              className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="flex-1"
             />
-            <span className="text-white text-sm font-mono w-12">
+            <span className="text-foreground text-sm font-mono w-16 text-right">
               {state.tempo} BPM
             </span>
           </div>
 
           {/* Volume Control */}
           <div className="flex items-center space-x-3">
-            <label className="text-white text-sm font-medium w-16">Volume:</label>
+            <label className="text-foreground text-sm font-medium w-16">Volume:</label>
             <input
               type="range"
               min="-60"
               max="0"
               value={state.volume}
               onChange={handleVolumeChange}
-              className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+              className="flex-1"
             />
-            <span className="text-white text-sm font-mono w-12">
+            <span className="text-foreground text-sm font-mono w-16 text-right">
               {state.volume} dB
             </span>
           </div>
@@ -187,20 +198,20 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
           {/* Effects Controls */}
           {showEffects && (
             <div className="space-y-3">
-              <h4 className="text-white text-sm font-medium">Effects</h4>
+              <h4 className="text-foreground text-sm font-medium">Effects</h4>
 
               {/* Reverb */}
               <div className="flex items-center space-x-3">
                 <button
                   onClick={() => handleEffectToggle('reverb')}
                   className={`
-                    w-8 h-8 rounded flex items-center justify-center text-xs
-                    ${state.effectsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-300'}
+                    w-8 h-8 rounded flex items-center justify-center text-xs font-medium
+                    ${state.effectsEnabled ? 'bg-accent/15 text-accent border border-accent/20' : 'bg-background-tertiary text-foreground-muted border border-border'}
                   `}
                 >
                   R
                 </button>
-                <label className="text-white text-sm w-16">Reverb:</label>
+                <label className="text-foreground text-sm w-16">Reverb:</label>
                 <input
                   type="range"
                   min="0"
@@ -208,7 +219,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
                   step="0.1"
                   defaultValue="0.1"
                   onChange={(e) => handleEffectWetChange('reverb', parseFloat(e.target.value))}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="flex-1"
                 />
               </div>
 
@@ -217,13 +228,13 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
                 <button
                   onClick={() => handleEffectToggle('delay')}
                   className={`
-                    w-8 h-8 rounded flex items-center justify-center text-xs
-                    ${state.effectsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-300'}
+                    w-8 h-8 rounded flex items-center justify-center text-xs font-medium
+                    ${state.effectsEnabled ? 'bg-accent/15 text-accent border border-accent/20' : 'bg-background-tertiary text-foreground-muted border border-border'}
                   `}
                 >
                   D
                 </button>
-                <label className="text-white text-sm w-16">Delay:</label>
+                <label className="text-foreground text-sm w-16">Delay:</label>
                 <input
                   type="range"
                   min="0"
@@ -231,7 +242,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
                   step="0.1"
                   defaultValue="0.1"
                   onChange={(e) => handleEffectWetChange('delay', parseFloat(e.target.value))}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="flex-1"
                 />
               </div>
 
@@ -240,13 +251,13 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
                 <button
                   onClick={() => handleEffectToggle('compressor')}
                   className={`
-                    w-8 h-8 rounded flex items-center justify-center text-xs
-                    ${state.effectsEnabled ? 'bg-blue-600 text-white' : 'bg-gray-600 text-gray-300'}
+                    w-8 h-8 rounded flex items-center justify-center text-xs font-medium
+                    ${state.effectsEnabled ? 'bg-accent/15 text-accent border border-accent/20' : 'bg-background-tertiary text-foreground-muted border border-border'}
                   `}
                 >
                   C
                 </button>
-                <label className="text-white text-sm w-16">Comp:</label>
+                <label className="text-foreground text-sm w-16">Comp:</label>
                 <input
                   type="range"
                   min="0"
@@ -254,7 +265,7 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
                   step="0.1"
                   defaultValue="0.8"
                   onChange={(e) => handleEffectWetChange('compressor', parseFloat(e.target.value))}
-                  className="flex-1 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer"
+                  className="flex-1"
                 />
               </div>
             </div>
@@ -263,13 +274,13 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
           {/* Performance Metrics */}
           {showPerformance && (
             <div className="space-y-2">
-              <h4 className="text-white text-sm font-medium">Performance</h4>
+              <h4 className="text-foreground text-sm font-medium">Performance</h4>
               <div className="grid grid-cols-2 gap-4 text-sm">
-                <div className="text-gray-300">
-                  <span className="text-gray-400">FPS:</span> {performanceMetrics.fps}
+                <div className="text-foreground-secondary">
+                  <span className="text-foreground-muted">FPS:</span> {performanceMetrics.fps}
                 </div>
-                <div className="text-gray-300">
-                  <span className="text-gray-400">Uptime:</span> {Math.floor(performanceMetrics.uptime / 1000)}s
+                <div className="text-foreground-secondary">
+                  <span className="text-foreground-muted">Uptime:</span> {Math.floor(performanceMetrics.uptime / 1000)}s
                 </div>
               </div>
             </div>
@@ -277,19 +288,19 @@ export const UnifiedTransportControls: React.FC<TransportControlsProps> = ({
 
           {/* Engine Status */}
           <div className="space-y-2">
-            <h4 className="text-white text-sm font-medium">Engine Status</h4>
+            <h4 className="text-foreground text-sm font-medium">Engine Status</h4>
             <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="text-gray-300">
-                <span className="text-gray-400">Initialized:</span> {state.isInitialized ? '✅' : '❌'}
+              <div className="text-foreground-secondary">
+                <span className="text-foreground-muted">Initialized:</span> {state.isInitialized ? 'Yes' : 'No'}
               </div>
-              <div className="text-gray-300">
-                <span className="text-gray-400">Effects:</span> {state.effectsEnabled ? '✅' : '❌'}
+              <div className="text-foreground-secondary">
+                <span className="text-foreground-muted">Effects:</span> {state.effectsEnabled ? 'On' : 'Off'}
               </div>
-              <div className="text-gray-300">
-                <span className="text-gray-400">Collaboration:</span> ❌
+              <div className="text-foreground-secondary">
+                <span className="text-foreground-muted">Collaboration:</span> Off
               </div>
-              <div className="text-gray-300">
-                <span className="text-gray-400">Quality:</span> {state.audioQuality}
+              <div className="text-foreground-secondary">
+                <span className="text-foreground-muted">Quality:</span> {state.audioQuality}
               </div>
             </div>
           </div>

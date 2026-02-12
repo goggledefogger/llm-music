@@ -53,7 +53,7 @@ export const PatternsPage: React.FC = () => {
       <div className="p-8">
         <div className="flex items-center justify-center h-64">
           <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-accent mx-auto mb-4"></div>
             <p className="text-foreground-secondary">Loading patterns...</p>
           </div>
         </div>
@@ -64,12 +64,12 @@ export const PatternsPage: React.FC = () => {
   if (error) {
     return (
       <div className="p-8">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <h2 className="text-lg font-semibold text-red-800 mb-2">Error Loading Patterns</h2>
-          <p className="text-red-600">{error}</p>
+        <div className="bg-error/10 border border-error/30 rounded-lg p-6">
+          <h2 className="text-lg font-semibold text-error mb-2">Error Loading Patterns</h2>
+          <p className="text-error/80">{error}</p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
+            className="btn btn-primary mt-4"
           >
             Retry
           </button>
@@ -109,14 +109,14 @@ export const PatternsPage: React.FC = () => {
               placeholder="Search patterns..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground placeholder-foreground-secondary focus:outline-none focus:ring-2 focus:ring-primary"
+              className="input"
             />
           </div>
           <div className="sm:w-48">
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-4 py-2 border border-border rounded-lg bg-background text-foreground focus:outline-none focus:ring-2 focus:ring-primary"
+              className="input"
             >
               {categories.map(category => (
                 <option key={category} value={category}>

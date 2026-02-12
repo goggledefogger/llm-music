@@ -77,13 +77,13 @@ export const SampleLibrary: React.FC<SampleLibraryProps> = ({ className = '' }) 
         </div>
         <div className="grid grid-cols-2 gap-2">
           {BUILT_IN_SAMPLES.map(s => (
-            <div key={s.id} className="border rounded p-2 bg-background-secondary flex items-center justify-between">
+            <div key={s.id} className="border border-border rounded p-2 bg-background flex items-center justify-between">
               <div>
                 <div className="text-sm font-medium">{s.label}</div>
-                <div className="text-xs text-foreground-muted">sample {s.id}: {s.id}</div>
+                <div className="text-xs text-foreground-muted font-mono">sample {s.id}: {s.id}</div>
               </div>
               <button
-                className="text-xs px-2 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+                className="btn btn-primary btn-sm text-xs"
                 onClick={() => upsertSampleLine(s.id, s.id)}
               >
                 Insert
@@ -93,7 +93,7 @@ export const SampleLibrary: React.FC<SampleLibraryProps> = ({ className = '' }) 
         </div>
         <div className="pt-1">
           <button
-            className="text-xs px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700"
+            className="btn btn-secondary btn-sm text-xs"
             onClick={insertDemo}
           >
             Insert Demo Mapping

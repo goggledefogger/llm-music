@@ -22,19 +22,21 @@ export const PatternThumbnail: React.FC<PatternThumbnailProps> = ({
 }) => {
   const getInstrumentColor = (instrument: string) => {
     const colors = {
-      kick: 'bg-red-500',
-      snare: 'bg-blue-500',
-      hihat: 'bg-green-500',
-      hat: 'bg-green-500',
-      default: 'bg-gray-500'
+      kick: 'bg-audio-kick',
+      snare: 'bg-audio-snare',
+      hihat: 'bg-audio-hihat',
+      hat: 'bg-audio-hihat',
+      pad: 'bg-audio-pad',
+      bass: 'bg-audio-bass',
+      default: 'bg-foreground-muted'
     };
     return colors[instrument.toLowerCase() as keyof typeof colors] || colors.default;
   };
 
   const getComplexityColor = (complexity: number) => {
-    if (complexity < 0.3) return 'text-green-600 bg-green-100';
-    if (complexity < 0.7) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+    if (complexity < 0.3) return 'text-green-400 bg-green-500/15';
+    if (complexity < 0.7) return 'text-yellow-400 bg-yellow-500/15';
+    return 'text-red-400 bg-red-500/15';
   };
 
   const getComplexityLabel = (complexity: number) => {
@@ -49,8 +51,8 @@ export const PatternThumbnail: React.FC<PatternThumbnailProps> = ({
   return (
     <div
       className={`
-        bg-background border border-border rounded-lg p-4 cursor-pointer
-        hover:border-foreground-muted hover:shadow-md transition-all duration-200
+        card p-4 cursor-pointer
+        hover:border-accent/30 transition-all duration-200
         ${className}
       `}
       onClick={onClick}
@@ -145,7 +147,7 @@ export const PatternThumbnail: React.FC<PatternThumbnailProps> = ({
             e.stopPropagation();
             if (onClick) onClick();
           }}
-          className="flex-1 bg-primary text-primary-foreground text-xs py-1 px-2 rounded hover:bg-primary/90 transition-colors"
+          className="btn btn-primary btn-sm flex-1"
         >
           Load
         </button>
@@ -155,7 +157,7 @@ export const PatternThumbnail: React.FC<PatternThumbnailProps> = ({
               e.stopPropagation();
               onPreview();
             }}
-            className="flex-1 bg-secondary text-secondary-foreground text-xs py-1 px-2 rounded hover:bg-secondary/90 transition-colors"
+            className="btn btn-secondary btn-sm flex-1"
           >
             Preview
           </button>

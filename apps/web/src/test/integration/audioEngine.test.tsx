@@ -43,16 +43,16 @@ describe('Unified Audio Engine Integration Tests', () => {
     renderWithProvider(<EditorPage />);
 
     // Just verify the page renders with essential elements
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '▶️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⏹️' })).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Play/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stop/i })).toBeInTheDocument();
   });
 
   it('should handle transport control interactions', async () => {
     renderWithProvider(<EditorPage />);
 
-    const playButton = screen.getByRole('button', { name: '▶️' });
-    const stopButton = screen.getByRole('button', { name: '⏹️' });
+    const playButton = screen.getByRole('button', { name: /Play/i });
+    const stopButton = screen.getByRole('button', { name: /Stop/i });
 
     // Test that buttons are clickable
     fireEvent.click(playButton);
@@ -88,10 +88,10 @@ describe('Unified Audio Engine Integration Tests', () => {
     renderWithProvider(<EditorPage />);
 
     // Just verify the editor area exists
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
 
     // Check for the editor container
-    const editorContainer = screen.getByText('Live playhead highlights update inline without breaking editing.');
+    const editorContainer = screen.getByText('Click steps to toggle. Playhead highlights update live.');
     expect(editorContainer).toBeInTheDocument();
   });
 });

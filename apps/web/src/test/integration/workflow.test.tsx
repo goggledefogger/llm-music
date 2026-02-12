@@ -39,13 +39,13 @@ describe('Complete Pattern → Audio Workflow Integration Tests', () => {
     renderWithProvider(<EditorPage />);
 
     // Verify the page loads with essential elements
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '▶️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⏹️' })).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Play/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stop/i })).toBeInTheDocument();
 
     // Test basic interaction flow
-    const playButton = screen.getByRole('button', { name: '▶️' });
-    const stopButton = screen.getByRole('button', { name: '⏹️' });
+    const playButton = screen.getByRole('button', { name: /Play/i });
+    const stopButton = screen.getByRole('button', { name: /Stop/i });
 
     // Simulate user workflow
     fireEvent.click(playButton);
@@ -60,7 +60,7 @@ describe('Complete Pattern → Audio Workflow Integration Tests', () => {
     renderWithProvider(<EditorPage />);
 
     // Just verify the editor interface is present
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
 
     // Check that tempo control is available
     const tempoInput = screen.getByDisplayValue('120');
@@ -75,7 +75,7 @@ describe('Complete Pattern → Audio Workflow Integration Tests', () => {
     renderWithProvider(<EditorPage />);
 
     // Check for main sections
-    expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
+    expect(screen.getByText('Pattern Editor')).toBeInTheDocument();
     expect(screen.getByText('Sample Library')).toBeInTheDocument();
     expect(screen.getByText('Step Sequencer')).toBeInTheDocument();
     expect(screen.getByText('Audio Waveform')).toBeInTheDocument();

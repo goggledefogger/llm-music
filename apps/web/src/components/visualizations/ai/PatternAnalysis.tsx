@@ -80,9 +80,9 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
   }
 
   const getComplexityColor = (complexity: number) => {
-    if (complexity < 0.3) return 'text-green-600 bg-green-100';
-    if (complexity < 0.7) return 'text-yellow-600 bg-yellow-100';
-    return 'text-red-600 bg-red-100';
+    if (complexity < 0.3) return 'text-green-400 bg-green-500/15';
+    if (complexity < 0.7) return 'text-yellow-400 bg-yellow-500/15';
+    return 'text-red-400 bg-red-500/15';
   };
 
   const getComplexityLabel = (complexity: number) => {
@@ -92,9 +92,9 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
   };
 
   const getDensityColor = (density: number) => {
-    if (density < 0.3) return 'text-blue-600 bg-blue-100';
-    if (density < 0.7) return 'text-purple-600 bg-purple-100';
-    return 'text-pink-600 bg-pink-100';
+    if (density < 0.3) return 'text-blue-400 bg-blue-500/15';
+    if (density < 0.7) return 'text-purple-400 bg-purple-500/15';
+    return 'text-pink-400 bg-pink-500/15';
   };
 
   return (
@@ -158,9 +158,12 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
               <div className="w-full bg-background-secondary rounded-full h-1.5">
                 <div
                   className={`h-1.5 rounded-full ${
-                    usage.name === 'kick' ? 'bg-red-500' :
-                    usage.name === 'snare' ? 'bg-blue-500' :
-                    'bg-green-500'
+                    usage.name === 'kick' ? 'bg-audio-kick' :
+                    usage.name === 'snare' ? 'bg-audio-snare' :
+                    usage.name === 'hihat' || usage.name === 'hat' ? 'bg-audio-hihat' :
+                    usage.name === 'pad' ? 'bg-audio-pad' :
+                    usage.name === 'bass' ? 'bg-audio-bass' :
+                    'bg-accent'
                   }`}
                   style={{ width: `${usage.percentage}%` }}
                 />
@@ -206,32 +209,32 @@ export const PatternAnalysis: React.FC<PatternAnalysisProps> = ({
         <h4 className="text-sm font-semibold mb-2">Insights</h4>
         <div className="space-y-1 text-xs">
           {analysis.complexity < 0.3 && (
-            <div className="text-green-600">
+            <div className="text-green-400">
               • Simple pattern with good clarity and focus
             </div>
           )}
           {analysis.complexity > 0.7 && (
-            <div className="text-yellow-600">
+            <div className="text-yellow-400">
               • Complex pattern - consider simplifying for better impact
             </div>
           )}
           {analysis.density < 0.2 && (
-            <div className="text-blue-600">
+            <div className="text-blue-400">
               • Sparse pattern with good use of space
             </div>
           )}
           {analysis.density > 0.8 && (
-            <div className="text-purple-600">
+            <div className="text-purple-400">
               • Dense pattern - very energetic and busy
             </div>
           )}
           {analysis.instruments === 1 && (
-            <div className="text-orange-600">
+            <div className="text-orange-400">
               • Single instrument pattern - consider adding more layers
             </div>
           )}
           {analysis.instruments > 4 && (
-            <div className="text-pink-600">
+            <div className="text-pink-400">
               • Multi-layered pattern with rich texture
             </div>
           )}
