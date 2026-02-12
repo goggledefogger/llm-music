@@ -10,6 +10,8 @@ vi.mock('tone', () => mockTone);
 describe('EditorPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Set desktop width so the desktop layout renders (mobile tabs hide panels)
+    Object.defineProperty(window, 'innerWidth', { value: 1280, writable: true });
   });
 
   it('renders without crashing', () => {
