@@ -32,7 +32,7 @@ export const EQDisplay: React.FC<EQDisplayProps> = ({ eqModules, className = '' 
       <h3 className="text-lg font-semibold mb-3">EQ Settings</h3>
       <div className="space-y-3">
         {Object.entries(eqModules).map(([name, eq]) => (
-          <div key={name} className="bg-surface-secondary rounded-lg p-3">
+          <div key={name} className="bg-background rounded-lg p-3 border border-border">
             <h4 className="font-medium text-sm mb-2 capitalize">{name} EQ</h4>
             <div className="grid grid-cols-3 gap-2 text-sm">
               <div className="text-center">

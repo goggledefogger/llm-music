@@ -53,6 +53,7 @@
   /* CodeMirror custom styles */
   .cm-editor {
     @apply font-mono text-sm;
+    background-color: #0d0d0f;
   }
 
   .cm-focused {
@@ -65,6 +66,34 @@
 
   .cm-editor .cm-line {
     @apply leading-relaxed;
+  }
+
+  .cm-editor .cm-gutters {
+    background-color: #111114;
+    border-right: 1px solid #2a2a32;
+    color: #5c5c6b;
+  }
+
+  .cm-editor .cm-activeLineGutter {
+    background-color: #1c1c21;
+    color: #9d9daa;
+  }
+
+  .cm-editor .cm-activeLine {
+    background-color: rgba(255, 255, 255, 0.03);
+  }
+
+  .cm-editor .cm-selectionBackground {
+    background-color: rgba(0, 232, 123, 0.15) !important;
+  }
+
+  .cm-editor .cm-cursor {
+    border-left-color: #00e87b;
+  }
+
+  .cm-editor .cm-matchingBracket {
+    background-color: rgba(0, 232, 123, 0.2);
+    outline: 1px solid rgba(0, 232, 123, 0.4);
   }
 
   /* Audio visualization styles */
@@ -120,24 +149,30 @@
 
   /* Card styles */
   .card {
-    @apply rounded-lg border border-border bg-background-secondary text-foreground shadow-sm shadow-black/20;
+    @apply rounded-lg border border-border bg-background-secondary text-foreground shadow-sm shadow-black/20 transition-colors duration-200;
   }
 
   .card-header {
-    @apply flex flex-col space-y-1.5 p-6;
+    @apply flex flex-col space-y-1.5 p-4 sm:p-5;
   }
 
   .card-content {
-    @apply p-6 pt-0;
+    @apply p-4 pt-0 sm:p-5 sm:pt-0;
   }
 
   .card-footer {
-    @apply flex items-center p-6 pt-0;
+    @apply flex items-center p-4 pt-0 sm:p-5 sm:pt-0;
+  }
+
+  /* Keyboard shortcut badge */
+  kbd {
+    @apply bg-background-tertiary px-1.5 py-0.5 rounded border border-border text-xs font-mono text-foreground-secondary;
+    box-shadow: 0 1px 0 #2a2a32;
   }
 
   /* Layout styles */
   .main-layout {
-    @apply min-h-screen bg-background;
+    @apply h-screen bg-background overflow-hidden;
   }
 
   /* Transport bar style */
@@ -148,27 +183,27 @@
 
   /* Page container styles */
   .page-container {
-    @apply p-8 max-w-6xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-6xl mx-auto;
   }
 
   .page-container-sm {
-    @apply p-8 max-w-4xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-4xl mx-auto;
   }
 
   .page-container-lg {
-    @apply p-8 max-w-7xl mx-auto;
+    @apply p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto;
   }
 
   .page-header {
-    @apply text-center mb-12;
+    @apply text-center mb-8 sm:mb-12;
   }
 
   .page-title {
-    @apply text-4xl font-bold text-accent mb-4;
+    @apply text-2xl sm:text-3xl lg:text-4xl font-bold text-accent mb-4;
   }
 
   .page-subtitle {
-    @apply text-xl text-foreground-secondary mb-8;
+    @apply text-base sm:text-lg lg:text-xl text-foreground-secondary mb-6 sm:mb-8;
   }
 
   /* Chat interface styles */
@@ -483,6 +518,28 @@
     40% { content: '.'; }
     60% { content: '..'; }
     80%, 100% { content: '...'; }
+  }
+
+  /* Status dot pulse for playing state */
+  .status-dot-playing {
+    animation: status-pulse 1.5s ease-in-out infinite;
+  }
+
+  @keyframes status-pulse {
+    0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(0, 232, 123, 0.4); }
+    50% { opacity: 0.8; box-shadow: 0 0 0 4px rgba(0, 232, 123, 0); }
+  }
+
+  /* Tooltip base */
+  .tooltip {
+    @apply absolute z-50 px-2 py-1 text-xs bg-background-elevated text-foreground border border-border rounded shadow-lg;
+    pointer-events: none;
+  }
+
+  /* Panel separator - used between resizable panels */
+  .panel-separator {
+    @apply bg-border/30;
+    width: 1px;
   }
 }
 

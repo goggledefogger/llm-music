@@ -78,11 +78,11 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
     ctx.clearRect(0, 0, width, height);
 
     // Draw background
-    ctx.fillStyle = '#1a1a1a';
+    ctx.fillStyle = '#111114';
     ctx.fillRect(0, 0, width, height);
 
     // Draw grid lines
-    ctx.strokeStyle = '#333';
+    ctx.strokeStyle = '#2a2a32';
     ctx.lineWidth = 1;
     for (let i = 0; i <= 16; i++) {
       const x = (i / 16) * width;
@@ -93,7 +93,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
     }
 
     // Draw center line
-    ctx.strokeStyle = '#555';
+    ctx.strokeStyle = '#383842';
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, centerY);
@@ -101,7 +101,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
     ctx.stroke();
 
     // Draw waveform
-    ctx.strokeStyle = '#3b82f6';
+    ctx.strokeStyle = '#00e87b';
     ctx.lineWidth = 2;
     ctx.beginPath();
 
@@ -126,7 +126,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
       const currentStep = Math.floor(currentTime / stepDuration);
       const playheadX = (currentStep / maxSteps) * width;
 
-      ctx.strokeStyle = '#ef4444';
+      ctx.strokeStyle = '#f59e0b';
       ctx.lineWidth = 2;
       ctx.beginPath();
       ctx.moveTo(playheadX, 0);
@@ -158,7 +158,7 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
           ref={canvasRef}
           width={400}
           height={120}
-          className="w-full h-24 bg-background rounded border"
+          className="w-full h-24 bg-background rounded border border-border"
         />
       </div>
 
@@ -192,9 +192,12 @@ export const WaveformDisplay: React.FC<WaveformDisplayProps> = ({
             return (
               <div key={instrument} className="flex items-center space-x-1">
                 <div className={`w-2 h-2 rounded ${
-                  instrument === 'kick' ? 'bg-red-500' :
-                  instrument === 'snare' ? 'bg-blue-500' :
-                  'bg-green-500'
+                  instrument === 'kick' ? 'bg-audio-kick' :
+                  instrument === 'snare' ? 'bg-audio-snare' :
+                  instrument === 'hihat' || instrument === 'hat' ? 'bg-audio-hihat' :
+                  instrument === 'pad' ? 'bg-audio-pad' :
+                  instrument === 'bass' ? 'bg-audio-bass' :
+                  'bg-foreground-muted'
                 }`} />
                 <span className="capitalize">{instrument}</span>
                 <span className="text-foreground-muted">({activeSteps}/{totalSteps})</span>

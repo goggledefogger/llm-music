@@ -166,19 +166,19 @@ export const EditorPage: React.FC = () => {
         </div>
 
         {/* Active panel */}
-        <div className="flex-1 min-h-0 flex flex-col">
+        <div className="flex-1 min-h-0 flex flex-col overflow-hidden">
           {mobileTab === 'editor' && (
             <>
-              <div className="flex-1 min-h-0">
+              <div className="flex-1 min-h-0 overflow-hidden">
                 <PatternEditorCM />
               </div>
-              <div className="border-t border-border bg-background-secondary">
+              <div className="flex-shrink-0 border-t border-border bg-background-secondary">
                 <TransportControls />
               </div>
             </>
           )}
           {mobileTab === 'visualizer' && (
-            <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar ultra-compact-padding">
+            <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden custom-scrollbar ultra-compact-padding">
               <VisualizationPanel
                 pattern={parsedPattern}
                 currentStep={currentStep}
@@ -190,10 +190,8 @@ export const EditorPage: React.FC = () => {
             </div>
           )}
           {mobileTab === 'chat' && (
-            <div className="h-full flex flex-col">
-              <div className="flex-1 min-h-0">
-                <ChatInterface />
-              </div>
+            <div className="flex-1 min-h-0">
+              <ChatInterface />
             </div>
           )}
         </div>
@@ -203,16 +201,16 @@ export const EditorPage: React.FC = () => {
 
   // Desktop layout with resizable panels
   return (
-    <div ref={containerRef} className="flex h-full flex-row">
+    <div ref={containerRef} className="flex h-full flex-row overflow-hidden">
       {/* Main Editor Area */}
-      <div className="flex flex-col min-w-0" style={{ flexBasis: `${panelSizes.editor}%` }}>
+      <div className="flex flex-col min-w-0 min-h-0" style={{ flexBasis: `${panelSizes.editor}%` }}>
         {/* CodeMirror Editor - Takes most of the space */}
-        <div className="flex-1 min-h-0">
+        <div className="flex-1 min-h-0 overflow-hidden">
           <PatternEditorCM />
         </div>
 
         {/* Compact Transport Controls */}
-        <div className="border-t border-border bg-background-secondary">
+        <div className="flex-shrink-0 border-t border-border bg-background-secondary">
           <TransportControls />
         </div>
       </div>
@@ -225,7 +223,7 @@ export const EditorPage: React.FC = () => {
 
       {/* Visualization Panel */}
       <div
-        className="bg-background-secondary min-w-0 overflow-hidden"
+        className="bg-background-secondary min-w-0 min-h-0"
         style={{ flexBasis: `${panelSizes.viz}%` }}
       >
         <div className="h-full overflow-y-auto overflow-x-hidden custom-scrollbar ultra-compact-padding">
@@ -248,14 +246,10 @@ export const EditorPage: React.FC = () => {
 
       {/* Chat Panel */}
       <div
-        className="bg-background min-w-0 overflow-hidden"
+        className="bg-background min-w-0 min-h-0"
         style={{ flexBasis: `${panelSizes.chat}%` }}
       >
-        <div className="h-full flex flex-col">
-          <div className="flex-1 min-h-0">
-            <ChatInterface />
-          </div>
-        </div>
+        <ChatInterface />
       </div>
     </div>
   );

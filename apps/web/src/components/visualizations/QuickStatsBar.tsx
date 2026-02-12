@@ -16,12 +16,12 @@ interface StatCardProps {
 
 const StatCard: React.FC<StatCardProps> = ({ label, value, color, subtitle }) => {
   const colorClasses = {
-    green: 'text-green-600 bg-green-100',
-    blue: 'text-blue-600 bg-blue-100',
-    purple: 'text-purple-600 bg-purple-100',
-    orange: 'text-orange-600 bg-orange-100',
-    red: 'text-red-600 bg-red-100',
-    yellow: 'text-yellow-600 bg-yellow-100'
+    green: 'text-green-400 bg-green-500/15',
+    blue: 'text-blue-400 bg-blue-500/15',
+    purple: 'text-purple-400 bg-purple-500/15',
+    orange: 'text-orange-400 bg-orange-500/15',
+    red: 'text-red-400 bg-red-500/15',
+    yellow: 'text-yellow-400 bg-yellow-500/15'
   };
 
   return (

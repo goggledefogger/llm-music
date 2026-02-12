@@ -40,12 +40,12 @@ describe('Complete Pattern → Audio Workflow Integration Tests', () => {
 
     // Verify the page loads with essential elements
     expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '▶️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⏹️' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Play/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stop/i })).toBeInTheDocument();
 
     // Test basic interaction flow
-    const playButton = screen.getByRole('button', { name: '▶️' });
-    const stopButton = screen.getByRole('button', { name: '⏹️' });
+    const playButton = screen.getByRole('button', { name: /Play/i });
+    const stopButton = screen.getByRole('button', { name: /Stop/i });
 
     // Simulate user workflow
     fireEvent.click(playButton);

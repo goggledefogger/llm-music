@@ -44,15 +44,15 @@ describe('Unified Audio Engine Integration Tests', () => {
 
     // Just verify the page renders with essential elements
     expect(screen.getByText('ASCII Pattern Editor')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '▶️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⏹️' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Play/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stop/i })).toBeInTheDocument();
   });
 
   it('should handle transport control interactions', async () => {
     renderWithProvider(<EditorPage />);
 
-    const playButton = screen.getByRole('button', { name: '▶️' });
-    const stopButton = screen.getByRole('button', { name: '⏹️' });
+    const playButton = screen.getByRole('button', { name: /Play/i });
+    const stopButton = screen.getByRole('button', { name: /Stop/i });
 
     // Test that buttons are clickable
     fireEvent.click(playButton);

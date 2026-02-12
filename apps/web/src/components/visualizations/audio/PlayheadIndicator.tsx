@@ -65,10 +65,10 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
             <div
               key={i}
               className={`
-                h-6 w-6 rounded border transition-all duration-100 flex-shrink-0
-                ${i === currentStep 
-                  ? 'bg-yellow-400 border-yellow-500' 
-                  : 'bg-background-secondary border-border'
+                h-6 w-6 rounded-sm border transition-all duration-75 flex-shrink-0
+                ${i === currentStep
+                  ? 'bg-warning/80 border-warning text-background'
+                  : 'bg-background-tertiary border-border'
                 }
               `}
             >
@@ -82,7 +82,7 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
         {/* Playhead Line */}
         {isPlaying && (
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-red-500 transition-all duration-100"
+            className="absolute top-0 bottom-0 w-0.5 bg-warning transition-all duration-75"
             style={{
               left: `${(currentStep + beatPosition) * stepWidth}%`,
               transform: 'translateX(-50%)'
@@ -119,16 +119,16 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
         </div>
         <div className="w-full bg-background rounded-full h-2">
           <div
-            className="bg-blue-500 h-2 rounded-full transition-all duration-100"
+            className="bg-accent h-2 rounded-full transition-all duration-75"
             style={{ width: `${((currentStep + beatPosition) / maxSteps) * 100}%` }}
           />
         </div>
       </div>
 
       {/* Pattern Loop Indicator */}
-      <div className="mt-4 p-2 bg-blue-50 border border-blue-200 rounded text-sm">
+      <div className="mt-4 p-2 bg-info/10 border border-info/20 rounded text-sm">
         <div className="flex justify-between items-center">
-          <span className="text-blue-700">
+          <span className="text-info">
             Pattern Loop: {currentStep + 1}/{maxSteps}
           </span>
           <div className="flex space-x-1">
@@ -136,9 +136,9 @@ export const PlayheadIndicator: React.FC<PlayheadIndicatorProps> = ({
               <div
                 key={i}
                 className={`w-2 h-2 rounded-full ${
-                  Math.floor(currentStep / stepsPerBeat) === i 
-                    ? 'bg-blue-500' 
-                    : 'bg-blue-200'
+                  Math.floor(currentStep / stepsPerBeat) === i
+                    ? 'bg-info'
+                    : 'bg-info/25'
                 }`}
               />
             ))}

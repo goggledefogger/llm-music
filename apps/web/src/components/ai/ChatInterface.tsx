@@ -44,10 +44,13 @@ export const ChatInterface: React.FC = () => {
   };
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="h-full flex flex-col bg-background-secondary">
       <div className="chat-header">
-        <h2 className="text-lg font-semibold">AI Assistant</h2>
-        <p className="text-sm text-foreground-muted">
+        <div className="flex items-center gap-2">
+          <div className="w-2 h-2 rounded-full bg-accent" />
+          <h2 className="text-sm font-semibold text-foreground">AI Assistant</h2>
+        </div>
+        <p className="text-xs text-foreground-muted mt-1">
           Get help creating and modifying patterns
         </p>
       </div>
@@ -59,14 +62,14 @@ export const ChatInterface: React.FC = () => {
             className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
           >
             <div
-              className={`max-w-[80%] p-3 rounded-lg ${
+              className={`max-w-[85%] ${
                 message.role === 'user'
-                  ? 'bg-accent text-background'
-                  : 'bg-background-tertiary text-foreground'
+                  ? 'chat-bubble-user'
+                  : 'chat-bubble-assistant'
               }`}
             >
-              <p className="text-sm">{message.content}</p>
-              <p className="text-xs opacity-70 mt-1">
+              <p className="text-sm leading-relaxed">{message.content}</p>
+              <p className="text-[10px] text-foreground-muted mt-1.5">
                 {message.timestamp.toLocaleTimeString()}
               </p>
             </div>
@@ -74,19 +77,19 @@ export const ChatInterface: React.FC = () => {
         ))}
       </div>
 
-      <div className="border-t border-border p-4">
-        <div className="flex space-x-2">
+      <div className="border-t border-border p-3 bg-background-secondary">
+        <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyPress={(e) => e.key === 'Enter' && handleSend()}
-            placeholder="Ask me about your pattern..."
-            className="input flex-1"
+            placeholder="Ask about your pattern..."
+            className="input flex-1 h-9 text-sm"
           />
           <button
             onClick={handleSend}
-            className="btn btn-primary"
+            className="btn btn-primary h-9 px-4 text-sm"
             disabled={!input.trim()}
           >
             Send

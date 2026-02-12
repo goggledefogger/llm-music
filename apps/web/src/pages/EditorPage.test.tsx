@@ -39,9 +39,9 @@ describe('EditorPage', () => {
   it('displays transport controls', () => {
     render(<EditorPage />);
 
-    // Check for transport buttons
-    expect(screen.getByRole('button', { name: '▶️' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '⏹️' })).toBeInTheDocument();
+    // Check for transport buttons (SVG icons with title attributes)
+    expect(screen.getByRole('button', { name: /Play/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Stop/i })).toBeInTheDocument();
   });
 
   it('displays tempo and volume controls', () => {

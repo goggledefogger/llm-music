@@ -25,10 +25,10 @@ export const HomePage: React.FC = () => {
   return (
     <div className="page-container">
       <div className="page-header">
-        <h1 className="page-title">
+        <h1 className="page-title text-5xl tracking-tight">
           ASCII Generative Sequencer
         </h1>
-        <p className="page-subtitle">
+        <p className="page-subtitle text-foreground-secondary">
           Create music with ASCII patterns and AI assistance
         </p>
         <div className="flex justify-center gap-4">
@@ -41,37 +41,37 @@ export const HomePage: React.FC = () => {
         </div>
       </div>
 
-      <div className="grid md:grid-cols-3 gap-8 mb-12">
-        <div className="card">
+      <div className="grid md:grid-cols-3 gap-6 mb-12">
+        <div className="card hover:border-accent/30 transition-colors">
           <div className="card-header">
-            <h3 className="text-lg font-semibold">ASCII Patterns</h3>
+            <h3 className="text-lg font-semibold text-foreground">ASCII Patterns</h3>
           </div>
           <div className="card-content">
-            <p className="text-foreground-secondary">
+            <p className="text-sm text-foreground-secondary leading-relaxed">
               Create musical patterns using simple ASCII syntax. Define instruments,
               sequences, and effects with text-based commands.
             </p>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card hover:border-accent/30 transition-colors">
           <div className="card-header">
-            <h3 className="text-lg font-semibold">AI Assistant</h3>
+            <h3 className="text-lg font-semibold text-foreground">AI Assistant</h3>
           </div>
           <div className="card-content">
-            <p className="text-foreground-secondary">
+            <p className="text-sm text-foreground-secondary leading-relaxed">
               Get help from AI to generate patterns, modify existing ones,
               and explore new musical ideas through natural language.
             </p>
           </div>
         </div>
 
-        <div className="card">
+        <div className="card hover:border-accent/30 transition-colors">
           <div className="card-header">
-            <h3 className="text-lg font-semibold">Real-time Audio</h3>
+            <h3 className="text-lg font-semibold text-foreground">Real-time Audio</h3>
           </div>
           <div className="card-content">
-            <p className="text-foreground-secondary">
+            <p className="text-sm text-foreground-secondary leading-relaxed">
               Hear your patterns instantly with high-quality audio synthesis
               and real-time visualizations.
             </p>

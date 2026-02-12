@@ -39,11 +39,13 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
 
   const getInstrumentColor = (instrument: string) => {
     const colors = {
-      kick: 'bg-red-500',
-      snare: 'bg-blue-500', 
-      hihat: 'bg-green-500',
-      hat: 'bg-green-500',
-      default: 'bg-gray-500'
+      kick: 'bg-audio-kick',
+      snare: 'bg-audio-snare',
+      hihat: 'bg-audio-hihat',
+      hat: 'bg-audio-hihat',
+      pad: 'bg-audio-pad',
+      bass: 'bg-audio-bass',
+      default: 'bg-foreground-muted'
     };
     return colors[instrument.toLowerCase() as keyof typeof colors] || colors.default;
   };
@@ -72,7 +74,7 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
               </div>
               
               {/* Step Grid */}
-              <div className="flex space-x-0.5 sm:space-x-1 flex-1 min-w-0 overflow-hidden">
+              <div className="flex space-x-0.5 sm:space-x-1 flex-1 min-w-0 overflow-x-auto custom-scrollbar">
                 {gridData.steps.map((stepIndex) => {
                   const isActive = stepIndex < steps.length ? steps[stepIndex] : false;
                   const isCurrentStep = stepIndex === currentStep;
@@ -82,13 +84,13 @@ export const StepSequencerGrid: React.FC<StepSequencerGridProps> = ({
                       key={stepIndex}
                       onClick={() => handleStepClick(instrument, stepIndex)}
                       className={`
-                        w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded border transition-all duration-150 flex-shrink-0
+                        w-3 h-3 sm:w-4 sm:h-4 md:w-5 md:h-5 lg:w-6 lg:h-6 rounded-sm border transition-all duration-75 flex-shrink-0
                         text-[10px] sm:text-xs font-mono leading-none
-                        ${isActive 
-                          ? `${getInstrumentColor(instrument)} text-white border-transparent` 
-                          : 'bg-background border-border hover:border-foreground-muted'
+                        ${isActive
+                          ? `${getInstrumentColor(instrument)} text-white border-transparent shadow-sm`
+                          : 'bg-background-tertiary border-border/50 hover:border-foreground-muted'
                         }
-                        ${isCurrentStep ? 'ring-1 ring-yellow-400 ring-opacity-75' : ''}
+                        ${isCurrentStep ? 'ring-1 ring-warning ring-opacity-75 brightness-125' : ''}
                         ${onStepToggle ? 'cursor-pointer hover:scale-105' : 'cursor-default'}
                       `}
                       title={`Step ${stepIndex + 1} - ${isActive ? 'Active' : 'Inactive'}`}

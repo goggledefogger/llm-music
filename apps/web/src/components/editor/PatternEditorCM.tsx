@@ -463,9 +463,9 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
 
       {/* Validation Status */}
       {validation && validation.errors.length > 0 && (
-        <div className="border-b border-border p-4 bg-red-50">
-          <h3 className="text-sm font-semibold text-red-700 mb-2">Validation Errors:</h3>
-          <ul className="text-sm text-red-600 space-y-1">
+        <div className="border-b border-border p-4 bg-error/10">
+          <h3 className="text-sm font-semibold text-error mb-2">Validation Errors:</h3>
+          <ul className="text-sm text-error/80 space-y-1">
             {validation.errors.map((error, index) => (
               <li key={index}>• {error}</li>
             ))}
@@ -474,9 +474,9 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
       )}
 
       {validation && validation.warnings.length > 0 && (
-        <div className="border-b border-border p-4 bg-yellow-50">
-          <h3 className="text-sm font-semibold text-yellow-700 mb-2">Warnings:</h3>
-          <ul className="text-sm text-yellow-600 space-y-1">
+        <div className="border-b border-border p-4 bg-warning/10">
+          <h3 className="text-sm font-semibold text-warning mb-2">Warnings:</h3>
+          <ul className="text-sm text-warning/80 space-y-1">
             {validation.warnings.map((warning, index) => (
               <li key={index}>• {warning}</li>
             ))}
@@ -486,7 +486,7 @@ export const PatternEditorCM: React.FC<PatternEditorCMProps> = ({ className }) =
 
       {/* Editor container with border/padding for consistent layout */}
       <div className="flex-1 p-4">
-        <div className={`w-full h-full border rounded ${validation?.isValid ? 'border-green-300' : 'border-red-300'}`}>
+        <div className={`w-full h-full border rounded ${validation?.isValid ? 'border-accent/40' : 'border-error/40'}`}>
           <div ref={parentRef} className="w-full h-full p-4" />
         </div>
       </div>
