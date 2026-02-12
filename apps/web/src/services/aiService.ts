@@ -2,13 +2,11 @@
 // Falls back to mock responses when the API is unavailable
 
 export type AIProvider = 'openai' | 'anthropic' | 'gemini';
-export type ChatMode = 'generate' | 'modify' | 'teach';
 
 export interface AIRequestPayload {
   prompt: string;
   context: string; // current editor content
   provider: AIProvider;
-  mode: ChatMode;
   history: Array<{ role: 'user' | 'assistant'; content: string }>;
 }
 
@@ -85,7 +83,6 @@ async function* sseStream(payload: AIRequestPayload): AsyncGenerator<string> {
     body: JSON.stringify({
       messages,
       provider: payload.provider,
-      mode: payload.mode,
       currentPattern: payload.context || undefined,
     }),
   });
@@ -169,7 +166,6 @@ export function extractPatterns(content: string): string[] {
 // --- Provider storage ---
 
 const PROVIDER_STORAGE_KEY = 'ai-provider';
-const MODE_STORAGE_KEY = 'ai-chat-mode';
 
 export function getStoredProvider(): AIProvider {
   try {
@@ -186,26 +182,6 @@ export function getStoredProvider(): AIProvider {
 export function setStoredProvider(provider: AIProvider): void {
   try {
     localStorage.setItem(PROVIDER_STORAGE_KEY, provider);
-  } catch {
-    // localStorage unavailable
-  }
-}
-
-export function getStoredMode(): ChatMode {
-  try {
-    const stored = localStorage.getItem(MODE_STORAGE_KEY);
-    if (stored === 'generate' || stored === 'modify' || stored === 'teach') {
-      return stored;
-    }
-  } catch {
-    // localStorage unavailable
-  }
-  return 'generate';
-}
-
-export function setStoredMode(mode: ChatMode): void {
-  try {
-    localStorage.setItem(MODE_STORAGE_KEY, mode);
   } catch {
     // localStorage unavailable
   }

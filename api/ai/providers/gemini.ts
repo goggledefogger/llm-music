@@ -5,7 +5,7 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import type { ChatMessage } from '../generate';
 
-const DEFAULT_MODEL = 'gemini-2.0-flash';
+const DEFAULT_MODEL = 'gemini-2.5-flash';
 
 export async function streamGemini(
   messages: ChatMessage[],

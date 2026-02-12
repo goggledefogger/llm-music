@@ -5,10 +5,7 @@ import {
   extractPatterns,
   getStoredProvider,
   setStoredProvider,
-  getStoredMode,
-  setStoredMode,
   AIProvider,
-  ChatMode,
 } from '../../services/aiService';
 import { PatternPreview } from './PatternPreview';
 import { ProviderSelector } from './ProviderSelector';
@@ -36,7 +33,6 @@ export const ChatInterface: React.FC = () => {
   const [input, setInput] = useState('');
   const [isStreaming, setIsStreaming] = useState(false);
   const [provider, setProvider] = useState<AIProvider>(getStoredProvider);
-  const [mode, setMode] = useState<ChatMode>(getStoredMode);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -48,11 +44,6 @@ export const ChatInterface: React.FC = () => {
   const handleProviderChange = useCallback((p: AIProvider) => {
     setProvider(p);
     setStoredProvider(p);
-  }, []);
-
-  const handleModeChange = useCallback((m: ChatMode) => {
-    setMode(m);
-    setStoredMode(m);
   }, []);
 
   const handleApplyPattern = useCallback(
@@ -97,7 +88,6 @@ export const ChatInterface: React.FC = () => {
         prompt: trimmed,
         context: editorContent,
         provider,
-        mode,
         history,
       });
 
@@ -124,7 +114,7 @@ export const ChatInterface: React.FC = () => {
     } finally {
       setIsStreaming(false);
     }
-  }, [input, isStreaming, messages, editorContent, provider, mode]);
+  }, [input, isStreaming, messages, editorContent, provider]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
@@ -150,38 +140,6 @@ export const ChatInterface: React.FC = () => {
         <p className="text-xs text-foreground-muted mt-1">
           Get help creating and modifying patterns
         </p>
-        <div className="flex items-center gap-2 mt-1">
-          <button
-            className={`text-xs px-2 py-0.5 rounded ${
-              mode === 'generate'
-                ? 'bg-accent text-background'
-                : 'bg-background-tertiary text-foreground-secondary'
-            }`}
-            onClick={() => handleModeChange('generate')}
-          >
-            Generate
-          </button>
-          <button
-            className={`text-xs px-2 py-0.5 rounded ${
-              mode === 'modify'
-                ? 'bg-accent text-background'
-                : 'bg-background-tertiary text-foreground-secondary'
-            }`}
-            onClick={() => handleModeChange('modify')}
-          >
-            Modify
-          </button>
-          <button
-            className={`text-xs px-2 py-0.5 rounded ${
-              mode === 'teach'
-                ? 'bg-accent text-background'
-                : 'bg-background-tertiary text-foreground-secondary'
-            }`}
-            onClick={() => handleModeChange('teach')}
-          >
-            Teach me
-          </button>
-        </div>
       </div>
 
       {/* Messages */}
