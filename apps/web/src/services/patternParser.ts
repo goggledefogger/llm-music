@@ -252,10 +252,11 @@ export class PatternParser {
           const { steps, velocities } = this.parsePatternString(patternString);
 
           if (steps.length > 0) {
-            instruments[instrumentName] = {
+            const lowerInstrumentName = instrumentName.toLowerCase();
+            instruments[lowerInstrumentName] = {
               steps,
               velocities,
-              name: instrumentName
+              name: lowerInstrumentName
             };
           }
         }
@@ -982,6 +983,21 @@ export class PatternParser {
           const noteModule = this.parseNoteString(moduleName, noteString);
           if (!noteModule) {
             errors.push(`Invalid note value for ${moduleName}. Use MIDI note (0-127) or frequency (e.g. 440hz)`);
+          }
+        }
+        continue;
+      }
+
+      // Check GROOVE format
+      if (line.startsWith('groove ')) {
+        const grooveMatch = line.match(/groove\s+(\w+):\s*(.+)/);
+        if (!grooveMatch) {
+          errors.push(`Invalid groove format: ${line}. Use: groove name: type=swing amount=0.5`);
+        } else {
+          const [, moduleName, grooveString] = grooveMatch;
+          const grooveModule = this.parseGrooveString(moduleName, grooveString);
+          if (!grooveModule) {
+            errors.push(`Invalid groove values for ${moduleName}. Types: swing, humanize, rush, drag. Amount: 0-1.`);
           }
         }
         continue;

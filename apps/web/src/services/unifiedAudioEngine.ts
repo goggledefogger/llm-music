@@ -1537,6 +1537,10 @@ export class UnifiedAudioEngine {
       const loopStartTime = this.startTime + (loop * loopDuration);
       console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
 
+      if (loop === currentLoop) {
+        console.log(`[Groove-Debug] currentPattern.grooveModules:`, JSON.stringify(this.currentPattern?.grooveModules));
+      }
+
       // Determine which steps to schedule in this loop
       let startStep = 0;
       const endStep = totalSteps;
@@ -1575,6 +1579,8 @@ export class UnifiedAudioEngine {
           }
 
           if (isHit) {
+            const isOddStep = step % 2 === 1;
+
             // Apply Groove/Swing
             // Check for instrument-specific groove, fallback to master
             const groove = this.currentPattern?.grooveModules?.[instrumentName.toLowerCase()] ||
@@ -1584,30 +1590,20 @@ export class UnifiedAudioEngine {
             if (groove) {
                 const amount = groove.amount; // 0..1
                 if (groove.type === 'swing') {
-                    // Classic swing: delay every even-numbered step (1, 3, 5...)
-                    // Assuming step 0 is on-beat, step 1 is off-beat
-                    if (step % 2 === 1) {
-                        // Max swing (amount=1) approximates triplet feel (66% / 33%)
-                        // Standard 16th is 50/50. Triplet is 66/33.
-                        // We want to push the off-beat later.
-                        // stepInterval is one 16th note duration.
-                        // amount=1 -> shift by 1/3 of stepInterval?
-                        // Let's say amount=1 roughly gives MPC 66% swing.
-                        // That means the second note starts at 66% instead of 50%.
-                        // So offset is 0.16 * stepInterval * amount?
-                        // Actually, simplified: offset by up to 1/3 of a step.
+                    if (isOddStep) {
                         grooveOffset = amount * stepInterval * 0.33;
                     }
                 } else if (groove.type === 'humanize') {
-                    // Random micro-timing +/- 25ms at max
                     grooveOffset = (Math.random() - 0.5) * amount * 0.05;
                 } else if (groove.type === 'rush') {
-                    // Constant push ahead (negative offset)
                     grooveOffset = -amount * 0.03;
                 } else if (groove.type === 'drag') {
-                    // Constant drag behind (positive offset)
                     grooveOffset = amount * 0.03;
                 }
+            }
+
+            if (isHit) {
+              console.log(`[Hit] ${instrumentName} at step ${step} (${isOddStep ? 'ODD' : 'EVEN'}). Offset: ${grooveOffset.toFixed(4)}s`);
             }
 
             const stepTime = baseStepTime + grooveOffset;

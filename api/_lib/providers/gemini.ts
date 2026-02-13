@@ -36,19 +36,45 @@ export async function streamGemini(
   }
 
   const chat = model.startChat({ history });
-  console.time('[ai/gemini] sendMessageStream');
-  const result = await chat.sendMessageStream(lastMessage.content);
-  console.timeEnd('[ai/gemini] sendMessageStream');
+  let result;
+  let retries = 3;
+  while (retries > 0) {
+    try {
+      console.time(`[ai/gemini] sendMessageStream (attempt ${4 - retries})`);
+      result = await chat.sendMessageStream(lastMessage.content);
+      console.timeEnd(`[ai/gemini] sendMessageStream (attempt ${4 - retries})`);
+      break;
+    } catch (err) {
+      retries--;
+      console.error(`[ai/gemini] sendMessageStream failed (attempts left: ${retries}):`, err);
+      if (retries === 0) throw err;
+      await new Promise(resolve => setTimeout(resolve, 1000)); // Wait 1s between retries
+    }
+  }
+
+  if (!result) throw new Error('Failed to initiate Gemini stream');
 
   let firstChunk = true;
-  for await (const chunk of result.stream) {
-    if (firstChunk) {
-      console.log('[ai/gemini] first chunk received');
-      firstChunk = false;
+  try {
+    for await (const chunk of result.stream) {
+      if (firstChunk) {
+        console.log('[ai/gemini] first chunk received');
+        firstChunk = false;
+      }
+
+      try {
+        const text = chunk.text();
+        if (text) {
+          res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
+        }
+      } catch (textErr) {
+        console.warn('[ai/gemini] Could not extract text from chunk:', textErr);
+        // Sometimes text() throws if the chunk is a safety block or other non-content
+      }
     }
-    const text = chunk.text();
-    if (text) {
-      res.write(`data: ${JSON.stringify({ content: text })}\n\n`);
-    }
+    console.log('[ai/gemini] stream completed');
+  } catch (streamErr) {
+    console.error('[ai/gemini] Streaming error:', streamErr);
+    throw streamErr; // Propagate to generate.ts handler
   }
 }

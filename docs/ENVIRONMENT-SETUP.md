@@ -77,6 +77,9 @@ OPENAI_API_KEY=sk-your-actual-openai-api-key
 # Application
 NODE_ENV=development
 VITE_APP_URL=http://localhost:3000
+
+> [!TIP]
+> **Authentication Bypass**: In `development` mode, the API allows bypassing formal Supabase authentication. This facilitates easier local testing without requiring a valid session token.
 ```
 
 ### 3. Start Local Supabase (Optional)
