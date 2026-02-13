@@ -113,9 +113,22 @@ async function* sseStream(payload: AIRequestPayload): AsyncGenerator<string> {
     ...payload.history,
     { role: 'user' as const, content: payload.prompt },
   ];
+
+  // Get current auth token for API authorization
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  try {
+    const { supabase } = await import('../lib/supabase');
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
+    }
+  } catch {
+    // Auth unavailable — proceed without token
+  }
+
   const response = await fetch('/api/ai/generate', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({
       messages,
       provider: payload.provider,

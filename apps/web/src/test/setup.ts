@@ -3,6 +3,27 @@ import { afterEach, vi } from 'vitest'
 import { cleanup } from '@testing-library/react'
 import { mockAudioContext } from './sharedMocks'
 
+// Mock Supabase globally so auth code doesn't break tests
+vi.mock('../lib/supabase', () => ({
+  supabase: {
+    auth: {
+      getSession: vi.fn().mockResolvedValue({
+        data: {
+          session: {
+            user: { id: 'test-user-id', email: 'test@example.com' },
+            access_token: 'test-token',
+          },
+        },
+      }),
+      onAuthStateChange: vi.fn(() => ({
+        data: { subscription: { unsubscribe: vi.fn() } },
+      })),
+      signInWithOtp: vi.fn().mockResolvedValue({ error: null }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
+    },
+  },
+}))
+
 // Cleanup after each test
 afterEach(() => {
   cleanup()

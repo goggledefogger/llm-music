@@ -6,6 +6,7 @@
  * Streams the LLM response back via SSE.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
+import { verifyAuth } from './auth.js';
 import { getSystemPrompt } from './system-prompt.js';
 import { prepareMessages } from './prepare-messages.js';
 import type { ChatMessage } from './prepare-messages.js';
@@ -30,7 +31,7 @@ export default async function handler(
   // CORS headers
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     res.status(200).end();
@@ -41,6 +42,13 @@ export default async function handler(
   if (req.method !== 'POST') {
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  // Verify authentication
+  const authUser = await verifyAuth(req);
+  if (!authUser) {
+    res.status(401).json({ error: 'Unauthorized — valid auth token required' });
     return;
   }
 
