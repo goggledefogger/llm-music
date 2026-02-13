@@ -612,15 +612,17 @@ The audio engine has been fully implemented with a **Unified Audio Engine** that
 **✅ Completed Features (Unified Engine):**
 - **Real-time Parameter Updates**: All parameters (tempo, volume, patterns) update in real-time
 - **Web Audio API Integration**: Direct Web Audio API usage for maximum performance
-- **Pattern Loading**: Automatic loading of valid patterns with real-time updates
+- **12 Procedural Samples**: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
+- **ADSR Envelopes**: Per-instrument attack/decay/sustain/release (release up to 5s for long tails)
+- **Velocity Dynamics**: `X` (accent, 1.0), `x` (normal, 0.7), `o` (ghost, 0.3) patterns
+- **Modular Effects Chain**: EQ, amp, compressor, filter, distortion, delay, reverb, chorus, phaser, pan
+- **Per-Instrument Effects**: Delay and reverb can be routed to individual instruments or master
+- **Chorus & Phaser**: New modulation effects with full parameter control
+- **Note/Pitch System**: MIDI note (0–127) or Hz frequency assignment per instrument
+- **LFO Modulation**: Routable to amp, filter.freq, filter.q, pan, delay.time, delay.feedback
 - **Playback Controls**: Play, pause, stop with proper state management
-- **Tempo Control**: Real-time tempo changes with immediate effect during playback
-- **Volume Control**: Master volume control with proper gain staging
-- **Error Handling**: Graceful error handling with user feedback
-- **State Management**: Complete state management with React hooks
-- **Type Safety**: Full TypeScript support with proper interfaces
+- **Tempo & Volume Control**: Real-time changes with immediate effect during playback
 - **Singleton Pattern**: Single audio engine instance across the application
-- **Clean Architecture**: Removed old hybrid and basic audio engines
 
 **🔧 Technical Implementation:**
 - **Web Audio API**: Direct use of Web Audio API for precise timing
@@ -633,26 +635,8 @@ The audio engine has been fully implemented with a **Unified Audio Engine** that
 - **Cross-Platform Compatibility**: Works on all modern browsers and mobile devices
 - **Performance Optimized**: Efficient audio graph with minimal CPU usage
 
-**🎯 Key Benefits:**
-- **No Pre-calculation**: Everything happens in real-time for maximum responsiveness
-- **Simplified Architecture**: Single unified engine instead of multiple implementations
-- **Better Performance**: Direct Web Audio API usage without abstraction layers
-- **Real-time Everything**: Tempo, volume, and pattern changes apply immediately
-- **No Audio Dropouts**: Robust scheduling prevents audio interruptions
-- **Continuous Playback**: Fixed sequencer loop scheduling for seamless playback
-
-### Architecture Cleanup Complete
-
-**✅ Completed Cleanup:**
-- **Removed Old Engines**: Deleted basic and hybrid audio engine implementations
-- **Unified Implementation**: Single `UnifiedAudioEngine` handles all audio functionality
-- **Simplified Hooks**: Single `useUnifiedAudioEngine` hook for all audio operations
-- **Clean Transport Controls**: Single `UnifiedTransportControls` component
-- **Updated Tests**: Comprehensive integration tests for critical audio paths
-- **Documentation Updated**: Architecture reflects unified approach
-
 **🎯 Current Status:**
-The audio engine is now fully unified with real-time parameter updates and no pre-calculation. All old implementations have been removed and the codebase is clean and maintainable.
+The audio engine is fully unified with modular synth capabilities, ADSR envelopes, 12 procedural samples, velocity dynamics, per-instrument effects routing, chorus/phaser effects, and a note/pitch system. 230+ tests passing.
 
 ### Unified Audio Engine Architecture
 
@@ -703,38 +687,49 @@ export class UnifiedAudioEngine {
 
 ### Pattern Data Structure
 
-The audio engine works with boolean-based pattern data:
+The audio engine works with parsed pattern data including velocity and module assignments:
 
 ```typescript
 interface ParsedPattern {
   tempo: number;
   instruments: {
     [instrumentName: string]: {
-      steps: boolean[];  // true = hit, false = rest
+      steps: boolean[];      // true = hit, false = rest
+      velocities?: number[]; // 1.0 (accent), 0.7 (normal), 0.3 (ghost), 0 (rest)
       name: string;
     };
   };
   totalSteps: number;
+  // Module assignments
+  envelopeModules?: { [name: string]: EnvelopeModule };  // ADSR per instrument
+  chorusModules?: { [name: string]: ChorusModule };      // Chorus effect
+  phaserModules?: { [name: string]: PhaserModule };      // Phaser effect
+  noteModules?: { [name: string]: NoteModule };          // Pitch assignment
+  // Existing modules: eqModules, ampModules, compModules, filterModules,
+  //   delayModules, reverbModules, distortModules, panModules, lfoModules, sampleModules
 }
 ```
 
 ### Audio Synthesis Details
 
-**Kick Drum Synthesis:**
-- Oscillator: Sine wave at 60Hz
-- Envelope: Pitch drops from 60Hz to 30Hz over 100ms
-- Amplitude: 0.8 → 0.01 over 200ms
-- Duration: 200ms total
+All 12 procedural samples use Web Audio API oscillators and noise buffers with ADSR envelope shaping:
 
-**Snare Drum Synthesis:**
-- Source: White noise buffer (0.1 seconds)
-- Envelope: 0.3 → 0.01 over 100ms
-- Duration: 100ms total
+| Sample | Source | Base Freq | Default Decay |
+|--------|--------|-----------|---------------|
+| kick | Sine osc, pitch sweep | 60→30 Hz | 200ms |
+| kick808 | Sine osc, longer sweep | 55→28 Hz | 350ms |
+| snare | White noise + sine | 200 Hz body | 100ms |
+| rim | Bandpass noise | 800 Hz | 30ms |
+| hihat | Square osc | 8 kHz | 50ms |
+| openhat | Square osc | 8 kHz | 300ms |
+| clap | Filtered noise, double hit | 1.2 kHz | 150ms |
+| tom | Sine osc, pitch sweep | 150→80 Hz | 200ms |
+| cowbell | Dual square osc | 560+845 Hz | 100ms |
+| shaker | Highpass noise | 6 kHz | 60ms |
+| crash | Multi-osc noise | 4–10 kHz | 800ms |
+| perc | Triangle osc | 800 Hz | 80ms |
 
-**Hihat Synthesis:**
-- Oscillator: Square wave at 8kHz
-- Envelope: 0.1 → 0.01 over 50ms
-- Duration: 50ms total
+When an `env` (ADSR) module is specified, the default decay envelope is replaced with the user-defined attack/decay/sustain/release curve.
 
 ## Sequencer Continuous Playback Fix
 

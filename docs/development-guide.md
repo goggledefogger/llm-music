@@ -202,9 +202,11 @@ seq hihat: x.x.x.x.x.x.x.x.
 ```
 
 **Key Elements:**
-- `TEMPO`: Sets the BPM (60-200 range)
+- `TEMPO`: Sets the BPM (20–300 range)
 - `seq instrument:`: Defines a step sequence for an instrument
-- `x`: Active step (sound plays)
+- `x`: Normal hit (velocity 0.7)
+- `X`: Accent hit (velocity 1.0)
+- `o`: Ghost note hit (velocity 0.3)
 - `.`: Inactive step (silence)
 - `#`: Comment line
 
@@ -295,27 +297,74 @@ comp kick: threshold=-18 ratio=3 attack=0.005 release=0.2 knee=24
 - Live updates with smooth param changes
 - Works in series with EQ and amp
 
-### LFO Module Syntax (Added Sept 2025)
+### LFO Module Syntax
 
-LFO modules modulate amp gain for tremolo-style effects.
+LFO modules modulate various parameters:
 
 ```ascii
-# LFO Settings
+# LFO Settings — target can be amp, filter.freq, filter.q, pan, delay.time, delay.feedback
 lfo master.amp: rate=0.7Hz depth=0.3 wave=triangle
 lfo kick.amp: rate=5Hz depth=0.5 wave=sine
+lfo hat.pan: rate=2Hz depth=0.8 wave=sine
+lfo snare.filter.freq: rate=1Hz depth=0.6 wave=triangle
 ```
 
 **LFO Syntax:**
-- `lfo name.amp:`: LFO targeting `amp` of `name` (instrument or `master`)
+- `lfo name.target:`: LFO targeting a parameter of `name` (instrument or `master`)
+- Targets: `amp`, `filter.freq`, `filter.q`, `pan`, `delay.time`, `delay.feedback`
 - Parameters (clamped):
   - `rate`: 0.1..20 Hz
   - `depth`: 0..1
   - `wave`: `sine | triangle | square | sawtooth`
 
-**LFO Features:**
-- Live routing; starts automatically and updates without stopping playback
-- Depth scales relative to current base gain
-- Simple, readable text format
+### ADSR Envelope Module Syntax
+
+Envelope modules shape the amplitude of each note for an instrument:
+
+```ascii
+# Envelope Settings
+env kick: attack=0.01 decay=0.1 sustain=0.5 release=1.0
+env pad: attack=0.5 decay=0.3 sustain=0.8 release=5.0   # long tail
+```
+
+**Envelope Syntax:**
+- `env name:`: Defines an ADSR envelope for an instrument
+- Parameters (clamped):
+  - `attack`: 0.001..2 s
+  - `decay`: 0.001..2 s
+  - `sustain`: 0..1
+  - `release`: 0.01..5 s (long release = long modular-synth tails)
+
+### Chorus & Phaser Module Syntax
+
+```ascii
+# Chorus
+chorus master: rate=1.5 depth=0.4 mix=0.3
+
+# Phaser
+phaser master: rate=0.5 depth=0.6 stages=4 mix=0.3
+```
+
+**Chorus Parameters:** `rate` (0.1–10 Hz), `depth` (0–1), `mix` (0–1)
+**Phaser Parameters:** `rate` (0.1–10 Hz), `depth` (0–1), `stages` (2, 4, 6, 8, 12), `mix` (0–1)
+
+### Note/Pitch Module Syntax
+
+```ascii
+# MIDI note (0–127) or Hz frequency
+note bass: 36       # C2 ≈ 65.41 Hz
+note lead: 440hz    # A4 = 440 Hz
+```
+
+### Per-Instrument Delay & Reverb
+
+Delay and reverb can target individual instruments instead of just master:
+
+```ascii
+delay snare: time=0.375 feedback=0.3 mix=0.4    # only snare gets delay
+reverb hihat: mix=0.5 decay=1.5                 # only hihat gets reverb
+delay master: time=0.25 feedback=0.2 mix=0.2    # master delay still works
+```
 
 ### Pattern Validation
 
@@ -431,14 +480,12 @@ pnpm test App.test.tsx
 ```
 
 ### Current Test Status
-- **Total Tests**: 139 tests
-- **Passing**: 139 tests ✅
-- **Failing**: 0 tests ✅
-- **Skipped**: 0 tests ✅
-- **Coverage**: Comprehensive coverage of components, services, and utilities
-- **Test Quality**: Robust testing practices with behavior-focused approach
-- **Integration Tests**: 2 focused integration tests covering core user workflows
-- **Production Ready**: All tests passing in production deployment
+- **Total Tests**: 230+ tests
+- **Parser Tests**: 151 (3 test files including modular synth features)
+- **Integration Tests**: 35 modular synth + 2 workflow integration tests
+- **Coverage**: Comprehensive coverage of parser, engine, components, and services
+- **Test Quality**: Behavior-focused approach with robust selectors
+- **Production Ready**: All parser and integration tests passing
 
 ### Recent Test Improvements (December 2024)
 
@@ -752,51 +799,28 @@ expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 ### ✅ Completed Features
 
 **Audio Engine:**
-- Complete Web Audio API implementation with professional-quality synthesis
-- Kick, snare, hihat synthesizers with proper timing and envelopes
-- Sample-accurate audio scheduling and pattern playback
-- Cross-platform compatibility (desktop and mobile)
-- Transport controls with play, pause, stop functionality
-- Tempo and volume control with real-time adjustment
+- Unified Web Audio API engine with real-time parameter updates
+- 12 procedural samples: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
+- ADSR envelopes per instrument (attack, decay, sustain, release up to 5s)
+- Velocity dynamics: `X` (accent), `x` (normal), `o` (ghost)
+- Full modular effects chain: EQ, amp, compressor, filter, distortion, delay, reverb, chorus, phaser, pan
+- Per-instrument effects routing (delay and reverb can target individual instruments)
+- Note/pitch system: MIDI note or Hz frequency per instrument
+- LFO modulation routable to amp, filter.freq, filter.q, pan, delay.time, delay.feedback
+- Sample-accurate scheduling with continuous loop playback
 
 **Pattern System:**
-- Boolean-based pattern parsing with real-time validation
-- Pattern auto-loading when audio engine becomes ready
-- Real-time validation with debouncing and error handling
-- EQ module support with professional audio control
+- Pattern parsing with 16+ DSL keywords and real-time validation
+- Pattern auto-loading, search, filter, and one-click loading
 
 **Architecture:**
 - Simplified component-based architecture with focused custom hooks
-- Single context provider (AppProvider) for unified state management
-- Consolidated type definitions with no duplication
-- Clean build process with all compilation errors resolved
+- Supabase magic link and password authentication
+- 230+ tests passing
 
 **Deployment:**
-- Production-ready build system (575KB optimized bundle)
-- Complete CI/CD pipeline with GitHub Actions
-- Vercel deployment configuration with security headers
-- Environment variable management and secrets handling
-- Automated testing before deployment (139 tests passing)
-- Staging and production environment setup
-
-**Documentation:**
-- Comprehensive development guide with testing best practices
-- Complete deployment strategy and analysis
-- Production deployment guides and checklists
-- Environment setup and configuration documentation
-- Complete audio refactor plan with hybrid architecture approach
-- Collaborative audio architecture documentation
-- Tone.js integration guide with detailed implementation steps
-
-### 🚧 In Progress
-
-**ASCII Editor:**
-- CM6 integrated with inline playhead decorations, base step coloring, and click-to-toggle
-- Custom DSL highlighting present (keywords/numbers/attrs/identifiers/comments); Lezer grammar optional
-
-**AI Integration:**
-- Mock chat interface implemented
-- OpenAI API integration pending
+- Production-ready build, Vercel CI/CD pipeline
+- Complete documentation suite
 
 ### 🎯 Upcoming: Audio Refactor
 
