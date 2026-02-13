@@ -47,22 +47,23 @@ describe('getSystemPrompt', () => {
   });
 
   it('contains modification rules after the DSL syntax reference', () => {
-    const modifyIndex = prompt.indexOf('Refactor/Modification Instruction');
-    const dslIndex = prompt.indexOf('Syntax Checklist');
+    const modifyIndex = prompt.indexOf('How to Handle Pattern Modifications');
+    const dslIndex = prompt.indexOf('DSL Syntax Reference');
     expect(modifyIndex).toBeGreaterThan(-1);
     expect(dslIndex).toBeGreaterThan(-1);
-    expect(modifyIndex).toBeGreaterThan(dslIndex);
+    // Modification rules appear before the full reference, as a critical section
+    expect(modifyIndex).toBeLessThan(dslIndex);
   });
 
   it('includes explicit verbatim and grid instructions', () => {
-    expect(prompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(prompt).toContain('exactly 16 characters long');
     expect(prompt).toContain('Ruler for Reference');
     expect(prompt).toContain('|1---2---3---4---|');
   });
 
   it('includes modification rules description', () => {
-    expect(prompt).toContain('Refactor/Modification Instruction');
-    expect(prompt).toContain('Copy existing patterns exactly');
+    expect(prompt).toContain('How to Handle Pattern Modifications');
+    expect(prompt).toContain("Start from the user's EXACT pattern");
   });
 
   // Reminder test removed as it is now part of Zero Tolerance Rules at the top
@@ -80,7 +81,7 @@ describe('getSystemPrompt', () => {
   });
 
   it('includes grid rules', () => {
-    expect(prompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(prompt).toContain('exactly 16 characters long');
     expect(prompt).toContain('Ruler for Reference');
   });
 
@@ -273,16 +274,12 @@ describe('AI modification pipeline (end-to-end data flow)', () => {
     const finalMessages = prepareMessages(frontendMessages, currentPattern);
 
     // Step 3: Verify the system prompt has modification rules
-    expect(systemPrompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
-    expect(systemPrompt).toContain('Refactor/Modification Instruction');
+    expect(systemPrompt).toContain('exactly 16 characters long');
+    expect(systemPrompt).toContain('How to Handle Pattern Modifications');
 
     // Step 4: Verify the user message sent to the LLM
     const lastMessage = finalMessages[finalMessages.length - 1];
     expect(lastMessage.role).toBe('user');
-
-    // Step 3: Verify the system prompt has modification rules
-    expect(systemPrompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
-    expect(systemPrompt).toContain('Refactor/Modification Instruction');
 
     // Must contain the full original pattern
     expect(lastMessage.content).toContain('TEMPO 120');

@@ -28,7 +28,8 @@ export const AudioEffects: React.FC<AudioEffectsProps> = ({
   const hasReverb = pattern.reverbModules && Object.keys(pattern.reverbModules).length > 0;
   const hasPan = pattern.panModules && Object.keys(pattern.panModules).length > 0;
   const hasDistort = pattern.distortModules && Object.keys(pattern.distortModules).length > 0;
-  const hasAny = hasEQ || hasFilters || hasLFOs || hasDelay || hasReverb || hasPan || hasDistort;
+  const hasGroove = pattern.grooveModules && Object.keys(pattern.grooveModules).length > 0;
+  const hasAny = hasEQ || hasFilters || hasLFOs || hasDelay || hasReverb || hasPan || hasDistort || hasGroove;
 
   return (
     <BaseVisualization
@@ -37,6 +38,31 @@ export const AudioEffects: React.FC<AudioEffectsProps> = ({
       variant="ultra-compact"
     >
       <div className="space-y-4">
+        {/* Groove / Feel */}
+        {hasGroove && (
+          <div>
+            <h4 className="text-sm font-semibold mb-2 text-foreground">Groove</h4>
+            <div className="space-y-1">
+              {Object.entries(pattern.grooveModules!).map(([name, g]) => (
+                <div key={name} className="flex items-center gap-2 text-xs">
+                  <span className="text-accent font-medium w-16 truncate">{name}</span>
+                  <span className="text-foreground">{g.type}</span>
+                  <div className="flex-1 max-w-20 h-1.5 bg-background-secondary rounded-full overflow-hidden">
+                    <div
+                      className="h-full bg-yellow-400 rounded-full"
+                      style={{ width: `${g.amount * 100}%` }}
+                    />
+                  </div>
+                  <span className="text-foreground-muted w-8 text-right">{Math.round(g.amount * 100)}%</span>
+                  {g.steps && g.steps !== 'all' && (
+                    <span className="text-foreground-muted">steps={g.steps}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* EQ Settings */}
         {hasEQ && (
           <div>
@@ -164,7 +190,7 @@ export const AudioEffects: React.FC<AudioEffectsProps> = ({
               No audio effects applied
             </div>
             <div className="text-xs text-foreground-muted">
-              Add EQ, filter, LFO, delay, reverb, pan, or distort commands to see them here
+              Add groove, EQ, filter, LFO, delay, reverb, pan, or distort commands to see them here
             </div>
           </div>
         )}

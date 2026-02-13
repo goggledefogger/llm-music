@@ -329,8 +329,6 @@ lfo snare.filter.freq: rate=1Hz depth=0.6 wave=triangle
   - `depth`: 0..1
   - `wave`: `sine | triangle | square | sawtooth`
 
-  - `wave`: `sine | triangle | square | sawtooth`
-
 ### Groove & Feel Syntax (Added Feb 2026)
 
 Groove modules affect the timing of patterns to create a "human" or "swing" feel:
@@ -345,10 +343,15 @@ groove hihat: type=humanize amount=0.3
 - `groove name:`: Defines a groove module for an instrument or `master`
 - `type`: `swing` (MPC style), `humanize` (random), `rush` (ahead), `drag` (behind)
 - `amount`: 0..1 (intensity)
+- `steps`: `odd`, `even`, `all`, or comma-separated indices (e.g. `1,3,5`) — default: `odd` for swing, `all` for others
+- `subdivision`: e.g. `16n` (optional)
 
 **Groove Features:**
-- Per-instrument or master
+- Per-instrument or master targeting
 - Real-time updates without stopping playback
+- Swing delays offbeat steps by `amount * stepInterval * 0.33`
+- Humanize adds random micro-timing variation
+- AI system prompt enforces groove usage — manual swing in `seq` lines is forbidden
 
 ### Comment Syntax
 - Lines starting with `#` are ignored.

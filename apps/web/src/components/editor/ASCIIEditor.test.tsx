@@ -2,10 +2,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { screen, fireEvent, waitFor } from '@testing-library/react';
 import { render } from '../../test/testUtils';
 import { ASCIIEditor } from './ASCIIEditor';
-import { mockTone } from '../../test/sharedMocks';
 
-// Mock Tone.js to avoid import issues in tests
-vi.mock('tone', () => mockTone);
+// tone is mocked globally in setup.ts
 
 describe('ASCIIEditor', () => {
   beforeEach(() => {

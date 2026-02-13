@@ -1,10 +1,9 @@
-import { describe, it, expect, vi } from 'vitest';
+import { describe, it, expect } from 'vitest';
 import { screen, fireEvent } from '@testing-library/react';
 import { render } from '../../test/testUtils';
 import { Header } from './Header';
-import { mockTone } from '../../test/sharedMocks';
 
-vi.mock('tone', () => mockTone);
+// tone is mocked globally in setup.ts
 
 describe('Header', () => {
   it('renders navigation links', () => {
