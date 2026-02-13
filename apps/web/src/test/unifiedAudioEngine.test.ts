@@ -11,7 +11,7 @@
  * All Tone.js and Web Audio API calls are mocked.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mockAudioContext, mockTone, mockToneTransport, mockTonePart, resetMocks } from './sharedMocks';
+import { mockAudioContext, mockTone, mockToneTransport, resetMocks } from './sharedMocks';
 
 // Mock tone module before importing the engine
 vi.mock('tone', () => mockTone);
@@ -23,6 +23,13 @@ import { UnifiedAudioEngine } from '../services/unifiedAudioEngine';
 function resetEngineInstance() {
   // Reset the singleton so each test starts fresh
   (UnifiedAudioEngine as any).instance = null;
+}
+
+/** Extract the events array from the last Tone.Part constructor call */
+function getLastPartEvents(): any[] {
+  const calls = (mockTone.Part as any).mock.calls;
+  const lastCall = calls[calls.length - 1];
+  return lastCall[1] as any[];
 }
 
 describe('UnifiedAudioEngine', () => {
@@ -144,7 +151,8 @@ seq hihat: x.x.x.x.x.x.x.x.`;
 
       // Tone.Part should be constructed with events
       expect(mockTone.Part).toHaveBeenCalled();
-      const [callback, events] = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const calls = (mockTone.Part as any).mock.calls;
+      const [callback, events] = calls[calls.length - 1];
       expect(typeof callback).toBe('function');
       expect(events.length).toBeGreaterThan(0);
     });
@@ -296,8 +304,7 @@ groove master: type=swing amount=0.6`);
       await engine.play();
 
       expect(mockTone.Part).toHaveBeenCalled();
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
 
       // Swing delays odd steps — with all 16 hits, 8 should have non-zero offset
       const offsetEvents = events.filter((e: any) => e.grooveOffset !== 0);
@@ -311,8 +318,7 @@ seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=8n`);
       await engine.play();
 
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
 
       // subdivision=8n, stepsPerSubdiv=2: off-beats where floor(step/2)%2===1
       // That's steps 2,3,6,7,10,11,14,15
@@ -336,8 +342,7 @@ seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=16n`);
       await engine.play();
 
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
 
       // subdivision=16n, stepsPerSubdiv=1: off-beats where floor(step/1)%2===1
       // That's odd steps: 1,3,5,7,9,11,13,15
@@ -358,8 +363,7 @@ seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=4n`);
       await engine.play();
 
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
 
       // subdivision=4n, stepsPerSubdiv=4: off-beats where floor(step/4)%2===1
       // That's steps 4-7 and 12-15
@@ -384,8 +388,7 @@ groove master: type=swing amount=0.6 subdivision=4n`);
 seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=16n`);
       await engine.play();
-      let lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events16n = lastCall[1];
+      const events16n = getLastPartEvents();
       const offset16n = events16n.find((e: any) => e.step === 1)?.grooveOffset;
 
       // 8n swing
@@ -395,8 +398,7 @@ groove master: type=swing amount=0.6 subdivision=16n`);
 seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=8n`);
       await engine.play();
-      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events8n = lastCall[1];
+      const events8n = getLastPartEvents();
       const offset8n = events8n.find((e: any) => e.step === 2)?.grooveOffset;
 
       // 4n swing
@@ -406,8 +408,7 @@ groove master: type=swing amount=0.6 subdivision=8n`);
 seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=4n`);
       await engine.play();
-      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events4n = lastCall[1];
+      const events4n = getLastPartEvents();
       const offset4n = events4n.find((e: any) => e.step === 4)?.grooveOffset;
 
       // 8n offset should be 2x the 16n offset, 4n should be 4x
@@ -423,8 +424,7 @@ groove master: type=swing amount=0.6 subdivision=4n`);
 seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6`);
       await engine.play();
-      let lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const eventsDefault = lastCall[1];
+      const eventsDefault = getLastPartEvents();
 
       // With explicit 8n
       engine.stop();
@@ -433,8 +433,7 @@ groove master: type=swing amount=0.6`);
 seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 subdivision=8n`);
       await engine.play();
-      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events8n = lastCall[1];
+      const events8n = getLastPartEvents();
 
       // Both should produce the same offsets for each step
       for (let s = 0; s < 16; s++) {
@@ -451,8 +450,7 @@ seq kick: xxxxxxxxxxxxxxxx
 groove master: type=swing amount=0.6 steps=odd`);
       await engine.play();
 
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
 
       // steps=odd should target odd steps (1,3,5,...) regardless of subdivision
       for (const s of [1, 3, 5, 7, 9, 11, 13, 15]) {
@@ -471,8 +469,7 @@ groove master: type=swing amount=0.6 steps=odd`);
 seq kick: x.x.x.x.x.x.x.x.`);
       await engine.play();
 
-      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
-      const events = lastCall[1];
+      const events = getLastPartEvents();
       const offsetEvents = events.filter((e: any) => e.grooveOffset !== 0);
       expect(offsetEvents.length).toBe(0);
     });

@@ -760,10 +760,10 @@ export class UnifiedAudioEngine {
       this.chorusMerge = merge;
     }
 
-    this.chorusLFO.frequency.setValueAtTime(cfg.rate, now);
-    this.chorusLFOGain.gain.setValueAtTime(cfg.depth * 0.005, now); // depth controls delay modulation range
-    this.chorusDryGain.gain.setValueAtTime(1 - cfg.mix, now);
-    this.chorusWetGain.gain.setValueAtTime(cfg.mix, now);
+    this.chorusLFO!.frequency.setValueAtTime(cfg.rate, now);
+    this.chorusLFOGain!.gain.setValueAtTime(cfg.depth * 0.005, now); // depth controls delay modulation range
+    this.chorusDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.chorusWetGain!.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
@@ -790,9 +790,9 @@ export class UnifiedAudioEngine {
       this.distortionMerge = merge;
     }
 
-    this.distortionNode.curve = this.makeDistortionCurve(cfg.amount) as any;
-    this.distortionDryGain.gain.setValueAtTime(1 - cfg.mix, now);
-    this.distortionWetGain.gain.setValueAtTime(cfg.mix, now);
+    this.distortionNode!.curve = this.makeDistortionCurve(cfg.amount) as any;
+    this.distortionDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.distortionWetGain!.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
@@ -848,10 +848,10 @@ export class UnifiedAudioEngine {
     }
 
     // Update existing phaser params
-    this.phaserLFO.frequency.setValueAtTime(cfg.rate, now);
-    this.phaserLFOGain.gain.setValueAtTime(cfg.depth * 2000, now);
-    this.phaserDryGain.gain.setValueAtTime(1 - cfg.mix, now);
-    this.phaserWetGain.gain.setValueAtTime(cfg.mix, now);
+    this.phaserLFO!.frequency.setValueAtTime(cfg.rate, now);
+    this.phaserLFOGain!.gain.setValueAtTime(cfg.depth * 2000, now);
+    this.phaserDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.phaserWetGain!.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
