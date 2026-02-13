@@ -114,7 +114,7 @@ export interface GrooveModule {
   type: GrooveType;
   amount: number; // 0..1 (intensity)
   steps?: 'all' | 'odd' | 'even' | string; // Which steps to apply to
-  subdivision?: string; // e.g., '16n'
+  subdivision?: '4n' | '8n' | '16n';
 }
 
 export interface ParsedPattern {

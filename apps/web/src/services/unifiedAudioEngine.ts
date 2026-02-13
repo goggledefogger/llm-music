@@ -213,7 +213,7 @@ export class UnifiedAudioEngine {
         distort: newPattern.distortModules || {},
       });
 
-      console.log('Pattern loaded with real-time updates:', this.currentPattern);
+      console.log(`[Unified] Pattern loaded: ${Object.keys(this.currentPattern.instruments).length} instruments, ${this.currentPattern.tempo} BPM`);
     } catch (error) {
       console.error('Failed to load pattern:', error);
       throw new Error('Failed to load pattern');
@@ -237,12 +237,9 @@ export class UnifiedAudioEngine {
     }
 
     try {
-      console.log('Starting unified playback with Tone.js...');
-
       // CRITICAL: Tone.start() must be the very first await to preserve the user gesture.
       // It handles resuming the AudioContext.
       await Tone.start();
-      console.log(`[Audio] Tone started. Context state: ${Tone.context.state}`);
 
       if (Tone.context.state !== 'running') {
         console.warn('[Audio] Warning: Tone.context is still NOT running after Tone.start()');
@@ -276,7 +273,6 @@ export class UnifiedAudioEngine {
       }
 
       this.isPlaying = true;
-      console.log('Unified playback started via Tone.Transport');
     } catch (error) {
       console.error('Failed to start playback:', error);
       throw new Error('Failed to start playback');
@@ -342,7 +338,7 @@ export class UnifiedAudioEngine {
       this.parameterHistory.shift();
     }
 
-    console.log(`[Unified] Updating ${type}:`, value);
+    // Debug: console.log(`[Unified] Updating ${type}:`, value);
 
     // Apply the parameter update
     switch (type) {
@@ -379,7 +375,7 @@ export class UnifiedAudioEngine {
     const oldTempo = this.currentPattern.tempo;
     this.currentPattern.tempo = newTempo;
 
-    console.log(`[Unified] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
+    // Debug: console.log(`[Unified] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
 
     // Apply real-time tempo change if currently playing
     if (this.isPlaying && this.audioContext) {
@@ -394,7 +390,7 @@ export class UnifiedAudioEngine {
     const oldPattern = this.currentPattern;
     this.currentPattern = newPattern;
 
-    console.log(`[Unified] Sequence updated - ${Object.keys(newPattern.instruments).length} instruments`);
+    // Debug: console.log(`[Unified] Sequence updated - ${Object.keys(newPattern.instruments).length} instruments`);
 
     // Apply real-time sequence change if currently playing
     if (this.isPlaying && this.audioContext) {
@@ -406,7 +402,7 @@ export class UnifiedAudioEngine {
    * Apply effects update in real-time
    */
   private applyEffectsUpdate(effectsConfig: any): void {
-    console.log(`[Unified] Effects updated:`, effectsConfig);
+    // Debug: console.log(`[Unified] Effects updated:`, effectsConfig);
     if (!Tone.context) return;
 
     const ac = Tone.context.rawContext as AudioContext;
@@ -862,7 +858,7 @@ export class UnifiedAudioEngine {
    * Apply EQ update in real-time
    */
   private applyEQUpdate(eqConfig: any): void {
-    console.log(`[Unified] EQ updated:`, eqConfig);
+    // Debug: console.log(`[Unified] EQ updated:`, eqConfig);
     if (!Tone.context) return;
     const ac = Tone.context.rawContext as AudioContext;
     const now = ac.currentTime;
@@ -911,7 +907,7 @@ export class UnifiedAudioEngine {
       this.volumeGain.gain.setValueAtTime(linearGain, ac.currentTime);
     }
 
-    console.log(`[Unified] Volume updated to ${volume} dB (${linearGain.toFixed(3)} linear)`);
+    // Debug: console.log(`[Unified] Volume updated to ${volume} dB (${linearGain.toFixed(3)} linear)`);
   }
 
   /**
@@ -920,7 +916,7 @@ export class UnifiedAudioEngine {
   private applyRealTimeTempoChange(_oldTempo: number, newTempo: number): void {
     if (!this.currentPattern) return;
 
-    console.log(`[Tone] Tempo change: ${newTempo} BPM`);
+    // Debug: console.log(`[Tone] Tempo change: ${newTempo} BPM`);
 
     // Update Tone.Transport BPM
     Tone.Transport.bpm.value = newTempo;
@@ -935,7 +931,7 @@ export class UnifiedAudioEngine {
    * Apply real-time sequence change
    */
   private applyRealTimeSequenceChange(_oldPattern: ParsedPattern | null, _newPattern: ParsedPattern): void {
-    console.log(`[Tone] Sequence adjusted for pattern change`);
+    // Debug: console.log(`[Tone] Sequence adjusted for pattern change`);
 
     // Rebuild the Tone.Part with the new sequence
     if (this.isPlaying) {
@@ -1610,18 +1606,26 @@ export class UnifiedAudioEngine {
             // Determine if this step should be affected by groove
             let isTargeted = false;
             if (groove.type === 'swing') {
-              const targetSteps = groove.steps || 'odd'; // Default to odd
-              if (targetSteps === 'odd') {
-                isTargeted = isOddStep;
-              } else if (targetSteps === 'even') {
-                isTargeted = !isOddStep;
-              } else if (targetSteps === 'all') {
-                isTargeted = true;
-              } else if (targetSteps.includes(',')) {
-                const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
-                isTargeted = indices.includes(step);
-              } else if (!isNaN(parseInt(targetSteps))) {
-                isTargeted = parseInt(targetSteps) === step;
+              if (groove.steps) {
+                // Explicit steps override subdivision-based targeting
+                const targetSteps = groove.steps;
+                if (targetSteps === 'odd') {
+                  isTargeted = isOddStep;
+                } else if (targetSteps === 'even') {
+                  isTargeted = !isOddStep;
+                } else if (targetSteps === 'all') {
+                  isTargeted = true;
+                } else if (targetSteps.includes(',')) {
+                  const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
+                  isTargeted = indices.includes(step);
+                } else if (!isNaN(parseInt(targetSteps))) {
+                  isTargeted = parseInt(targetSteps) === step;
+                }
+              } else {
+                // Subdivision-based targeting (default: 8n for audible swing)
+                const subdivision = groove.subdivision || '8n';
+                const stepsPerSubdiv = subdivision === '4n' ? 4 : subdivision === '8n' ? 2 : 1;
+                isTargeted = Math.floor(step / stepsPerSubdiv) % 2 === 1;
               }
             } else {
               // Other grooves (humanize, rush, drag) usually apply to all or custom
@@ -1640,7 +1644,10 @@ export class UnifiedAudioEngine {
 
             if (isTargeted) {
               if (groove.type === 'swing') {
-                grooveOffset = amount * stepInterval * 0.33;
+                // Scale offset relative to the subdivision interval
+                const subdivision = groove.subdivision || '8n';
+                const stepsPerSubdiv = subdivision === '4n' ? 4 : subdivision === '8n' ? 2 : 1;
+                grooveOffset = amount * (stepInterval * stepsPerSubdiv) * 0.33;
               } else if (groove.type === 'humanize') {
                 grooveOffset = (Math.random() - 0.5) * amount * 0.05;
               } else if (groove.type === 'rush') {

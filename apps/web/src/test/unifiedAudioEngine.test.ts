@@ -304,6 +304,167 @@ groove master: type=swing amount=0.6`);
       expect(offsetEvents.length).toBeGreaterThan(0);
     });
 
+    it('8th-note swing targets correct steps', async () => {
+      await engine.initialize();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=8n`);
+      await engine.play();
+
+      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events = lastCall[1];
+
+      // subdivision=8n, stepsPerSubdiv=2: off-beats where floor(step/2)%2===1
+      // That's steps 2,3,6,7,10,11,14,15
+      const offBeatSteps = [2, 3, 6, 7, 10, 11, 14, 15];
+      const onBeatSteps = [0, 1, 4, 5, 8, 9, 12, 13];
+
+      for (const s of offBeatSteps) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBeGreaterThan(0);
+      }
+      for (const s of onBeatSteps) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBe(0);
+      }
+    });
+
+    it('16th-note swing targets correct steps', async () => {
+      await engine.initialize();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=16n`);
+      await engine.play();
+
+      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events = lastCall[1];
+
+      // subdivision=16n, stepsPerSubdiv=1: off-beats where floor(step/1)%2===1
+      // That's odd steps: 1,3,5,7,9,11,13,15
+      for (const s of [1, 3, 5, 7, 9, 11, 13, 15]) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBeGreaterThan(0);
+      }
+      for (const s of [0, 2, 4, 6, 8, 10, 12, 14]) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBe(0);
+      }
+    });
+
+    it('quarter-note swing targets correct steps', async () => {
+      await engine.initialize();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=4n`);
+      await engine.play();
+
+      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events = lastCall[1];
+
+      // subdivision=4n, stepsPerSubdiv=4: off-beats where floor(step/4)%2===1
+      // That's steps 4-7 and 12-15
+      const offBeatSteps = [4, 5, 6, 7, 12, 13, 14, 15];
+      const onBeatSteps = [0, 1, 2, 3, 8, 9, 10, 11];
+
+      for (const s of offBeatSteps) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBeGreaterThan(0);
+      }
+      for (const s of onBeatSteps) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBe(0);
+      }
+    });
+
+    it('offset scales with subdivision', async () => {
+      await engine.initialize();
+
+      // 16n swing
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=16n`);
+      await engine.play();
+      let lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events16n = lastCall[1];
+      const offset16n = events16n.find((e: any) => e.step === 1)?.grooveOffset;
+
+      // 8n swing
+      engine.stop();
+      mockTone.Part.mockClear();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=8n`);
+      await engine.play();
+      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events8n = lastCall[1];
+      const offset8n = events8n.find((e: any) => e.step === 2)?.grooveOffset;
+
+      // 4n swing
+      engine.stop();
+      mockTone.Part.mockClear();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=4n`);
+      await engine.play();
+      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events4n = lastCall[1];
+      const offset4n = events4n.find((e: any) => e.step === 4)?.grooveOffset;
+
+      // 8n offset should be 2x the 16n offset, 4n should be 4x
+      expect(offset8n).toBeCloseTo(offset16n! * 2, 5);
+      expect(offset4n).toBeCloseTo(offset16n! * 4, 5);
+    });
+
+    it('default subdivision is 8n when not specified', async () => {
+      await engine.initialize();
+
+      // Without explicit subdivision
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6`);
+      await engine.play();
+      let lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const eventsDefault = lastCall[1];
+
+      // With explicit 8n
+      engine.stop();
+      mockTone.Part.mockClear();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 subdivision=8n`);
+      await engine.play();
+      lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events8n = lastCall[1];
+
+      // Both should produce the same offsets for each step
+      for (let s = 0; s < 16; s++) {
+        const evDef = eventsDefault.find((e: any) => e.step === s);
+        const ev8n = events8n.find((e: any) => e.step === s);
+        expect(evDef?.grooveOffset).toBeCloseTo(ev8n?.grooveOffset ?? 0, 5);
+      }
+    });
+
+    it('explicit steps overrides subdivision', async () => {
+      await engine.initialize();
+      engine.loadPattern(`TEMPO 120
+seq kick: xxxxxxxxxxxxxxxx
+groove master: type=swing amount=0.6 steps=odd`);
+      await engine.play();
+
+      const lastCall = mockTone.Part.mock.calls[mockTone.Part.mock.calls.length - 1];
+      const events = lastCall[1];
+
+      // steps=odd should target odd steps (1,3,5,...) regardless of subdivision
+      for (const s of [1, 3, 5, 7, 9, 11, 13, 15]) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBeGreaterThan(0);
+      }
+      for (const s of [0, 2, 4, 6, 8, 10, 12, 14]) {
+        const ev = events.find((e: any) => e.step === s);
+        expect(ev?.grooveOffset).toBe(0);
+      }
+    });
+
     it('does not add groove offsets when no groove is specified', async () => {
       await engine.initialize();
       engine.loadPattern(`TEMPO 120

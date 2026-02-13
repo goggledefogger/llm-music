@@ -109,7 +109,10 @@ export const QuickStatsBar: React.FC<QuickStatsBarProps> = ({
         const entries = Object.entries(grooveModules);
         const primary = entries[0];
         const [target, mod] = primary;
-        const label = `${mod.type} ${Math.round(mod.amount * 100)}%`;
+        const subdivSuffix = mod.type === 'swing'
+          ? ` (${mod.subdivision === '4n' ? '4th' : mod.subdivision === '16n' ? '16th' : '8th'})`
+          : '';
+        const label = `${mod.type} ${Math.round(mod.amount * 100)}%${subdivSuffix}`;
         const subtitle = entries.length > 1
           ? `${target} + ${entries.length - 1} more`
           : target;

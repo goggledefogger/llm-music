@@ -50,6 +50,64 @@ seq kick: x...`;
     });
   });
 
+  describe('Subdivision Parsing', () => {
+    it('should parse subdivision=8n correctly', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=8n
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('8n');
+    });
+
+    it('should parse subdivision=16n correctly', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=16n
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('16n');
+    });
+
+    it('should parse subdivision=4n correctly', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=4n
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('4n');
+    });
+
+    it('should normalize subdivision=8 to 8n', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=8
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('8n');
+    });
+
+    it('should normalize subdivision=quarter to 4n', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=quarter
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('4n');
+    });
+
+    it('should normalize subdivision=sixteenth to 16n', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5 subdivision=sixteenth
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBe('16n');
+    });
+
+    it('should leave subdivision undefined when not specified', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing amount=0.5
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.subdivision).toBeUndefined();
+    });
+  });
+
   describe('Comment Stripping', () => {
     it('should ignore full line comments with #', () => {
       const pattern = `TEMPO 120

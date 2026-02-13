@@ -75,13 +75,19 @@ Generate a complete new pattern from the user's description. Add a brief one-lin
   - Example: \`seq kick: X...x...o...x...\`
 
 ### Groove & Feel
-- \`groove <instrument|master>: type=<swing|humanize|rush|drag> amount=<0..1> [steps=<odd|even|all|indices>] [subdivision=<16n>]\`
-  - **swing** — MPC-style swing, delays offbeat steps (default: odd steps)
+- \`groove <instrument|master>: type=<swing|humanize|rush|drag> amount=<0..1> [steps=<odd|even|all|indices>] [subdivision=<8n|16n|4n>]\`
+  - **swing** — MPC-style swing, delays offbeat notes at the given subdivision level
   - **humanize** — Random micro-timing variation
   - **rush** — Push notes slightly ahead of the beat
   - **drag** — Pull notes slightly behind the beat
-  - \`steps\` — Which steps to affect: \`odd\`, \`even\`, \`all\`, or comma-separated indices (e.g. \`1,3,5\`)
-  - Example: \`groove master: type=swing amount=0.6\`
+  - \`subdivision\` — The rhythmic level at which swing operates (swing only):
+    - \`8n\` (default) — Delays offbeat 8th notes. Standard swing feel. **Use this for most patterns.**
+    - \`16n\` — Delays offbeat 16th notes. Subtle hi-hat shuffle.
+    - \`4n\` — Delays offbeat quarter notes. Half-time, wide swing feel.
+  - \`steps\` — Override subdivision with explicit step targeting: \`odd\`, \`even\`, \`all\`, or comma-separated indices (e.g. \`1,3,5\`). When set, overrides \`subdivision\`.
+  - Example: \`groove master: type=swing amount=0.6\` (8th-note swing by default)
+  - Example: \`groove master: type=swing amount=0.6 subdivision=8n\` (same as above, explicit)
+  - Example: \`groove hihat: type=swing amount=0.4 subdivision=16n\` (16th-note shuffle on hats)
   - Example: \`groove hihat: type=humanize amount=0.3 steps=all\`
 
 ### Synthesis & Sound Design
@@ -145,7 +151,7 @@ Generate a complete new pattern from the user's description. Add a brief one-lin
 ### Classic House (with Swing)
 \`\`\`pattern
 TEMPO 124
-groove master: type=swing amount=0.6
+groove master: type=swing amount=0.6 subdivision=8n
 seq kick:  x...x...x...x...
 seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
@@ -175,7 +181,7 @@ seq hihat: .x.x.x.x.x.x.x.x
 - Keep instrument names consistent and lowercase.
 - **Articulation:** Use effects (ADSR, Filter) to shape sound, NOT different sequence characters.
 - **Pitch:** Use \`note\` command for distinct pitches (e.g. \`note bass: 36\`).
-- **Groove:** Use \`groove\` for swing/feel — never shift notes manually.
+- **Groove:** Use \`groove\` for swing/feel — never shift notes manually. For swing, use \`subdivision=8n\` (default) for standard swing, \`subdivision=16n\` for hi-hat shuffle, \`subdivision=4n\` for half-time feel.
 
 ## Output Format
 Always output patterns inside a fenced code block with the \`pattern\` language tag.

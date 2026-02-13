@@ -15,6 +15,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 - 🥁 **12 Procedural Samples**: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
 - 🎯 **Velocity Dynamics**: `X` (accent), `x` (normal), `o` (ghost note) for expressive patterns
 - 🎼 **Note/Pitch System**: Assign MIDI notes or Hz frequencies to any instrument
+- 🎶 **Groove & Swing**: Subdivision-aware swing (8th/16th/quarter), humanize, rush, drag — per-instrument or master
 - 🔊 **LFO Modulation**: Route LFOs to amp, filter, pan, delay time/feedback
 - 🤖 **AI Assistant**: Generate and modify patterns with natural language
 - 🎧 **Real-time Audio**: Web Audio API engine with live parameter updates
@@ -180,6 +181,38 @@ seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
 seq bass: x...x...x...x...
 seq lead: ....x.......x...
+```
+
+### Groove & Swing
+Add swing, humanize, rush, or drag feel without manually shifting notes:
+
+```ascii
+TEMPO 124
+
+# 8th-note swing (default) — standard swing feel
+groove master: type=swing amount=0.6 subdivision=8n
+
+seq kick:  X...X...X...X...
+seq snare: ....X.......X...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
+Subdivision controls which rhythmic level swing operates at:
+- `8n` (default) — delays off-beat 8th notes, standard swing
+- `16n` — delays off-beat 16th notes, subtle hi-hat shuffle
+- `4n` — delays off-beat quarter notes, half-time feel
+
+Other groove types:
+```ascii
+TEMPO 88
+
+# Per-instrument groove for a J Dilla lazy feel
+groove kick: type=drag amount=0.3
+groove hihat: type=humanize amount=0.4 steps=all
+
+seq kick:  X..x..x...X.x...
+seq snare: ....X..o....X...
+seq hihat: x.x.x.x.x.x.x.x.
 ```
 
 ## Environment Setup

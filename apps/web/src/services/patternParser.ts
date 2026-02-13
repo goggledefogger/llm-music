@@ -732,7 +732,18 @@ export class PatternParser {
     amount = Math.max(0, Math.min(1, amount));
 
     const steps = map['steps']?.toLowerCase();
-    const subdivision = map['subdivision']?.toLowerCase();
+
+    // Normalize subdivision values
+    let subdivision: '4n' | '8n' | '16n' | undefined;
+    const rawSubdiv = map['subdivision']?.toLowerCase();
+    if (rawSubdiv) {
+      const subdivMap: Record<string, '4n' | '8n' | '16n'> = {
+        '4n': '4n', '4': '4n', 'quarter': '4n',
+        '8n': '8n', '8': '8n', 'eighth': '8n',
+        '16n': '16n', '16': '16n', 'sixteenth': '16n',
+      };
+      subdivision = subdivMap[rawSubdiv];
+    }
 
     return {
       name: moduleName.toLowerCase(),

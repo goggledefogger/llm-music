@@ -351,6 +351,167 @@ seq pad: xxxxxxxx`,
         updatedAt: new Date('2024-01-01'),
         isPublic: true
       }
+      ,
+      {
+        id: 'sample-7',
+        name: 'Swung House',
+        category: 'House',
+        content: `TEMPO 124
+groove master: type=swing amount=0.6 subdivision=8n
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=1 high=1
+
+seq kick:  X...X...X...X...
+seq snare: ....X.......X...
+seq hihat: x.x.x.x.x.x.x.x.
+seq rim:   ..........x.....`,
+        parsedPattern: PatternParser.parse(`TEMPO 124
+groove master: type=swing amount=0.6 subdivision=8n
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=1 high=1
+seq kick:  X...X...X...X...
+seq snare: ....X.......X...
+seq hihat: x.x.x.x.x.x.x.x.
+seq rim:   ..........x.....`),
+        complexity: 0.5,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-8',
+        name: 'J Dilla Lazy Beat',
+        category: 'Hip Hop',
+        content: `TEMPO 86
+groove kick: type=drag amount=0.3
+groove hihat: type=humanize amount=0.4 steps=all
+groove snare: type=drag amount=0.15
+eq kick: low=2 mid=-1 high=-2
+eq snare: low=-1 mid=2 high=0
+
+seq kick:  X..x..x...X.x...
+seq snare: ....X..o....X...
+seq hihat: x.x.x.x.x.x.x.x.`,
+        parsedPattern: PatternParser.parse(`TEMPO 86
+groove kick: type=drag amount=0.3
+groove hihat: type=humanize amount=0.4 steps=all
+groove snare: type=drag amount=0.15
+eq kick: low=2 mid=-1 high=-2
+eq snare: low=-1 mid=2 high=0
+seq kick:  X..x..x...X.x...
+seq snare: ....X..o....X...
+seq hihat: x.x.x.x.x.x.x.x.`),
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-9',
+        name: '16th-Note Shuffle',
+        category: 'Funk',
+        content: `TEMPO 110
+groove hihat: type=swing amount=0.5 subdivision=16n
+groove kick: type=swing amount=0.3 subdivision=16n
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=2 high=1
+
+seq kick:  X..x..x.X..x..x.
+seq snare: ....X.......X...
+seq hihat: xxxxxxxxxxxxxxxx`,
+        parsedPattern: PatternParser.parse(`TEMPO 110
+groove hihat: type=swing amount=0.5 subdivision=16n
+groove kick: type=swing amount=0.3 subdivision=16n
+eq kick: low=2 mid=0 high=-1
+eq snare: low=-1 mid=2 high=1
+seq kick:  X..x..x.X..x..x.
+seq snare: ....X.......X...
+seq hihat: xxxxxxxxxxxxxxxx`),
+        complexity: 0.7,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-10',
+        name: 'Half-Time Swing',
+        category: 'Jazz',
+        content: `TEMPO 90
+groove master: type=swing amount=0.7 subdivision=4n
+eq kick: low=1 mid=0 high=0
+eq snare: low=-1 mid=1 high=1
+eq ride: low=-1 mid=0 high=2
+
+seq kick:  X.......X...x...
+seq snare: ........X.......
+seq ride:  x.x.x.x.x.x.x.x.`,
+        parsedPattern: PatternParser.parse(`TEMPO 90
+groove master: type=swing amount=0.7 subdivision=4n
+eq kick: low=1 mid=0 high=0
+eq snare: low=-1 mid=1 high=1
+eq ride: low=-1 mid=0 high=2
+seq kick:  X.......X...x...
+seq snare: ........X.......
+seq ride:  x.x.x.x.x.x.x.x.`),
+        complexity: 0.4,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-11',
+        name: 'Rushed Garage',
+        category: 'Garage',
+        content: `TEMPO 138
+groove hihat: type=rush amount=0.2
+groove master: type=swing amount=0.5 subdivision=8n
+eq kick: low=2 mid=-1 high=-1
+eq snare: low=-1 mid=2 high=1
+
+seq kick:  X...x...X...x...
+seq snare: ....X.......X...
+seq hihat: .x.x.x.x.x.x.x.x
+seq clap:  ....x.......x...`,
+        parsedPattern: PatternParser.parse(`TEMPO 138
+groove hihat: type=rush amount=0.2
+groove master: type=swing amount=0.5 subdivision=8n
+eq kick: low=2 mid=-1 high=-1
+eq snare: low=-1 mid=2 high=1
+seq kick:  X...x...X...x...
+seq snare: ....X.......X...
+seq hihat: .x.x.x.x.x.x.x.x
+seq clap:  ....x.......x...`),
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      },
+      {
+        id: 'sample-12',
+        name: 'Humanized Boom Bap',
+        category: 'Hip Hop',
+        content: `TEMPO 92
+groove master: type=humanize amount=0.35 steps=all
+eq kick: low=2 mid=0 high=-2
+eq snare: low=-1 mid=2 high=1
+amp kick: gain=1
+
+seq kick:  X..x....x.X.....
+seq snare: ....X.......X...
+seq hihat: x.xxx.x.x.xxx.x.`,
+        parsedPattern: PatternParser.parse(`TEMPO 92
+groove master: type=humanize amount=0.35 steps=all
+eq kick: low=2 mid=0 high=-2
+eq snare: low=-1 mid=2 high=1
+amp kick: gain=1
+seq kick:  X..x....x.X.....
+seq snare: ....X.......X...
+seq hihat: x.xxx.x.x.xxx.x.`),
+        complexity: 0.6,
+        createdAt: new Date('2024-01-01'),
+        updatedAt: new Date('2024-01-01'),
+        isPublic: true
+      }
     ];
   }
 
