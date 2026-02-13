@@ -10,15 +10,18 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 ## Features
 
 - 🎵 **ASCII Pattern DSL**: Create music using simple text-based syntax
-- 🎛️ **EQ Modules**: Professional-grade equalizer controls with keyboard-friendly syntax
-- 🎚️ **Audio Effects**: Compressors, amplifiers, and LFOs with text-only control
-- 🤖 **AI Assistant**: Get help from AI to generate and modify patterns
-- 🎧 **Real-time Audio**: High-quality audio synthesis with Tone.js
+- 🎛️ **Modular Effects**: EQ, compressor, amplifier, filter, distortion, delay, reverb, chorus, phaser — per-instrument or master
+- 🎹 **ADSR Envelopes**: Full attack/decay/sustain/release control per instrument for long tails and shaped sounds
+- 🥁 **12 Procedural Samples**: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
+- 🎯 **Velocity Dynamics**: `X` (accent), `x` (normal), `o` (ghost note) for expressive patterns
+- 🎼 **Note/Pitch System**: Assign MIDI notes or Hz frequencies to any instrument
+- 🔊 **LFO Modulation**: Route LFOs to amp, filter, pan, delay time/feedback
+- 🤖 **AI Assistant**: Generate and modify patterns with natural language
+- 🎧 **Real-time Audio**: Web Audio API engine with live parameter updates
 - 📱 **Responsive Design**: Works on desktop, tablet, and mobile
 - 🎨 **Live Visualizations**: Real-time audio visualizations and feedback
 - 🔄 **Pattern Library**: Browse, search, and load from a collection of sample patterns
-- 💾 **Pattern Storage**: Local storage with search and filtering capabilities
-- 🎯 **One-Click Loading**: Instantly load patterns into the editor with full audio integration
+- 🔐 **Authentication**: Supabase magic link and password authentication
 
 ## Tech Stack
 
@@ -114,26 +117,67 @@ seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
 ```
 
-### Triggering Samples (MVP)
+### Triggering Samples
 Assign preloaded samples to instruments and trigger them with `seq`:
 
 ```ascii
 TEMPO 122
 
-# Map instrument names to samples (built-in: kick, snare, hihat, clap)
-sample kick: kick
+# Built-in: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
+sample kick: kick808
 sample snare: snare gain=1
-sample hat: hihat
+sample hat: openhat
+sample cow: cowbell
 
-seq kick: x...x...x...x...
-seq snare: ....x.......x...
+seq kick: X...x...o...x...
+seq snare: ....X.......o...
 seq hat: x.x.x.x.x.x.x.x.
+seq cow: x.......x.......
 ```
 
 Notes:
-- For MVP, a small procedural sample bank is preloaded (kick, snare, hihat, clap).
+- 12 procedural samples are preloaded: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
 - If no `sample` line is provided, the engine tries a sample matching the instrument name; otherwise it falls back to a synthesized sound.
 - Optional `gain` per sample maps −3..+3 steps (~3 dB/step).
+
+### ADSR Envelopes & Velocity
+Control note shape and dynamics:
+
+```ascii
+TEMPO 120
+
+# ADSR envelope per instrument (long release = long tails)
+env kick: attack=0.01 decay=0.1 sustain=0.5 release=1.0
+env snare: attack=0.005 decay=0.08 sustain=0.3 release=0.3
+
+# Velocity: X=accent (1.0), x=normal (0.7), o=ghost (0.3)
+seq kick: X...x...o...x...
+seq snare: ....X.......o...
+```
+
+### Per-Instrument Effects, Chorus, Phaser & Pitch
+```ascii
+TEMPO 130
+
+# Per-instrument delay (only snare gets echo)
+delay snare: time=0.375 feedback=0.3 mix=0.4
+# Per-instrument reverb (only hihat gets verb)
+reverb hihat: mix=0.5 decay=1.5
+
+# Master chorus and phaser
+chorus master: rate=1.5 depth=0.4 mix=0.3
+phaser master: rate=0.5 depth=0.6 stages=4 mix=0.2
+
+# Pitch assignment (MIDI or Hz)
+note bass: 36
+note lead: 440hz
+
+seq kick: X...x...x...x...
+seq snare: ....x.......x...
+seq hihat: x.x.x.x.x.x.x.x.
+seq bass: x...x...x...x...
+seq lead: ....x.......x...
+```
 
 ## Environment Setup
 
@@ -184,29 +228,17 @@ ascii-generative-sequencer/
 ## Current Status
 
 ### ✅ Completed
-- **Project Setup**: Monorepo with pnpm and Turborepo configured
-- **Development Environment**: Vite, TypeScript, and build system working
-- **Testing Framework**: Vitest and React Testing Library configured with 139 tests passing (100% success rate)
-- **Web Application**: React app running on http://localhost:3000
-- **Package Management**: pnpm workspace with proper dependency management
-- **Audio Engine**: Web Audio API engine with master/per-instrument effects (EQ, amp, compressor, LFO)
-- **Pattern System**: Boolean-based pattern parsing with real-time validation
-- **Pattern Loading System**: Complete pattern library with search, filter, and one-click loading
-- **Visualization System**: 6 core visualization components with comprehensive testing
-- **Architecture**: Simplified component-based architecture with focused custom hooks
-- **ASCII Editor**: CodeMirror 6 integration with inline playhead highlighting, base step coloring, and click-to-toggle steps (reduce-motion supported)
-- **Production Deployment**: Successfully deployed to Vercel with CI/CD pipeline
-- **Environment Configuration**: Production environment variables configured
-- **Build System**: Optimized production build (575KB bundle, 174KB gzipped)
-
-### 🚧 In Progress
-- **AI Integration**: OpenAI API setup (mock interface implemented)
-
-### 📋 Next Steps
-- Enhance DSL highlighting (Lezer grammar, optional)
-- Integrate OpenAI API for AI chat functionality
-- Add advanced audio effects and synthesis capabilities
-- Set up production Supabase project for full functionality
+- **Modular Synth Engine**: Full Web Audio API engine with ADSR envelopes, 12 procedural samples, velocity dynamics, per-instrument and master effects chains
+- **Effects Suite**: EQ, compressor, amplifier, filter, distortion, delay, reverb, chorus, phaser, pan — all with real-time parameter updates
+- **LFO Modulation**: Routable to amp, filter.freq, filter.q, pan, delay.time, delay.feedback
+- **Note/Pitch System**: MIDI note or Hz frequency assignment per instrument
+- **AI Integration**: OpenAI-powered pattern generation and modification with auto-intent detection
+- **Authentication**: Supabase magic link and password auth
+- **Testing**: 230+ tests passing (Vitest + React Testing Library)
+- **ASCII Editor**: CodeMirror 6 with inline playhead, step coloring, click-to-toggle
+- **Pattern Library**: Search, filter, one-click loading
+- **Visualization System**: Step sequencer, waveform, and volume visualizations
+- **Production Deployment**: Vercel CI/CD pipeline
 
 ## Development
 
@@ -251,16 +283,24 @@ seq hihat: x.x.x.x.x.x.x.x.
 
 ### DSL Syntax
 
-- `TEMPO` - Set the tempo in BPM
-- `SWING` - Add swing feel (0-50%)
-- `SCALE` - Set the musical scale
-- `inst` - Define instruments with samples or synthesis
-- `seq` - Create sequences using pattern symbols
-- `eq name:` - 3-band EQ per module; `low|mid|high = -3..+3`
-- `amp name:` - Amplifier gain in steps; `gain = -3..+3` (≈3 dB/step)
-- `comp name:` - Compressor; `threshold -60..0`, `ratio 1..20`, `attack 0.001..0.3`, `release 0.02..1`, `knee 0..40`
-- `lfo name.amp:` - LFO on amp gain; `rate 0.1..20Hz`, `depth 0..1`, `wave sine|triangle|square|sawtooth`
-- Pattern symbols: `x` (hit), `.` (rest), `X` (accent), `o` (ghost)
+| Keyword | Example | Description |
+|---------|---------|-------------|
+| `TEMPO` | `TEMPO 120` | Set tempo in BPM (20–300) |
+| `seq` | `seq kick: X.x.o.x.` | Sequence pattern (`X`=accent, `x`=normal, `o`=ghost, `.`=rest) |
+| `sample` | `sample hat: openhat` | Assign sample (kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc) |
+| `eq` | `eq kick: low=2 mid=-1 high=1` | 3-band EQ; `low\|mid\|high = -3..+3` |
+| `amp` | `amp master: gain=2` | Amplifier gain; `-3..+3` (≈3 dB/step) |
+| `comp` | `comp master: threshold=-24 ratio=4` | Compressor; `threshold -60..0`, `ratio 1..20`, `attack`, `release`, `knee` |
+| `filter` | `filter kick: type=lowpass freq=800 q=1` | Filter; types: lowpass, highpass, bandpass |
+| `delay` | `delay snare: time=0.375 feedback=0.3 mix=0.4` | Delay (per-instrument or master) |
+| `reverb` | `reverb hihat: mix=0.5 decay=1.5` | Reverb (per-instrument or master) |
+| `distort` | `distort master: amount=0.3 mix=0.5` | Distortion |
+| `pan` | `pan hihat: value=0.3` | Stereo pan; `-1` (left) to `1` (right) |
+| `env` | `env kick: attack=0.01 decay=0.1 sustain=0.5 release=1.0` | ADSR envelope (A: 0.001–2s, D: 0.001–2s, S: 0–1, R: 0.01–5s) |
+| `chorus` | `chorus master: rate=1.5 depth=0.4 mix=0.3` | Chorus effect |
+| `phaser` | `phaser master: rate=0.5 depth=0.6 stages=4 mix=0.3` | Phaser; stages: 2, 4, 6, 8, 12 |
+| `note` | `note bass: 36` or `note lead: 440hz` | Pitch assignment (MIDI 0–127 or Hz) |
+| `lfo` | `lfo kick.amp: rate=5Hz depth=0.5 wave=sine` | LFO modulation; targets: amp, filter.freq, filter.q, pan, delay.time, delay.feedback |
 
 ## AI Assistant
 
@@ -338,14 +378,15 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Roadmap
 
-- [ ] Advanced audio effects
+- [x] Advanced audio effects (ADSR, chorus, phaser, per-instrument FX)
+- [x] Expanded sample bank (12 procedural samples)
+- [x] Velocity-sensitive patterns
 - [ ] MIDI controller support
-- [ ] Collaborative editing
-- [ ] Mobile app
-- [ ] Plugin system
-- [ ] Advanced AI models
-- [ ] Real-time collaboration
-- [ ] Audio export formats
+- [ ] Audio export (WAV/MP3)
+- [ ] Collaborative real-time editing
+- [ ] Plugin system for custom effects
+- [ ] FM synthesis and wavetable oscillators
+- [ ] Sample upload (user-provided WAV/MP3)
 
 ---
 
