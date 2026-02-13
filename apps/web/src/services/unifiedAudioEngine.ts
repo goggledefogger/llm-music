@@ -1,5 +1,5 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
-import { ParsedPattern, UnifiedAudioState, LFOModule, LFOTarget, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
+import { ParsedPattern, UnifiedAudioState, LFOModule, LFOTarget, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, EnvelopeModule, ChorusModule, PhaserModule, NoteModule } from '../types/app';
 import { PatternParser } from './patternParser';
 import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
@@ -516,6 +516,121 @@ export class UnifiedAudioEngine {
       }
     });
 
+    // Apply per-instrument DELAY (send-style: insert a delay node in the instrument chain)
+    Object.entries(delayMods as Record<string, DelayModule>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      if (lower === 'master') return;
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        // Create per-instrument delay if not exists
+        if (!(chain as any).__delay) {
+          const dly = this.audioContext!.createDelay(2.0);
+          const fb = this.audioContext!.createGain();
+          const dryG = this.audioContext!.createGain();
+          const wetG = this.audioContext!.createGain();
+          const merge = this.audioContext!.createGain();
+
+          // Disconnect pan from current destination and re-route through delay
+          try { chain.pan.disconnect(); } catch {}
+          chain.pan.connect(dryG);
+          chain.pan.connect(dly);
+          dly.connect(fb);
+          fb.connect(dly);
+          dly.connect(wetG);
+          dryG.connect(merge);
+          wetG.connect(merge);
+
+          this.ensureMasterChain();
+          if (this.masterChainInput) {
+            merge.connect(this.masterChainInput);
+          } else if (this.masterGain) {
+            merge.connect(this.masterGain!);
+          }
+
+          (chain as any).__delay = dly;
+          (chain as any).__delayFb = fb;
+          (chain as any).__delayDry = dryG;
+          (chain as any).__delayWet = wetG;
+        }
+        (chain as any).__delay.delayTime.setValueAtTime(cfg.time, now);
+        (chain as any).__delayFb.gain.setValueAtTime(cfg.feedback, now);
+        (chain as any).__delayDry.gain.setValueAtTime(1 - cfg.mix, now);
+        (chain as any).__delayWet.gain.setValueAtTime(cfg.mix, now);
+      }
+    });
+
+    // Apply per-instrument REVERB (convolution-based)
+    Object.entries(reverbMods as Record<string, ReverbModule>).forEach(([name, cfg]) => {
+      const lower = name.toLowerCase();
+      if (lower === 'master') return;
+      const chain = this.instrumentChains.get(lower);
+      if (chain) {
+        if (!(chain as any).__reverb) {
+          const rev = this.audioContext!.createConvolver();
+          rev.buffer = this.generateImpulseResponse(cfg.decay, cfg.predelay);
+          const dryG = this.audioContext!.createGain();
+          const wetG = this.audioContext!.createGain();
+          const merge = this.audioContext!.createGain();
+
+          // Get whatever pan currently connects to
+          const target = (chain as any).__delay ? null : chain.pan;
+          const sourceNode = target || ((chain as any).__delayDry ? (() => {
+            // If delay exists, it reconnects from the delay merge
+            return null;
+          })() : chain.pan);
+
+          // Route from pan (or delay merge) through reverb
+          // If there's already a delay, tap after the delay merge
+          const inputNode = (chain as any).__delayDry 
+            ? (() => { 
+                // Find the delay merge node - it connects pan's delay output
+                // We'll just add reverb in parallel with the whole chain output
+                return chain.pan; 
+              })()
+            : chain.pan;
+
+          try { 
+            // Only if no delay is present, disconnect pan
+            if (!(chain as any).__delay) {
+              chain.pan.disconnect(); 
+            }
+          } catch {}
+
+          if (!(chain as any).__delay) {
+            chain.pan.connect(dryG);
+            chain.pan.connect(rev);
+          } else {
+            // Re-use existing routing; add reverb after delay merge in parallel
+            // This is simpler: just apply reverb as a wet signal from the instrument output
+            chain.pan.connect(rev);
+            chain.pan.connect(dryG); // dry already connected via delay
+          }
+
+          rev.connect(wetG);
+          dryG.connect(merge);
+          wetG.connect(merge);
+
+          if (!(chain as any).__delay) {
+            this.ensureMasterChain();
+            if (this.masterChainInput) {
+              merge.connect(this.masterChainInput);
+            } else if (this.masterGain) {
+              merge.connect(this.masterGain!);
+            }
+          }
+
+          (chain as any).__reverb = rev;
+          (chain as any).__reverbDry = dryG;
+          (chain as any).__reverbWet = wetG;
+        } else {
+          // Update existing reverb
+          (chain as any).__reverb.buffer = this.generateImpulseResponse(cfg.decay, cfg.predelay);
+        }
+        (chain as any).__reverbDry.gain.setValueAtTime(1 - cfg.mix, now);
+        (chain as any).__reverbWet.gain.setValueAtTime(cfg.mix, now);
+      }
+    });
+
     // Apply master DISTORTION
     this.ensureMasterChain();
     const masterDistort = distortMods['master'] as DistortModule | undefined;
@@ -554,6 +669,147 @@ export class UnifiedAudioEngine {
       this.masterReverbDryGain.gain.setValueAtTime(1, now);
       this.masterReverbWetGain.gain.setValueAtTime(0, now);
     }
+
+    // Apply master CHORUS
+    const chorusMods = effectsConfig.chorusModules || {};
+    const masterChorus = chorusMods['master'] as ChorusModule | undefined;
+    if (masterChorus) {
+      this.applyChorusEffect(masterChorus);
+    }
+
+    // Apply master PHASER
+    const phaserMods = effectsConfig.phaserModules || {};
+    const masterPhaser = phaserMods['master'] as PhaserModule | undefined;
+    if (masterPhaser) {
+      this.applyPhaserEffect(masterPhaser);
+    }
+  }
+
+  /**
+   * Apply chorus effect using modulated delay lines
+   */
+  private applyChorusEffect(cfg: ChorusModule): void {
+    if (!this.audioContext) return;
+    const ac = this.audioContext;
+    const now = ac.currentTime;
+
+    if (!(this as any).__chorusDelay) {
+      const delay = ac.createDelay(0.1);
+      delay.delayTime.setValueAtTime(0.02, now);
+      const lfo = ac.createOscillator();
+      const lfoGain = ac.createGain();
+      lfo.type = 'sine';
+      lfo.connect(lfoGain);
+      lfoGain.connect(delay.delayTime);
+      lfo.start();
+
+      const dryGain = ac.createGain();
+      const wetGain = ac.createGain();
+      const merge = ac.createGain();
+
+      // Insert into master chain after reverb merge, before preGain
+      if (this.masterReverbMerge && this.masterPreGain) {
+        try { this.masterReverbMerge.disconnect(this.masterPreGain); } catch {}
+        this.masterReverbMerge.connect(dryGain);
+        this.masterReverbMerge.connect(delay);
+        delay.connect(wetGain);
+        dryGain.connect(merge);
+        wetGain.connect(merge);
+        merge.connect(this.masterPreGain);
+      }
+
+      (this as any).__chorusDelay = delay;
+      (this as any).__chorusLFO = lfo;
+      (this as any).__chorusLFOGain = lfoGain;
+      (this as any).__chorusDry = dryGain;
+      (this as any).__chorusWet = wetGain;
+    }
+
+    (this as any).__chorusLFO.frequency.setValueAtTime(cfg.rate, now);
+    (this as any).__chorusLFOGain.gain.setValueAtTime(cfg.depth * 0.005, now); // depth controls delay modulation range
+    (this as any).__chorusDry.gain.setValueAtTime(1 - cfg.mix, now);
+    (this as any).__chorusWet.gain.setValueAtTime(cfg.mix, now);
+  }
+
+  /**
+   * Apply phaser effect using allpass filters modulated by LFO
+   */
+  private applyPhaserEffect(cfg: PhaserModule): void {
+    if (!this.audioContext) return;
+    const ac = this.audioContext;
+    const now = ac.currentTime;
+
+    if (!(this as any).__phaserFilters) {
+      const filters: BiquadFilterNode[] = [];
+      for (let i = 0; i < cfg.stages; i++) {
+        const f = ac.createBiquadFilter();
+        f.type = 'allpass';
+        f.frequency.setValueAtTime(1000, now);
+        f.Q.setValueAtTime(0.5, now);
+        filters.push(f);
+      }
+
+      // Chain allpass filters
+      for (let i = 1; i < filters.length; i++) {
+        filters[i - 1].connect(filters[i]);
+      }
+
+      const lfo = ac.createOscillator();
+      lfo.type = 'sine';
+      lfo.frequency.setValueAtTime(cfg.rate, now);
+
+      const lfoGain = ac.createGain();
+      lfoGain.gain.setValueAtTime(cfg.depth * 2000, now);
+      lfo.connect(lfoGain);
+
+      // Connect LFO to all filter frequencies
+      for (const f of filters) {
+        lfoGain.connect(f.frequency);
+      }
+      lfo.start();
+
+      const dryGain = ac.createGain();
+      const wetGain = ac.createGain();
+      const merge = ac.createGain();
+
+      // Insert after chorus (or after reverb if no chorus)
+      const sourceNode = (this as any).__chorusWet
+        ? (() => {
+            // After chorus merge
+            return null; // We'll connect differently
+          })()
+        : this.masterReverbMerge;
+
+      // For simplicity, insert before masterPreGain
+      if (this.masterPreGain) {
+        // Find what's currently connected to masterPreGain and re-route
+        const inputNode = (this as any).__chorusDry
+          ? (() => { return null; })()  // chorus already handles routing
+          : this.masterReverbMerge;
+
+        if (inputNode && inputNode !== null) {
+          try { inputNode.disconnect(this.masterPreGain); } catch {}
+          inputNode.connect(dryGain);
+          inputNode.connect(filters[0]);
+          filters[filters.length - 1].connect(wetGain);
+          dryGain.connect(merge);
+          wetGain.connect(merge);
+          merge.connect(this.masterPreGain);
+        }
+      }
+
+      (this as any).__phaserFilters = filters;
+      (this as any).__phaserLFO = lfo;
+      (this as any).__phaserLFOGain = lfoGain;
+      (this as any).__phaserDry = dryGain;
+      (this as any).__phaserWet = wetGain;
+    }
+
+    // Update existing phaser params
+    (this as any).__phaserLFO.frequency.setValueAtTime(cfg.rate, now);
+    (this as any).__phaserLFOGain.gain.setValueAtTime(cfg.depth * 2000, now);
+    (this as any).__phaserDry.gain.setValueAtTime(1 - cfg.mix, now);
+    (this as any).__phaserWet.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
@@ -819,6 +1075,14 @@ export class UnifiedAudioEngine {
       add('snare', this.generateSnareSample(ac));
       add('hihat', this.generateHiHatSample(ac));
       add('clap', this.generateClapSample(ac));
+      add('kick808', this.generateKick808Sample(ac));
+      add('rim', this.generateRimSample(ac));
+      add('tom', this.generateTomSample(ac));
+      add('cowbell', this.generateCowbellSample(ac));
+      add('shaker', this.generateShakerSample(ac));
+      add('crash', this.generateCrashSample(ac));
+      add('openhat', this.generateOpenHatSample(ac));
+      add('perc', this.generatePercSample(ac));
     } catch (e) {
       console.warn('Failed to generate default samples:', e);
     }
@@ -899,6 +1163,164 @@ export class UnifiedAudioEngine {
     if (max > 1e-6) {
       const s = 0.95 / max;
       for (let i = 0; i < len; i++) ch[i] *= s;
+    }
+    return buf;
+  }
+
+  private generateKick808Sample(ac: AudioContext): AudioBuffer {
+    // Deeper, longer 808-style kick with sub-bass emphasis
+    const duration = 0.5;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const startFreq = 60;
+    const endFreq = 30;
+    const twoPi = 2 * Math.PI;
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const freq = startFreq * Math.pow(endFreq / startFreq, t);
+      const env = Math.pow(1 - t, 2); // slower decay than regular kick
+      phase += twoPi * freq / sr;
+      ch[i] = Math.sin(phase) * env * 0.95;
+    }
+    return buf;
+  }
+
+  private generateRimSample(ac: AudioContext): AudioBuffer {
+    // Short bandpass-filtered noise with a tonal click
+    const duration = 0.04;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const twoPi = 2 * Math.PI;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 15);
+      // Mix tonal click (1200Hz) with noise
+      const tone = Math.sin(twoPi * 1200 * i / sr) * 0.6;
+      const noise = (Math.random() * 2 - 1) * 0.4;
+      ch[i] = (tone + noise) * env * 0.7;
+    }
+    return buf;
+  }
+
+  private generateTomSample(ac: AudioContext): AudioBuffer {
+    // Mid-frequency sine sweep with longer body
+    const duration = 0.3;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const startFreq = 200;
+    const endFreq = 80;
+    const twoPi = 2 * Math.PI;
+    let phase = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const freq = startFreq * Math.pow(endFreq / startFreq, t);
+      const env = Math.pow(1 - t, 3);
+      phase += twoPi * freq / sr;
+      ch[i] = Math.sin(phase) * env * 0.8;
+    }
+    return buf;
+  }
+
+  private generateCowbellSample(ac: AudioContext): AudioBuffer {
+    // Two detuned square-ish tones for metallic character
+    const duration = 0.15;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const twoPi = 2 * Math.PI;
+    const f1 = 545;
+    const f2 = 810;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 5);
+      const s1 = Math.sign(Math.sin(twoPi * f1 * i / sr)) * 0.3;
+      const s2 = Math.sign(Math.sin(twoPi * f2 * i / sr)) * 0.3;
+      ch[i] = (s1 + s2) * env * 0.5;
+    }
+    return buf;
+  }
+
+  private generateShakerSample(ac: AudioContext): AudioBuffer {
+    // Very short high-pass noise burst
+    const duration = 0.05;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    let prev = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 12);
+      const noise = Math.random() * 2 - 1;
+      // Simple one-pole high-pass
+      const hp = noise - prev;
+      prev = noise;
+      ch[i] = hp * env * 0.3;
+    }
+    return buf;
+  }
+
+  private generateCrashSample(ac: AudioContext): AudioBuffer {
+    // Long noise burst with slow decay
+    const duration = 1.2;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 1.5);
+      ch[i] = (Math.random() * 2 - 1) * env * 0.25;
+    }
+    return buf;
+  }
+
+  private generateOpenHatSample(ac: AudioContext): AudioBuffer {
+    // Longer hi-hat with sustained noise
+    const duration = 0.25;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    let prev = 0;
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 3);
+      const noise = Math.random() * 2 - 1;
+      // High-pass for brightness
+      const hp = noise - prev * 0.85;
+      prev = noise;
+      ch[i] = hp * env * 0.3;
+    }
+    return buf;
+  }
+
+  private generatePercSample(ac: AudioContext): AudioBuffer {
+    // Metallic, inharmonic ring — multiple detuned sine partials
+    const duration = 0.35;
+    const sr = ac.sampleRate;
+    const len = Math.floor(duration * sr);
+    const buf = ac.createBuffer(1, len, sr);
+    const ch = buf.getChannelData(0);
+    const twoPi = 2 * Math.PI;
+    const freqs = [340, 553, 788, 1024]; // inharmonic
+    const amps = [0.4, 0.3, 0.2, 0.1];
+    for (let i = 0; i < len; i++) {
+      const t = i / len;
+      const env = Math.pow(1 - t, 4);
+      let sample = 0;
+      for (let f = 0; f < freqs.length; f++) {
+        sample += Math.sin(twoPi * freqs[f] * i / sr) * amps[f];
+      }
+      ch[i] = sample * env * 0.6;
     }
     return buf;
   }
@@ -1172,8 +1594,18 @@ export class UnifiedAudioEngine {
             }
 
             if (isHit) {
-              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}`);
+              // Get velocity for this step
+              let vel = 0.7; // default normal
+              if (this.overflowMode === 'loop') {
+                const patternStep = step % instrumentData.steps.length;
+                vel = (instrumentData as any).velocities?.[patternStep] ?? 0.7;
+              } else {
+                vel = (instrumentData as any).velocities?.[step] ?? 0.7;
+              }
+              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}, vel ${vel}`);
+              (this as any).__currentVelocity = vel;
               this.scheduleInstrumentHit(instrumentName, stepTime);
+              (this as any).__currentVelocity = undefined;
             }
           });
         }
@@ -1208,6 +1640,8 @@ export class UnifiedAudioEngine {
 
     const envelope = this.audioContext.createGain();
     const lowerName = instrumentName.toLowerCase();
+    // Determine velocity for this hit (default 0.7 = normal)
+    const velocity = (this as any).__currentVelocity ?? 0.7;
     const hasInstrumentEffects = !!(
       this.currentPattern?.eqModules?.[lowerName] ||
       this.currentPattern?.ampModules?.[lowerName] ||
@@ -1236,12 +1670,29 @@ export class UnifiedAudioEngine {
       source.buffer = sampleBuffer;
       source.connect(envelope);
       const gainSteps = this.currentPattern?.sampleModules?.[lowerName]?.gain ?? 0;
-      envelope.gain.setValueAtTime(this.stepsToLinear(gainSteps), time);
+      const baseGain = this.stepsToLinear(gainSteps) * velocity;
+      const envCfg = this.currentPattern?.envelopeModules?.[lowerName];
+      if (envCfg) {
+        // ADSR envelope
+        const peakGain = baseGain;
+        const sustainGain = peakGain * envCfg.sustain;
+        envelope.gain.setValueAtTime(0, time);
+        envelope.gain.linearRampToValueAtTime(peakGain, time + envCfg.attack);
+        envelope.gain.linearRampToValueAtTime(sustainGain, time + envCfg.attack + envCfg.decay);
+        // Hold sustain, then release
+        const holdEnd = time + Math.max(sampleBuffer.duration, envCfg.attack + envCfg.decay + 0.05);
+        envelope.gain.setValueAtTime(sustainGain, holdEnd);
+        envelope.gain.linearRampToValueAtTime(0.001, holdEnd + envCfg.release);
+        source.start(time);
+        source.stop(holdEnd + envCfg.release + 0.01);
+      } else {
+        envelope.gain.setValueAtTime(baseGain, time);
+        source.start(time);
+        source.stop(time + Math.min(sampleBuffer.duration + 0.01, 1.5));
+      }
       // Track and schedule
       this.activeNoiseSources.push(source);
       scheduledNoise = source;
-      source.start(time);
-      source.stop(time + Math.min(sampleBuffer.duration + 0.01, 1.5));
     } else {
       // Fall back to synthesized sounds
       const oscillator = this.audioContext.createOscillator();
@@ -1251,16 +1702,30 @@ export class UnifiedAudioEngine {
       this.activeOscillators.push(oscillator);
 
       switch (lowerName) {
-        case 'kick':
+        case 'kick': {
+          const noteFreq = this.currentPattern?.noteModules?.[lowerName]?.pitch ?? 60;
           oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(60, time);
-          oscillator.frequency.exponentialRampToValueAtTime(30, time + 0.1);
-          envelope.gain.setValueAtTime(0.8, time);
-          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
-          oscillator.start(time);
-          oscillator.stop(time + 0.2);
+          oscillator.frequency.setValueAtTime(noteFreq, time);
+          oscillator.frequency.exponentialRampToValueAtTime(noteFreq * 0.5, time + 0.1);
+          const envK = this.currentPattern?.envelopeModules?.[lowerName];
+          if (envK) {
+            envelope.gain.setValueAtTime(0, time);
+            envelope.gain.linearRampToValueAtTime(0.8 * velocity, time + envK.attack);
+            envelope.gain.linearRampToValueAtTime(0.8 * velocity * envK.sustain, time + envK.attack + envK.decay);
+            const endK = time + envK.attack + envK.decay + 0.05;
+            envelope.gain.setValueAtTime(0.8 * velocity * envK.sustain, endK);
+            envelope.gain.linearRampToValueAtTime(0.001, endK + envK.release);
+            oscillator.start(time);
+            oscillator.stop(endK + envK.release + 0.01);
+          } else {
+            envelope.gain.setValueAtTime(0.8 * velocity, time);
+            envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.2);
+            oscillator.start(time);
+            oscillator.stop(time + 0.2);
+          }
           break;
-        case 'snare':
+        }
+        case 'snare': {
           // Quick noise burst
           const bufferSize = this.audioContext.sampleRate * 0.1;
           const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
@@ -1271,27 +1736,66 @@ export class UnifiedAudioEngine {
           noise.connect(envelope);
           this.activeNoiseSources.push(noise);
           scheduledNoise = noise;
-          envelope.gain.setValueAtTime(0.3, time);
-          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-          noise.start(time);
-          noise.stop(time + 0.1);
+          const envS = this.currentPattern?.envelopeModules?.[lowerName];
+          if (envS) {
+            envelope.gain.setValueAtTime(0, time);
+            envelope.gain.linearRampToValueAtTime(0.3 * velocity, time + envS.attack);
+            envelope.gain.linearRampToValueAtTime(0.3 * velocity * envS.sustain, time + envS.attack + envS.decay);
+            const endS = time + envS.attack + envS.decay + 0.02;
+            envelope.gain.setValueAtTime(0.3 * velocity * envS.sustain, endS);
+            envelope.gain.linearRampToValueAtTime(0.001, endS + envS.release);
+            noise.start(time);
+            noise.stop(endS + envS.release + 0.01);
+          } else {
+            envelope.gain.setValueAtTime(0.3 * velocity, time);
+            envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            noise.start(time);
+            noise.stop(time + 0.1);
+          }
           break;
-        case 'hihat':
+        }
+        case 'hihat': {
           oscillator.type = 'square';
           oscillator.frequency.setValueAtTime(8000, time);
-          envelope.gain.setValueAtTime(0.1, time);
-          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
-          oscillator.start(time);
-          oscillator.stop(time + 0.05);
+          const envH = this.currentPattern?.envelopeModules?.[lowerName];
+          if (envH) {
+            envelope.gain.setValueAtTime(0, time);
+            envelope.gain.linearRampToValueAtTime(0.1 * velocity, time + envH.attack);
+            envelope.gain.linearRampToValueAtTime(0.1 * velocity * envH.sustain, time + envH.attack + envH.decay);
+            const endH = time + envH.attack + envH.decay + 0.02;
+            envelope.gain.linearRampToValueAtTime(0.001, endH + envH.release);
+            oscillator.start(time);
+            oscillator.stop(endH + envH.release + 0.01);
+          } else {
+            envelope.gain.setValueAtTime(0.1 * velocity, time);
+            envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.05);
+            oscillator.start(time);
+            oscillator.stop(time + 0.05);
+          }
           break;
-        default:
+        }
+        default: {
+          const noteFreqDef = this.currentPattern?.noteModules?.[lowerName]?.pitch ?? 440;
           oscillator.type = 'sine';
-          oscillator.frequency.setValueAtTime(440, time);
-          envelope.gain.setValueAtTime(0.3, time);
-          envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
-          oscillator.start(time);
-          oscillator.stop(time + 0.1);
+          oscillator.frequency.setValueAtTime(noteFreqDef, time);
+          const envD = this.currentPattern?.envelopeModules?.[lowerName];
+          if (envD) {
+            envelope.gain.setValueAtTime(0, time);
+            envelope.gain.linearRampToValueAtTime(0.3 * velocity, time + envD.attack);
+            envelope.gain.linearRampToValueAtTime(0.3 * velocity * envD.sustain, time + envD.attack + envD.decay);
+            const endD = time + envD.attack + envD.decay + 0.05;
+            envelope.gain.setValueAtTime(0.3 * velocity * envD.sustain, endD);
+            envelope.gain.linearRampToValueAtTime(0.001, endD + envD.release);
+            oscillator.start(time);
+            oscillator.stop(endD + envD.release + 0.01);
+          } else {
+            envelope.gain.setValueAtTime(0.3 * velocity, time);
+            envelope.gain.exponentialRampToValueAtTime(0.01, time + 0.1);
+            oscillator.start(time);
+            oscillator.stop(time + 0.1);
+          }
           break;
+        }
       }
     }
 

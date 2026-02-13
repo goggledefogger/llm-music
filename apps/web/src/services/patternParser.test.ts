@@ -211,7 +211,7 @@ seq snare: x...x...`;
       const validation = PatternParser.validate(pattern);
 
       expect(validation.isValid).toBe(false);
-      expect(validation.errors).toContain("Invalid pattern characters in kick. Use only 'x' and '.'");
+      expect(validation.errors).toContain("Invalid pattern characters in kick. Use only 'x', 'X', 'o', and '.'");
       expect(validation.invalidInstruments).toContain('kick');
     });
 
