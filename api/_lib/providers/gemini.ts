@@ -36,9 +36,16 @@ export async function streamGemini(
   }
 
   const chat = model.startChat({ history });
+  console.time('[ai/gemini] sendMessageStream');
   const result = await chat.sendMessageStream(lastMessage.content);
+  console.timeEnd('[ai/gemini] sendMessageStream');
 
+  let firstChunk = true;
   for await (const chunk of result.stream) {
+    if (firstChunk) {
+      console.log('[ai/gemini] first chunk received');
+      firstChunk = false;
+    }
     const text = chunk.text();
     if (text) {
       res.write(`data: ${JSON.stringify({ content: text })}\n\n`);

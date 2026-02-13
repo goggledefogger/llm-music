@@ -368,7 +368,9 @@ nano .env.local
 pnpm validate-env
 
 # 4. Start development
-pnpm dev
+pnpm dev:web
+# In a separate terminal if working on AI
+pnpm dev:api
 
 # 5. Deploy to production
 pnpm deploy

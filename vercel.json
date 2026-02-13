@@ -1,57 +1,12 @@
 {
   "version": 2,
   "buildCommand": "pnpm build",
+  "devCommand": "vite apps/web --port 3001",
   "outputDirectory": "apps/web/dist",
-  "installCommand": "pnpm install",
   "framework": null,
-  "env": {
-    "NODE_ENV": "production"
-  },
-  "headers": [
-    {
-      "source": "/(.*)",
-      "headers": [
-        {
-          "key": "X-Content-Type-Options",
-          "value": "nosniff"
-        },
-        {
-          "key": "X-Frame-Options",
-          "value": "DENY"
-        },
-        {
-          "key": "X-XSS-Protection",
-          "value": "1; mode=block"
-        },
-        {
-          "key": "Referrer-Policy",
-          "value": "strict-origin-when-cross-origin"
-        }
-      ]
-    },
-    {
-      "source": "/assets/(.*)",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "public, max-age=31536000, immutable"
-        }
-      ]
-    }
-  ],
   "functions": {
     "api/**/*.ts": {
       "maxDuration": 30
     }
-  },
-  "rewrites": [
-    {
-      "source": "/api/ai/generate",
-      "destination": "/api/ai/generate"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ]
+  }
 }

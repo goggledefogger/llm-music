@@ -107,6 +107,14 @@ export interface SampleModule {
   gain?: number;
 }
 
+export type GrooveType = 'swing' | 'humanize' | 'rush' | 'drag';
+
+export interface GrooveModule {
+  name: string; // 'master' or instrument name
+  type: GrooveType;
+  amount: number; // 0..1 (intensity)
+}
+
 export interface ParsedPattern {
   tempo: number;
   instruments: {
@@ -157,6 +165,9 @@ export interface ParsedPattern {
   };
   noteModules?: {
     [moduleName: string]: NoteModule;
+  };
+  grooveModules?: {
+    [moduleName: string]: GrooveModule;
   };
   totalSteps: number;
 }

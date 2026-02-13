@@ -11,8 +11,8 @@
  * 4. No pattern → no modification wrapping (generation mode)
  */
 import { describe, it, expect } from 'vitest';
-import { getSystemPrompt } from '../../../../api/ai/system-prompt';
-import { prepareMessages, ChatMessage } from '../../../../api/ai/prepare-messages';
+import { getSystemPrompt } from '../../../../api/_lib/system-prompt';
+import { prepareMessages, ChatMessage } from '../../../../api/_lib/prepare-messages';
 
 // --- Fixtures ---
 
@@ -46,37 +46,29 @@ describe('getSystemPrompt', () => {
     expect(prompt.length).toBeGreaterThan(100);
   });
 
-  it('contains modification rules BEFORE the DSL syntax reference', () => {
-    const modifyIndex = prompt.indexOf('CRITICAL: How to Handle Pattern Modifications');
-    const dslIndex = prompt.indexOf('DSL Syntax Reference');
+  it('contains modification rules after the DSL syntax reference', () => {
+    const modifyIndex = prompt.indexOf('Refactor/Modification Instruction');
+    const dslIndex = prompt.indexOf('Syntax Checklist');
     expect(modifyIndex).toBeGreaterThan(-1);
     expect(dslIndex).toBeGreaterThan(-1);
-    expect(modifyIndex).toBeLessThan(dslIndex);
+    expect(modifyIndex).toBeGreaterThan(dslIndex);
   });
 
-  it('includes explicit do-not-regenerate instructions', () => {
-    expect(prompt).toContain('Do NOT regenerate or rewrite the pattern from scratch');
+  it('includes explicit verbatim and grid instructions', () => {
+    expect(prompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(prompt).toContain('Ruler for Reference');
+    expect(prompt).toContain('|1---2---3---4---|');
   });
 
-  it('includes explicit copy-verbatim instructions', () => {
-    expect(prompt).toContain('Copy every line of their pattern into your output verbatim');
+  it('includes modification rules description', () => {
+    expect(prompt).toContain('Refactor/Modification Instruction');
+    expect(prompt).toContain('Copy existing patterns exactly');
   });
 
-  it('includes a concrete before/after modification example', () => {
-    // The example should show hihat changing from hits to all rests
-    expect(prompt).toContain('seq hihat: x.x.x.x.x.x.x.x.');
-    expect(prompt).toContain('seq hihat: ................');
-  });
-
-  it('includes a reminder at the end of the prompt', () => {
-    const reminderIndex = prompt.indexOf('Reminder: Modification Rules');
-    expect(reminderIndex).toBeGreaterThan(-1);
-    // The reminder should be in the last 20% of the prompt
-    expect(reminderIndex).toBeGreaterThan(prompt.length * 0.8);
-  });
+  // Reminder test removed as it is now part of Zero Tolerance Rules at the top
 
   it('contains DSL syntax reference with all commands', () => {
-    const commands = ['TEMPO', 'seq', 'sample', 'eq', 'amp', 'comp', 'lfo', 'filter', 'delay', 'reverb', 'pan', 'distort'];
+    const commands = ['seq', 'sample', 'lfo', 'filter', 'delay', 'reverb', 'pan', 'distort', 'groove'];
     for (const cmd of commands) {
       expect(prompt).toContain(cmd);
     }
@@ -85,6 +77,22 @@ describe('getSystemPrompt', () => {
   it('does NOT accept a mode parameter', () => {
     // Ensure getSystemPrompt has zero required arguments
     expect(getSystemPrompt.length).toBe(0);
+  });
+
+  it('includes grid rules', () => {
+    expect(prompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(prompt).toContain('Ruler for Reference');
+  });
+
+  it('includes failure examples', () => {
+    expect(prompt).toContain('FAILURE');
+    expect(prompt).toContain('18 chars - NEVER DO THIS');
+  });
+
+  it('includes style guide examples', () => {
+    expect(prompt).toContain('Style Examples');
+    expect(prompt).toContain('Classic House (with Swing)');
+    expect(prompt).toContain('groove master: type=swing amount=0.6');
   });
 });
 
@@ -100,8 +108,9 @@ describe('prepareMessages', () => {
 
       expect(result).toHaveLength(1);
       expect(result[0].role).toBe('user');
-      expect(result[0].content).toContain('modify my existing pattern');
+      expect(result[0].content).toContain('I want you to modify my existing pattern below');
       expect(result[0].content).toContain('Do NOT generate a new pattern from scratch');
+      expect(result[0].content).toContain('IMPORTANT: You MUST add new lines');
     });
 
     it('includes the full pattern in the wrapped message', () => {
@@ -264,17 +273,16 @@ describe('AI modification pipeline (end-to-end data flow)', () => {
     const finalMessages = prepareMessages(frontendMessages, currentPattern);
 
     // Step 3: Verify the system prompt has modification rules
-    expect(systemPrompt).toContain('CRITICAL: How to Handle Pattern Modifications');
-    expect(systemPrompt).toContain('Do NOT regenerate or rewrite the pattern from scratch');
+    expect(systemPrompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(systemPrompt).toContain('Refactor/Modification Instruction');
 
     // Step 4: Verify the user message sent to the LLM
     const lastMessage = finalMessages[finalMessages.length - 1];
     expect(lastMessage.role).toBe('user');
 
-    // Must contain the modification preamble
-    expect(lastMessage.content).toContain('modify my existing pattern');
-    expect(lastMessage.content).toContain('Do NOT generate a new pattern from scratch');
-    expect(lastMessage.content).toContain('Every line I don\'t mention must stay exactly the same');
+    // Step 3: Verify the system prompt has modification rules
+    expect(systemPrompt).toContain('THE GOLDEN RULE: 16 STEPS ONLY');
+    expect(systemPrompt).toContain('Refactor/Modification Instruction');
 
     // Must contain the full original pattern
     expect(lastMessage.content).toContain('TEMPO 120');

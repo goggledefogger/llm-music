@@ -11,7 +11,15 @@ export class PatternParser {
    * Phase 1: Very basic parsing - just tempo and simple sequences
    */
   static parse(pattern: string): ParsedPattern {
-    const lines = pattern.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    // 1. Split lines and strip comments (inline # and //)
+    const lines = pattern.split('\n').map(line => {
+      // Remove comments starting with # or //
+      const commentIndex = line.search(/(\/\/|#)/);
+      if (commentIndex >= 0) {
+        return line.substring(0, commentIndex).trim();
+      }
+      return line.trim();
+    }).filter(line => line.length > 0);
 
     let tempo = this.DEFAULT_TEMPO;
     const instruments: ParsedPattern['instruments'] = {};
@@ -29,6 +37,7 @@ export class PatternParser {
     const chorusModules: ParsedPattern['chorusModules'] = {};
     const phaserModules: ParsedPattern['phaserModules'] = {};
     const noteModules: ParsedPattern['noteModules'] = {};
+    const grooveModules: ParsedPattern['grooveModules'] = {};
 
     for (const line of lines) {
       // Parse tempo
@@ -209,6 +218,19 @@ export class PatternParser {
         continue;
       }
 
+      // Parse GROOVE modules
+      if (line.startsWith('groove ')) {
+        const grooveMatch = line.match(/groove\s+(\w+):\s*(.+)/);
+        if (grooveMatch) {
+          const [, moduleName, grooveString] = grooveMatch;
+          const grooveModule = this.parseGrooveString(moduleName, grooveString);
+          if (grooveModule) {
+            grooveModules[moduleName.toLowerCase()] = grooveModule;
+          }
+        }
+        continue;
+      }
+
       // Parse LFO modules: lfo target: rate=5Hz depth=0.5 wave=sine
       if (line.startsWith('lfo ')) {
         const lfoMatch = line.match(/lfo\s+([^:]+):\s*(.+)/);
@@ -263,6 +285,7 @@ export class PatternParser {
       chorusModules,
       phaserModules,
       noteModules,
+      grooveModules,
       totalSteps
     };
   }
@@ -687,6 +710,27 @@ export class PatternParser {
     // Convert MIDI to Hz: f = 440 * 2^((n-69)/12)
     const freq = 440 * Math.pow(2, (clampedMidi - 69) / 12);
     return { name: moduleName.toLowerCase(), pitch: freq };
+  }
+
+  /**
+   * Parse GROOVE string like "type=swing amount=0.5"
+   */
+  private static parseGrooveString(moduleName: string, grooveString: string): { name: string; type: 'swing' | 'humanize' | 'rush' | 'drag'; amount: number } | null {
+    const pairs = Array.from(grooveString.matchAll(/(type|amount)\s*=\s*([^\s]+)/gi));
+    const map: Record<string, string> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = String(value);
+    }
+
+    const typeStr = map['type']?.toLowerCase();
+    const allowedTypes = ['swing', 'humanize', 'rush', 'drag'];
+    const type = (allowedTypes.includes(typeStr) ? typeStr : 'swing') as 'swing' | 'humanize' | 'rush' | 'drag';
+
+    let amount = parseFloat(map['amount']);
+    if (Number.isNaN(amount)) amount = 0.5;
+    amount = Math.max(0, Math.min(1, amount));
+
+    return { name: moduleName.toLowerCase(), type, amount };
   }
 
   /**

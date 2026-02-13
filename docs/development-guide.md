@@ -165,6 +165,18 @@ pnpm deploy           # Full deployment with all checks
 pnpm deploy:staging   # Deploy to staging environment
 pnpm deploy:prod      # Deploy to production
 pnpm deploy:quick     # Quick deployment (skip tests)
+
+### Local API Development (CRITICAL)
+When developing features that involve the backend (like the AI assistant), **do not use `pnpm dev:web`**.
+The Vite dev server by default proxies `/api` to the production URL (`llm-music.roytown.net`), which means your local API changes will not be reflected.
+
+**Correct Command for Local API Development**:
+```bash
+vercel dev --listen 3000
+```
+This command runs both the frontend and the local serverless functions on port 3000, ensuring your local `api/` changes are actually being called.
+
+---
 ```
 
 ### Web App Specific Commands
@@ -317,6 +329,32 @@ lfo snare.filter.freq: rate=1Hz depth=0.6 wave=triangle
   - `depth`: 0..1
   - `wave`: `sine | triangle | square | sawtooth`
 
+  - `wave`: `sine | triangle | square | sawtooth`
+
+### Groove & Feel Syntax (Added Feb 2026)
+
+Groove modules affect the timing of patterns to create a "human" or "swing" feel:
+
+```ascii
+# Groove Settings
+groove master: type=swing amount=0.5
+groove hihat: type=humanize amount=0.3
+```
+
+**Groove Syntax:**
+- `groove name:`: Defines a groove module for an instrument or `master`
+- `type`: `swing` (MPC style), `humanize` (random), `rush` (ahead), `drag` (behind)
+- `amount`: 0..1 (intensity)
+
+**Groove Features:**
+- Per-instrument or master
+- Real-time updates without stopping playback
+
+### Comment Syntax
+- Lines starting with `#` are ignored.
+- Inline comments starting with `#` or `//` are ignored.
+- Example: `seq kick: x... # clean kick`
+
 ### ADSR Envelope Module Syntax
 
 Envelope modules shape the amplitude of each note for an instrument:
@@ -380,6 +418,25 @@ seq kick: x...x...x...x...
 eq kick: low=5 mid=invalid high=1  # Error: Invalid EQ values
 seq kick: x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...x...  # Warning: Too many steps
 ```
+
+## AI Development Rules
+
+The AI Assistant follows a strict **"Constraint-First"** approach to maintain pattern integrity.
+
+### 1. The 16-Step Golden Rule
+All `seq` lines MUST be exactly 16 characters long. The sequencer interprets each character as a 16th note.
+- **AI Rule**: The system prompt contains a "Visual Ruler" (`|1---2---3---4---|`) to help the LLM maintain this length.
+- **Fail Case**: If the AI returns 18 steps, the patterns will drift and break the loop.
+
+### 2. No Manual Swing
+- **AI Rule**: The AI is forbidden from adding extra dots (`.`) to simulate swing.
+- **Correct Method**: Use `groove master: type=swing amount=0.6`. This applies real-time timing offsets in the audio engine without breaking the 16-step grid.
+
+### 3. Progressive Modification
+When modifying a pattern, the AI is instructed to:
+1. Start from the exact existing code.
+2. Add new lines (like `groove` or `sample`) rather than rewriting everything.
+3. Preserve comments and structure.
 
 ## Pattern Loading System
 

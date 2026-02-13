@@ -70,6 +70,9 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 5. **Open your browser**
    Navigate to `http://localhost:3000`
 
+> [!IMPORTANT]
+> **API Development**: If you are working on the AI or backend, run `pnpm dev:api` instead of `vercel dev`. The standalone Express server handles local ESM correctly and avoids the latency/hang issues sometimes seen with `vercel dev` in complex mono-repos.
+
 ## Example Usage
 
 ### Basic Pattern
@@ -301,6 +304,8 @@ seq hihat: x.x.x.x.x.x.x.x.
 | `phaser` | `phaser master: rate=0.5 depth=0.6 stages=4 mix=0.3` | Phaser; stages: 2, 4, 6, 8, 12 |
 | `note` | `note bass: 36` or `note lead: 440hz` | Pitch assignment (MIDI 0–127 or Hz) |
 | `lfo` | `lfo kick.amp: rate=5Hz depth=0.5 wave=sine` | LFO modulation; targets: amp, filter.freq, filter.q, pan, delay.time, delay.feedback |
+| `groove` | `groove master: type=swing amount=0.5` | Timing feel; types: swing, humanize, rush, drag |
+| `#` / `//` | `# Comment` or `seq k: x... // comment` | Inline comments are ignored |
 
 ## AI Assistant
 

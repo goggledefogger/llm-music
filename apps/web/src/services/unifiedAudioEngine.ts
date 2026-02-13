@@ -1551,44 +1551,76 @@ export class UnifiedAudioEngine {
 
       // Schedule steps in this loop
       for (let step = startStep; step < endStep; step++) {
-        const stepTime = loopStartTime + (step * stepInterval);
+        const baseStepTime = loopStartTime + (step * stepInterval);
 
-        // Only schedule if the step time is in the future
-        if (stepTime >= currentTime) {
-          // Check each instrument for hits at this step
-          Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-            if (instrumentData.steps.length === 0) return;
+        // Check each instrument for hits at this step
+        Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+          if (instrumentData.steps.length === 0) return;
 
-            let isHit = false;
-            if (this.overflowMode === 'loop') {
-              // Wrap shorter instruments
-              const patternStep = step % instrumentData.steps.length;
-              isHit = instrumentData.steps[patternStep] === true;
+          let isHit = false;
+          let velocity = 0.7;
+
+          // Determine hit and velocity based on overflow mode
+          if (this.overflowMode === 'loop') {
+            const patternStep = step % instrumentData.steps.length;
+            isHit = instrumentData.steps[patternStep] === true;
+            velocity = (instrumentData as any).velocities?.[patternStep] ?? 0.7;
+          } else {
+            if (step < instrumentData.steps.length) {
+              isHit = instrumentData.steps[step] === true;
+              velocity = (instrumentData as any).velocities?.[step] ?? 0.7;
             } else {
-              // Rest beyond instrument length
-              if (step < instrumentData.steps.length) {
-                isHit = instrumentData.steps[step] === true;
-              } else {
-                isHit = false;
-              }
+              isHit = false;
+            }
+          }
+
+          if (isHit) {
+            // Apply Groove/Swing
+            // Check for instrument-specific groove, fallback to master
+            const groove = this.currentPattern?.grooveModules?.[instrumentName.toLowerCase()] ||
+                           this.currentPattern?.grooveModules?.['master'];
+
+            let grooveOffset = 0;
+            if (groove) {
+                const amount = groove.amount; // 0..1
+                if (groove.type === 'swing') {
+                    // Classic swing: delay every even-numbered step (1, 3, 5...)
+                    // Assuming step 0 is on-beat, step 1 is off-beat
+                    if (step % 2 === 1) {
+                        // Max swing (amount=1) approximates triplet feel (66% / 33%)
+                        // Standard 16th is 50/50. Triplet is 66/33.
+                        // We want to push the off-beat later.
+                        // stepInterval is one 16th note duration.
+                        // amount=1 -> shift by 1/3 of stepInterval?
+                        // Let's say amount=1 roughly gives MPC 66% swing.
+                        // That means the second note starts at 66% instead of 50%.
+                        // So offset is 0.16 * stepInterval * amount?
+                        // Actually, simplified: offset by up to 1/3 of a step.
+                        grooveOffset = amount * stepInterval * 0.33;
+                    }
+                } else if (groove.type === 'humanize') {
+                    // Random micro-timing +/- 25ms at max
+                    grooveOffset = (Math.random() - 0.5) * amount * 0.05;
+                } else if (groove.type === 'rush') {
+                    // Constant push ahead (negative offset)
+                    grooveOffset = -amount * 0.03;
+                } else if (groove.type === 'drag') {
+                    // Constant drag behind (positive offset)
+                    grooveOffset = amount * 0.03;
+                }
             }
 
-            if (isHit) {
-              // Get velocity for this step
-              let vel = 0.7; // default normal
-              if (this.overflowMode === 'loop') {
-                const patternStep = step % instrumentData.steps.length;
-                vel = (instrumentData as any).velocities?.[patternStep] ?? 0.7;
-              } else {
-                vel = (instrumentData as any).velocities?.[step] ?? 0.7;
-              }
-              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}, vel ${vel}`);
-              (this as any).__currentVelocity = vel;
+            const stepTime = baseStepTime + grooveOffset;
+
+            // Only schedule if the step time with groove is in the future
+            if (stepTime >= currentTime) {
+              // console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}, vel ${velocity}`);
+              (this as any).__currentVelocity = velocity;
               this.scheduleInstrumentHit(instrumentName, stepTime);
               (this as any).__currentVelocity = undefined;
             }
-          });
-        }
+          }
+        });
       }
     }
 

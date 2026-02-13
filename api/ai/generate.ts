@@ -6,13 +6,15 @@
  * Streams the LLM response back via SSE.
  */
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import { verifyAuth } from './auth.js';
-import { getSystemPrompt } from './system-prompt.js';
-import { prepareMessages } from './prepare-messages.js';
-import type { ChatMessage } from './prepare-messages.js';
-import { streamOpenAI } from './providers/openai.js';
-import { streamAnthropic } from './providers/anthropic.js';
-import { streamGemini } from './providers/gemini.js';
+import { verifyAuth } from '../_lib/auth.js';
+import { getSystemPrompt } from '../_lib/system-prompt.js';
+import { prepareMessages } from '../_lib/prepare-messages.js';
+import type { ChatMessage } from '../_lib/prepare-messages.js';
+import { streamOpenAI } from '../_lib/providers/openai.js';
+import { streamAnthropic } from '../_lib/providers/anthropic.js';
+import { streamGemini } from '../_lib/providers/gemini.js';
+
+console.log('[API] generate.ts module loading...');
 
 export type { ChatMessage };
 
@@ -34,19 +36,25 @@ export default async function handler(
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
+    console.log('--- API OPTIONS REQUEST ---');
     res.status(200).end();
     return;
   }
 
   // Only accept POST
   if (req.method !== 'POST') {
+    console.log('--- API NON-POST REQUEST ---', req.method);
     res.setHeader('Allow', 'POST');
     res.status(405).json({ error: 'Method not allowed' });
     return;
   }
 
+  console.log('--- API POST REQUEST START ---');
+
   // Verify authentication
+  console.time('[ai/generate] verifyAuth');
   const authUser = await verifyAuth(req);
+  console.timeEnd('[ai/generate] verifyAuth');
   if (!authUser) {
     res.status(401).json({ error: 'Unauthorized — valid auth token required' });
     return;
@@ -79,10 +87,14 @@ export default async function handler(
   }
 
   // Build the system prompt (unified, no mode parameter)
+  console.time('[ai/generate] getSystemPrompt');
   const systemPrompt = getSystemPrompt();
+  console.timeEnd('[ai/generate] getSystemPrompt');
 
   // Prepare messages (injects pattern into last user message if present)
+  console.time('[ai/generate] prepareMessages');
   const messages = prepareMessages(body.messages, body.currentPattern);
+  console.timeEnd('[ai/generate] prepareMessages');
 
   // Set SSE headers
   res.setHeader('Content-Type', 'text/event-stream');

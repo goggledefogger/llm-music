@@ -17,7 +17,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'https://llm-music.roytown.net',
+        target: 'http://localhost:3000',
         changeOrigin: true,
       },
     },
