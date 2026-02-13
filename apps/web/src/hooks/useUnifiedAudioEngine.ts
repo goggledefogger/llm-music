@@ -93,7 +93,7 @@ export const useUnifiedAudioEngine = () => {
   }, []);
 
   // Audio control functions
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     if (!state.isInitialized) {
       setState(prev => ({
         ...prev,
@@ -103,7 +103,7 @@ export const useUnifiedAudioEngine = () => {
     }
 
     try {
-      unifiedAudioEngine.play();
+      await unifiedAudioEngine.play();
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to play';

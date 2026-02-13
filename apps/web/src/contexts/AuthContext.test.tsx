@@ -21,11 +21,11 @@ describe('AuthContext', () => {
     });
   });
 
-  it('throws when useAuth is used outside AuthProvider', () => {
+  it('throws when useAuth is used outside AuthProvider', async () => {
     // Render without the provider wrapper
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { render: rawRender } = await import('@testing-library/react');
     expect(() => {
-      const { render: rawRender } = require('@testing-library/react');
       rawRender(<AuthStatus />);
     }).toThrow('useAuth must be used within an AuthProvider');
     spy.mockRestore();

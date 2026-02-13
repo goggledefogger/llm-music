@@ -15,6 +15,7 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 - 🥁 **12 Procedural Samples**: kick, snare, hihat, clap, kick808, rim, tom, cowbell, shaker, crash, openhat, perc
 - 🎯 **Velocity Dynamics**: `X` (accent), `x` (normal), `o` (ghost note) for expressive patterns
 - 🎼 **Note/Pitch System**: Assign MIDI notes or Hz frequencies to any instrument
+- 🎶 **Groove & Swing**: Subdivision-aware swing (8th/16th/quarter), humanize, rush, drag — per-instrument or master
 - 🔊 **LFO Modulation**: Route LFOs to amp, filter, pan, delay time/feedback
 - 🤖 **AI Assistant**: Generate and modify patterns with natural language
 - 🎧 **Real-time Audio**: Web Audio API engine with live parameter updates
@@ -69,6 +70,9 @@ A browser-based music sequencer that combines ASCII pattern notation with AI ass
 
 5. **Open your browser**
    Navigate to `http://localhost:3000`
+
+> [!IMPORTANT]
+> **API Development**: If you are working on the AI or backend, run `pnpm dev:api` instead of `vercel dev`. The standalone Express server handles local ESM correctly and avoids the latency/hang issues sometimes seen with `vercel dev` in complex mono-repos.
 
 ## Example Usage
 
@@ -177,6 +181,38 @@ seq snare: ....x.......x...
 seq hihat: x.x.x.x.x.x.x.x.
 seq bass: x...x...x...x...
 seq lead: ....x.......x...
+```
+
+### Groove & Swing
+Add swing, humanize, rush, or drag feel without manually shifting notes:
+
+```ascii
+TEMPO 124
+
+# 8th-note swing (default) — standard swing feel
+groove master: type=swing amount=0.6 subdivision=8n
+
+seq kick:  X...X...X...X...
+seq snare: ....X.......X...
+seq hihat: x.x.x.x.x.x.x.x.
+```
+
+Subdivision controls which rhythmic level swing operates at:
+- `8n` (default) — delays off-beat 8th notes, standard swing
+- `16n` — delays off-beat 16th notes, subtle hi-hat shuffle
+- `4n` — delays off-beat quarter notes, half-time feel
+
+Other groove types:
+```ascii
+TEMPO 88
+
+# Per-instrument groove for a J Dilla lazy feel
+groove kick: type=drag amount=0.3
+groove hihat: type=humanize amount=0.4 steps=all
+
+seq kick:  X..x..x...X.x...
+seq snare: ....X..o....X...
+seq hihat: x.x.x.x.x.x.x.x.
 ```
 
 ## Environment Setup
@@ -301,11 +337,19 @@ seq hihat: x.x.x.x.x.x.x.x.
 | `phaser` | `phaser master: rate=0.5 depth=0.6 stages=4 mix=0.3` | Phaser; stages: 2, 4, 6, 8, 12 |
 | `note` | `note bass: 36` or `note lead: 440hz` | Pitch assignment (MIDI 0–127 or Hz) |
 | `lfo` | `lfo kick.amp: rate=5Hz depth=0.5 wave=sine` | LFO modulation; targets: amp, filter.freq, filter.q, pan, delay.time, delay.feedback |
+| `groove` | `groove master: type=swing amount=0.5 steps=odd subdivision=16` | Timing feel; types: `swing` (can target specific `steps` like `odd`, `even`, `all`, or a comma-separated list `1,5,9`), `humanize`, `rush`, `drag`. `subdivision` (e.g., `16`, `8`) defines the grid for swing. |
+| `#` / `//` | `# Comment` or `seq k: x... // comment` | Inline comments are ignored |
+
+### `note <instrument>: <pitch>`
+Changes the pitch of an instrument.
+- `note kick: 40hz`
+- `note snare: C3`
+- `note lead: D#4`
+- `note bass: 55` (MIDI note)
 
 ## AI Assistant
 
 The AI assistant can help you:
-
 - Generate new patterns from descriptions
 - Modify existing patterns
 - Suggest improvements

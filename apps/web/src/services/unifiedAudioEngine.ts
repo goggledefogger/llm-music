@@ -1,7 +1,7 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
 import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, ChorusModule, PhaserModule } from '../types/app';
 import { PatternParser } from './patternParser';
-import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
+import * as Tone from 'tone';
 
 export interface ParameterUpdate {
   type: ParameterType;
@@ -28,6 +28,7 @@ export class UnifiedAudioEngine {
   private isPlaying = false;
   private isPaused = false;
   private currentPattern: ParsedPattern | null = null;
+  private tonePart: Tone.Part | null = null;
 
   // Audio context and nodes
   private audioContext: AudioContext | null = null;
@@ -55,6 +56,29 @@ export class UnifiedAudioEngine {
   private masterReverbWetGain: GainNode | null = null;
   private masterReverbMerge: GainNode | null = null;
 
+  // Dynamic master effects (chorus, distortion, phaser — created on first use)
+  private chorusDelay: DelayNode | null = null;
+  private chorusLFO: OscillatorNode | null = null;
+  private chorusLFOGain: GainNode | null = null;
+  private chorusDryGain: GainNode | null = null;
+  private chorusWetGain: GainNode | null = null;
+  private chorusMerge: GainNode | null = null;
+
+  private distortionNode: WaveShaperNode | null = null;
+  private distortionDryGain: GainNode | null = null;
+  private distortionWetGain: GainNode | null = null;
+  private distortionMerge: GainNode | null = null;
+
+  private phaserFilters: BiquadFilterNode[] | null = null;
+  private phaserLFO: OscillatorNode | null = null;
+  private phaserLFOGain: GainNode | null = null;
+  private phaserDryGain: GainNode | null = null;
+  private phaserWetGain: GainNode | null = null;
+  private phaserMerge: GainNode | null = null;
+
+  // Current velocity for the hit being scheduled (set by Tone.Part callback)
+  private currentVelocity: number = 0.7;
+
   // Per-instrument chains
   private instrumentChains: Map<string, {
     preGain: GainNode;
@@ -80,9 +104,7 @@ export class UnifiedAudioEngine {
     depth: number;
   }> = new Map();
 
-  // Real-time timing system (no pre-calculation)
-  private startTime: number = 0;
-  private pausePosition: number = 0;
+  // No longer using custom timing system, powered by Tone.Transport
 
   // Audio sources and scheduling
   private activeOscillators: OscillatorNode[] = [];
@@ -129,14 +151,14 @@ export class UnifiedAudioEngine {
     try {
       console.log('Initializing Unified Audio Engine...');
 
-      // Create AudioContext
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Use Tone.js context as our source of truth
+      this.audioContext = Tone.context.rawContext as AudioContext;
 
-      // Create audio graph
-      this.masterGain = this.audioContext.createGain();
+      // Create audio graph using the shared context
+      this.masterGain = Tone.context.createGain();
       this.masterGain.gain.value = 1.0;
 
-      this.volumeGain = this.audioContext.createGain();
+      this.volumeGain = Tone.context.createGain();
       this.volumeGain.gain.value = 0.5; // Start at -6dB equivalent
 
       // Ensure master chain
@@ -148,11 +170,6 @@ export class UnifiedAudioEngine {
 
       // Preload a minimal sample bank (procedurally generated for MVP)
       await this.preloadDefaultSamples();
-
-      // Resume context if suspended
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
 
       this.isInitialized = true;
       console.log('Unified Audio Engine initialized successfully');
@@ -196,7 +213,7 @@ export class UnifiedAudioEngine {
         distort: newPattern.distortModules || {},
       });
 
-      console.log('Pattern loaded with real-time updates:', this.currentPattern);
+      console.log(`[Unified] Pattern loaded: ${Object.keys(this.currentPattern.instruments).length} instruments, ${this.currentPattern.tempo} BPM`);
     } catch (error) {
       console.error('Failed to load pattern:', error);
       throw new Error('Failed to load pattern');
@@ -206,7 +223,7 @@ export class UnifiedAudioEngine {
   /**
    * Play the pattern
    */
-  play(): void {
+  async play(): Promise<void> {
     if (!this.isInitialized || !this.audioContext) {
       throw new Error('Audio engine not initialized');
     }
@@ -220,33 +237,42 @@ export class UnifiedAudioEngine {
     }
 
     try {
-      console.log('Starting unified playback...');
+      // CRITICAL: Tone.start() must be the very first await to preserve the user gesture.
+      // It handles resuming the AudioContext.
+      await Tone.start();
 
-      // Clear any existing scheduled events and audio sources
+      if (Tone.context.state !== 'running') {
+        console.warn('[Audio] Warning: Tone.context is still NOT running after Tone.start()');
+      }
+
+      // Sync local context reference just in case it was swapped
+      this.audioContext = Tone.context.rawContext as AudioContext;
+
+      // Clear any existing scheduled events
       this.clearScheduledEvents();
       this.stopAllAudio();
 
-      // Calculate start time based on pause position
-      if (this.isPaused) {
-        this.startTime = this.audioContext.currentTime - this.pausePosition;
-        this.isPaused = false;
-        console.log(`Resuming from position: ${this.pausePosition.toFixed(3)}s`);
-      } else {
-        this.startTime = this.audioContext.currentTime;
-        this.pausePosition = 0;
-        console.log('Starting from beginning');
-      }
-
-      // Restore master gain
+      // Restore master gain (stopAllAudio sets it to 0 for instant mute)
       if (this.masterGain) {
         this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
       }
 
-      // Start scheduling
-      this.schedulePattern();
+      // Sync Tone Transport BPM
+      Tone.Transport.bpm.value = this.currentPattern.tempo;
+
+      // Ensure Tone.Part is up to date
+      this.rebuildTonePart();
+
+      // Start transport
+      if (this.isPaused) {
+        Tone.Transport.start();
+        this.isPaused = false;
+      } else {
+        Tone.Transport.position = 0;
+        Tone.Transport.start();
+      }
 
       this.isPlaying = true;
-      console.log('Unified playback started');
     } catch (error) {
       console.error('Failed to start playback:', error);
       throw new Error('Failed to start playback');
@@ -259,41 +285,30 @@ export class UnifiedAudioEngine {
   pause(): void {
     if (!this.isPlaying) return;
 
-    // Calculate current position
-    if (this.audioContext && this.startTime > 0) {
-      this.pausePosition = this.audioContext.currentTime - this.startTime;
-      // Keep position within loop bounds
-      const loopDuration = this.getLoopDuration();
-      if (loopDuration > 0) {
-        this.pausePosition = this.pausePosition % loopDuration;
-      }
-    }
+    Tone.Transport.pause();
 
-    // Stop all audio immediately
+    // Stop all active non-Tone audio immediately
     this.stopAllAudio();
-
-    // Clear scheduling
-    this.clearScheduledEvents();
 
     this.isPlaying = false;
     this.isPaused = true;
 
-    console.log(`Paused at position: ${this.pausePosition.toFixed(3)}s`);
+    console.log(`Paused via Tone.Transport at: ${Tone.Transport.position}`);
   }
 
   /**
    * Stop playback and reset
    */
   stop(): void {
+    Tone.Transport.stop();
+    Tone.Transport.position = 0;
+
     // Stop all audio immediately
     this.stopAllAudio();
 
     // Clear scheduling
-    this.clearScheduledEvents();
-
-    // Reset position
-    this.pausePosition = 0;
-    this.startTime = 0;
+    this.scheduledEvents.forEach(id => window.clearTimeout(id));
+    this.scheduledEvents = [];
 
     // Restore master gain
     if (this.masterGain && this.audioContext) {
@@ -303,7 +318,7 @@ export class UnifiedAudioEngine {
     this.isPlaying = false;
     this.isPaused = false;
 
-    console.log('Stopped and reset to beginning');
+    console.log('Stopped and reset via Tone.Transport');
   }
 
   /**
@@ -323,7 +338,7 @@ export class UnifiedAudioEngine {
       this.parameterHistory.shift();
     }
 
-    console.log(`[Unified] Updating ${type}:`, value);
+    // Debug: console.log(`[Unified] Updating ${type}:`, value);
 
     // Apply the parameter update
     switch (type) {
@@ -335,6 +350,10 @@ export class UnifiedAudioEngine {
         break;
       case 'effects':
         this.applyEffectsUpdate(value);
+        // Apply master effects that are handled by dedicated functions
+        if (value.chorus && value.chorus['master']) this.applyChorusEffect(value.chorus['master']);
+        if (value.phaser && value.phaser['master']) this.applyPhaserEffect(value.phaser['master']);
+        if (value.distort && value.distort['master']) this.applyDistortionEffect(value.distort['master']);
         break;
       case 'eq':
         this.applyEQUpdate(value);
@@ -356,7 +375,7 @@ export class UnifiedAudioEngine {
     const oldTempo = this.currentPattern.tempo;
     this.currentPattern.tempo = newTempo;
 
-    console.log(`[Unified] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
+    // Debug: console.log(`[Unified] Tempo change: ${oldTempo} -> ${newTempo} BPM`);
 
     // Apply real-time tempo change if currently playing
     if (this.isPlaying && this.audioContext) {
@@ -371,7 +390,7 @@ export class UnifiedAudioEngine {
     const oldPattern = this.currentPattern;
     this.currentPattern = newPattern;
 
-    console.log(`[Unified] Sequence updated - ${Object.keys(newPattern.instruments).length} instruments`);
+    // Debug: console.log(`[Unified] Sequence updated - ${Object.keys(newPattern.instruments).length} instruments`);
 
     // Apply real-time sequence change if currently playing
     if (this.isPlaying && this.audioContext) {
@@ -383,10 +402,11 @@ export class UnifiedAudioEngine {
    * Apply effects update in real-time
    */
   private applyEffectsUpdate(effectsConfig: any): void {
-    console.log(`[Unified] Effects updated:`, effectsConfig);
-    if (!this.audioContext) return;
+    // Debug: console.log(`[Unified] Effects updated:`, effectsConfig);
+    if (!Tone.context) return;
 
-    const now = this.audioContext.currentTime;
+    const ac = Tone.context.rawContext as AudioContext;
+    const now = ac.currentTime;
     // Master AMP
     const masterAmp = effectsConfig?.amp?.['master'];
     if (masterAmp && this.masterPreGain) {
@@ -515,62 +535,54 @@ export class UnifiedAudioEngine {
         chain.pan.pan.setValueAtTime(cfg.value, now);
       }
     });
+    Object.entries(this.currentPattern!.instruments).forEach(([name]) => {
+      const lowerName = name.toLowerCase();
+      const cfg = this.currentPattern?.delayModules?.[lowerName];
+      const chain = this.instrumentChains.get(lowerName);
 
-    // Apply per-instrument DELAY (send-style: insert a delay node in the instrument chain)
-    Object.entries(delayMods as Record<string, DelayModule>).forEach(([name, cfg]) => {
-      const lower = name.toLowerCase();
-      if (lower === 'master') return;
-      const chain = this.instrumentChains.get(lower);
-      if (chain) {
-        // Create per-instrument delay if not exists
+      if (chain && cfg) {
         if (!(chain as any).__delay) {
-          const dly = this.audioContext!.createDelay(2.0);
-          const fb = this.audioContext!.createGain();
-          const dryG = this.audioContext!.createGain();
-          const wetG = this.audioContext!.createGain();
-          const merge = this.audioContext!.createGain();
+          const dly = ac.createDelay(2.0);
+          const fb = ac.createGain();
+          const dryG = ac.createGain();
+          const wetG = ac.createGain();
+          const merge = ac.createGain();
 
-          // Disconnect pan from current destination and re-route through delay
-          try { chain.pan.disconnect(); } catch {}
-          chain.pan.connect(dryG);
-          chain.pan.connect(dly);
+          // Chain: preGain -> filter -> comp -> eqLow -> eqMid -> eqHigh -> [Delay] -> pan
+          try { chain.eqHigh.disconnect(chain.pan); } catch {}
+          chain.eqHigh.connect(dryG);
+          chain.eqHigh.connect(dly);
           dly.connect(fb);
           fb.connect(dly);
           dly.connect(wetG);
           dryG.connect(merge);
           wetG.connect(merge);
-
-          this.ensureMasterChain();
-          if (this.masterChainInput) {
-            merge.connect(this.masterChainInput);
-          } else if (this.masterGain) {
-            merge.connect(this.masterGain!);
-          }
+          merge.connect(chain.pan);
 
           (chain as any).__delay = dly;
-          (chain as any).__delayFb = fb;
+          (chain as any).__delayFeedback = fb;
           (chain as any).__delayDry = dryG;
           (chain as any).__delayWet = wetG;
         }
         (chain as any).__delay.delayTime.setValueAtTime(cfg.time, now);
-        (chain as any).__delayFb.gain.setValueAtTime(cfg.feedback, now);
+        (chain as any).__delayFeedback.gain.setValueAtTime(cfg.feedback, now);
         (chain as any).__delayDry.gain.setValueAtTime(1 - cfg.mix, now);
         (chain as any).__delayWet.gain.setValueAtTime(cfg.mix, now);
       }
     });
 
-    // Apply per-instrument REVERB (convolution-based)
-    Object.entries(reverbMods as Record<string, ReverbModule>).forEach(([name, cfg]) => {
-      const lower = name.toLowerCase();
-      if (lower === 'master') return;
-      const chain = this.instrumentChains.get(lower);
-      if (chain) {
+    Object.entries(this.currentPattern!.instruments).forEach(([name]) => {
+      const lowerName = name.toLowerCase();
+      const cfg = this.currentPattern?.reverbModules?.[lowerName];
+      const chain = this.instrumentChains.get(lowerName);
+
+      if (chain && cfg) {
         if (!(chain as any).__reverb) {
-          const rev = this.audioContext!.createConvolver();
+          const rev = ac.createConvolver();
           rev.buffer = this.generateImpulseResponse(cfg.decay, cfg.predelay);
-          const dryG = this.audioContext!.createGain();
-          const wetG = this.audioContext!.createGain();
-          const merge = this.audioContext!.createGain();
+          const dryG = ac.createGain();
+          const wetG = ac.createGain();
+          const merge = ac.createGain();
 
 
           // Route from pan (or delay merge) through reverb
@@ -621,7 +633,7 @@ export class UnifiedAudioEngine {
     this.ensureMasterChain();
     const masterDistort = distortMods['master'] as DistortModule | undefined;
     if (masterDistort && this.masterDistortion && this.masterDistortDryGain && this.masterDistortWetGain) {
-      this.masterDistortion.curve = this.makeDistortionCurve(masterDistort.amount);
+      this.masterDistortion.curve = this.makeDistortionCurve(masterDistort.amount) as any;
       this.masterDistortion.oversample = '4x';
       this.masterDistortDryGain.gain.setValueAtTime(1 - masterDistort.mix, now);
       this.masterDistortWetGain.gain.setValueAtTime(masterDistort.mix, now);
@@ -657,14 +669,14 @@ export class UnifiedAudioEngine {
     }
 
     // Apply master CHORUS
-    const chorusMods = effectsConfig.chorusModules || {};
+    const chorusMods = effectsConfig.chorus || {};
     const masterChorus = chorusMods['master'] as ChorusModule | undefined;
     if (masterChorus) {
       this.applyChorusEffect(masterChorus);
     }
 
     // Apply master PHASER
-    const phaserMods = effectsConfig.phaserModules || {};
+    const phaserMods = effectsConfig.phaser || {};
     const masterPhaser = phaserMods['master'] as PhaserModule | undefined;
     if (masterPhaser) {
       this.applyPhaserEffect(masterPhaser);
@@ -672,14 +684,58 @@ export class UnifiedAudioEngine {
   }
 
   /**
+   * Find the last node in the master effects chain that feeds into masterPreGain.
+   * Used when inserting a new effect (chorus, distortion, phaser) into the chain.
+   * The cascade order reflects the signal flow: phaser < distortion < chorus < reverb < delay < distort < comp < eqHigh.
+   */
+  private getLastMasterChainNode(...exclude: (AudioNode | null)[]): AudioNode | null {
+    const candidates: (AudioNode | null)[] = [
+      this.phaserMerge,
+      this.distortionMerge,
+      this.chorusMerge,
+      this.masterReverbMerge,
+      this.masterDelayMerge,
+      this.masterDistortMerge,
+      this.masterComp,
+      this.masterEQHigh,
+    ];
+    for (const node of candidates) {
+      if (node && !exclude.includes(node)) return node;
+    }
+    return null;
+  }
+
+  /**
+   * Insert a dry/wet effect pair into the master chain before masterPreGain.
+   * Disconnects the current last node from masterPreGain and routes through dry/wet/merge.
+   */
+  private insertMasterEffect(
+    dryGain: GainNode,
+    wetInput: AudioNode,
+    wetOutput: AudioNode,
+    merge: GainNode,
+    ...excludeFromChain: (AudioNode | null)[]
+  ): void {
+    const lastNode = this.getLastMasterChainNode(...excludeFromChain);
+    if (lastNode && this.masterPreGain) {
+      try { lastNode.disconnect(this.masterPreGain); } catch {}
+      lastNode.connect(dryGain);
+      lastNode.connect(wetInput);
+      wetOutput.connect(merge);
+      dryGain.connect(merge);
+      merge.connect(this.masterPreGain);
+    }
+  }
+
+  /**
    * Apply chorus effect using modulated delay lines
    */
   private applyChorusEffect(cfg: ChorusModule): void {
-    if (!this.audioContext) return;
-    const ac = this.audioContext;
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext; // Use rawContext for direct Web Audio API nodes
     const now = ac.currentTime;
 
-    if (!(this as any).__chorusDelay) {
+    if (!this.chorusDelay) {
       const delay = ac.createDelay(0.1);
       delay.delayTime.setValueAtTime(0.02, now);
       const lfo = ac.createOscillator();
@@ -693,39 +749,61 @@ export class UnifiedAudioEngine {
       const wetGain = ac.createGain();
       const merge = ac.createGain();
 
-      // Insert into master chain after reverb merge, before preGain
-      if (this.masterReverbMerge && this.masterPreGain) {
-        try { this.masterReverbMerge.disconnect(this.masterPreGain); } catch {}
-        this.masterReverbMerge.connect(dryGain);
-        this.masterReverbMerge.connect(delay);
-        delay.connect(wetGain);
-        dryGain.connect(merge);
-        wetGain.connect(merge);
-        merge.connect(this.masterPreGain);
-      }
+      this.insertMasterEffect(dryGain, delay, delay, merge);
+      delay.connect(wetGain);
 
-      (this as any).__chorusDelay = delay;
-      (this as any).__chorusLFO = lfo;
-      (this as any).__chorusLFOGain = lfoGain;
-      (this as any).__chorusDry = dryGain;
-      (this as any).__chorusWet = wetGain;
+      this.chorusDelay = delay;
+      this.chorusLFO = lfo;
+      this.chorusLFOGain = lfoGain;
+      this.chorusDryGain = dryGain;
+      this.chorusWetGain = wetGain;
+      this.chorusMerge = merge;
     }
 
-    (this as any).__chorusLFO.frequency.setValueAtTime(cfg.rate, now);
-    (this as any).__chorusLFOGain.gain.setValueAtTime(cfg.depth * 0.005, now); // depth controls delay modulation range
-    (this as any).__chorusDry.gain.setValueAtTime(1 - cfg.mix, now);
-    (this as any).__chorusWet.gain.setValueAtTime(cfg.mix, now);
+    this.chorusLFO!.frequency.setValueAtTime(cfg.rate, now);
+    this.chorusLFOGain!.gain.setValueAtTime(cfg.depth * 0.005, now); // depth controls delay modulation range
+    this.chorusDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.chorusWetGain!.gain.setValueAtTime(cfg.mix, now);
+  }
+
+  /**
+   * Apply distortion effect using waveshaper
+   */
+  private applyDistortionEffect(cfg: DistortModule): void {
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext;
+    const now = ac.currentTime;
+
+    if (!this.distortionNode) {
+      const distort = ac.createWaveShaper();
+      distort.oversample = '4x';
+      const dryGain = ac.createGain();
+      const wetGain = ac.createGain();
+      const merge = ac.createGain();
+
+      this.insertMasterEffect(dryGain, distort, distort, merge, merge);
+      distort.connect(wetGain);
+
+      this.distortionNode = distort;
+      this.distortionDryGain = dryGain;
+      this.distortionWetGain = wetGain;
+      this.distortionMerge = merge;
+    }
+
+    this.distortionNode!.curve = this.makeDistortionCurve(cfg.amount) as any;
+    this.distortionDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.distortionWetGain!.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
    * Apply phaser effect using allpass filters modulated by LFO
    */
   private applyPhaserEffect(cfg: PhaserModule): void {
-    if (!this.audioContext) return;
-    const ac = this.audioContext;
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext;
     const now = ac.currentTime;
 
-    if (!(this as any).__phaserFilters) {
+    if (!this.phaserFilters) {
       const filters: BiquadFilterNode[] = [];
       for (let i = 0; i < cfg.stages; i++) {
         const f = ac.createBiquadFilter();
@@ -758,47 +836,32 @@ export class UnifiedAudioEngine {
       const wetGain = ac.createGain();
       const merge = ac.createGain();
 
-      // Insert after chorus (or after reverb if no chorus)
+      this.insertMasterEffect(dryGain, filters[0], filters[filters.length - 1], merge, merge);
+      filters[filters.length - 1].connect(wetGain);
 
-      // For simplicity, insert before masterPreGain
-      if (this.masterPreGain) {
-        // Find what's currently connected to masterPreGain and re-route
-        const inputNode = (this as any).__chorusDry
-          ? (() => { return null; })()  // chorus already handles routing
-          : this.masterReverbMerge;
-
-        if (inputNode && inputNode !== null) {
-          try { inputNode.disconnect(this.masterPreGain); } catch {}
-          inputNode.connect(dryGain);
-          inputNode.connect(filters[0]);
-          filters[filters.length - 1].connect(wetGain);
-          dryGain.connect(merge);
-          wetGain.connect(merge);
-          merge.connect(this.masterPreGain);
-        }
-      }
-
-      (this as any).__phaserFilters = filters;
-      (this as any).__phaserLFO = lfo;
-      (this as any).__phaserLFOGain = lfoGain;
-      (this as any).__phaserDry = dryGain;
-      (this as any).__phaserWet = wetGain;
+      this.phaserFilters = filters;
+      this.phaserLFO = lfo;
+      this.phaserLFOGain = lfoGain;
+      this.phaserDryGain = dryGain;
+      this.phaserWetGain = wetGain;
+      this.phaserMerge = merge;
     }
 
     // Update existing phaser params
-    (this as any).__phaserLFO.frequency.setValueAtTime(cfg.rate, now);
-    (this as any).__phaserLFOGain.gain.setValueAtTime(cfg.depth * 2000, now);
-    (this as any).__phaserDry.gain.setValueAtTime(1 - cfg.mix, now);
-    (this as any).__phaserWet.gain.setValueAtTime(cfg.mix, now);
+    this.phaserLFO!.frequency.setValueAtTime(cfg.rate, now);
+    this.phaserLFOGain!.gain.setValueAtTime(cfg.depth * 2000, now);
+    this.phaserDryGain!.gain.setValueAtTime(1 - cfg.mix, now);
+    this.phaserWetGain!.gain.setValueAtTime(cfg.mix, now);
   }
 
   /**
    * Apply EQ update in real-time
    */
   private applyEQUpdate(eqConfig: any): void {
-    console.log(`[Unified] EQ updated:`, eqConfig);
-    if (!this.audioContext) return;
-    const now = this.audioContext.currentTime;
+    // Debug: console.log(`[Unified] EQ updated:`, eqConfig);
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext;
+    const now = ac.currentTime;
 
     this.ensureMasterChain();
 
@@ -839,51 +902,41 @@ export class UnifiedAudioEngine {
     const clampedVolume = Math.max(-60, Math.min(0, volume));
     const linearGain = Math.pow(10, clampedVolume / 20);
 
-    if (this.audioContext) {
-      this.volumeGain.gain.setValueAtTime(linearGain, this.audioContext.currentTime);
+    if (Tone.context) {
+      const ac = Tone.context.rawContext as AudioContext;
+      this.volumeGain.gain.setValueAtTime(linearGain, ac.currentTime);
     }
 
-    console.log(`[Unified] Volume updated to ${volume} dB (${linearGain.toFixed(3)} linear)`);
+    // Debug: console.log(`[Unified] Volume updated to ${volume} dB (${linearGain.toFixed(3)} linear)`);
   }
 
   /**
    * Apply real-time tempo change without waiting for next loop
    */
-  private applyRealTimeTempoChange(oldTempo: number, newTempo: number): void {
-    if (!this.audioContext || !this.currentPattern) return;
+  private applyRealTimeTempoChange(_oldTempo: number, newTempo: number): void {
+    if (!this.currentPattern) return;
 
-    // Calculate tempo ratio for timing adjustment
-    const tempoRatio = newTempo / oldTempo;
-    const currentTime = this.audioContext.currentTime;
-    const elapsedTime = currentTime - this.startTime;
+    // Debug: console.log(`[Tone] Tempo change: ${newTempo} BPM`);
 
-    // Adjust start time to maintain current position with new tempo
-    this.startTime = currentTime - (elapsedTime / tempoRatio);
+    // Update Tone.Transport BPM
+    Tone.Transport.bpm.value = newTempo;
 
-    // Clear existing scheduled events & cancel future sources; keep current audio playing
-    this.clearScheduledEvents();
-    this.cancelFutureScheduledAudio();
-
-    // Immediately reschedule from current position with new tempo (no hard stop)
-    this.schedulePattern();
-
-    console.log(`[Unified] Timing adjusted - tempo ratio: ${tempoRatio.toFixed(3)}`);
+    // We must rebuild the part because the groove offsets (in seconds) are based on the tempo-derived step interval
+    if (this.isPlaying) {
+      this.rebuildTonePart();
+    }
   }
 
   /**
    * Apply real-time sequence change
    */
   private applyRealTimeSequenceChange(_oldPattern: ParsedPattern | null, _newPattern: ParsedPattern): void {
-    if (!this.audioContext) return;
+    // Debug: console.log(`[Tone] Sequence adjusted for pattern change`);
 
-    console.log(`[Unified] Sequence adjusted for pattern change`);
-
-    // Clear scheduled events & cancel future sources; let currently playing sounds finish
-    this.clearScheduledEvents();
-    this.cancelFutureScheduledAudio();
-
-    // Immediately reschedule with new pattern (no hard stop)
-    this.schedulePattern();
+    // Rebuild the Tone.Part with the new sequence
+    if (this.isPlaying) {
+      this.rebuildTonePart();
+    }
   }
 
   /**
@@ -893,17 +946,10 @@ export class UnifiedAudioEngine {
     const tempo = this.currentPattern?.tempo || 120;
     const volume = this.volumeGain ? 20 * Math.log10(this.volumeGain.gain.value) : -6;
 
-    // Calculate real-time position
-    let currentTime = 0;
-    if (this.audioContext && this.isPlaying && this.startTime > 0) {
-      currentTime = this.audioContext.currentTime - this.startTime;
-      // Keep within loop bounds
-      const loopDuration = this.getLoopDuration();
-      if (loopDuration > 0) {
-        currentTime = currentTime % loopDuration;
-      }
-    } else if (this.isPaused) {
-      currentTime = this.pausePosition;
+    // Calculate real-time position using Tone.Transport
+    let currentTime = Tone.Transport.seconds;
+    if (this.tonePart && (this.tonePart.loopEnd as any) > 0) {
+      currentTime = currentTime % (this.tonePart.loopEnd as any);
     }
 
     return {
@@ -920,21 +966,7 @@ export class UnifiedAudioEngine {
     };
   }
 
-  /**
-   * Real-time timing calculations (no pre-calculation)
-   */
-  private getStepInterval(): number {
-    if (!this.currentPattern) return 0;
-    const stepsPerBeat = AUDIO_CONSTANTS.STEPS_PER_BEAT; // e.g., 4 = 16th notes
-    const beatsPerMinute = this.currentPattern.tempo;
-    const secondsPerBeat = 60 / beatsPerMinute;
-    return secondsPerBeat / stepsPerBeat;
-  }
-
-  private getLoopDuration(): number {
-    if (!this.currentPattern) return 0;
-    return this.currentPattern.totalSteps * this.getStepInterval();
-  }
+  // Obsolete custom loop duration methods removed — Tone.Transport handles this
 
   // getCurrentStep method removed - not currently used
 
@@ -943,12 +975,12 @@ export class UnifiedAudioEngine {
    * EQLow -> EQMid -> EQHigh -> Comp -> Distortion(dry/wet) -> Delay(dry/wet) -> Reverb(dry/wet) -> PreGain -> MasterGain
    */
   private ensureMasterChain(): void {
-    if (!this.audioContext || !this.masterGain) return;
+    if (!Tone.context || !this.masterGain) return;
     if (this.masterEQLow && this.masterEQMid && this.masterEQHigh && this.masterComp && this.masterPreGain && this.masterChainInput) {
       return; // already created
     }
 
-    const ac = this.audioContext;
+    const ac = Tone.context.rawContext as AudioContext;
     // Create filters with neutral gains
     this.masterEQLow = ac.createBiquadFilter();
     this.masterEQLow.type = 'lowshelf';
@@ -966,7 +998,7 @@ export class UnifiedAudioEngine {
     this.masterEQHigh.frequency.setValueAtTime(6000, ac.currentTime);
     this.masterEQHigh.gain.setValueAtTime(0, ac.currentTime);
 
-    this.masterComp = ac.createDynamicsCompressor();
+    this.masterComp = Tone.context.createDynamicsCompressor();
     this.masterComp.threshold.setValueAtTime(-24, ac.currentTime);
     this.masterComp.ratio.setValueAtTime(4, ac.currentTime);
     this.masterComp.attack.setValueAtTime(0.01, ac.currentTime);
@@ -974,36 +1006,36 @@ export class UnifiedAudioEngine {
     this.masterComp.knee.setValueAtTime(30, ac.currentTime);
 
     // Distortion with dry/wet mix (defaults to full dry = passthrough)
-    this.masterDistortion = ac.createWaveShaper();
+    this.masterDistortion = Tone.context.createWaveShaper();
     this.masterDistortion.oversample = '4x';
-    this.masterDistortDryGain = ac.createGain();
+    this.masterDistortDryGain = Tone.context.createGain();
     this.masterDistortDryGain.gain.setValueAtTime(1, ac.currentTime);
-    this.masterDistortWetGain = ac.createGain();
+    this.masterDistortWetGain = Tone.context.createGain();
     this.masterDistortWetGain.gain.setValueAtTime(0, ac.currentTime);
-    this.masterDistortMerge = ac.createGain();
+    this.masterDistortMerge = Tone.context.createGain();
 
     // Delay with feedback and dry/wet mix (defaults to full dry = passthrough)
-    this.masterDelay = ac.createDelay(2.0);
+    this.masterDelay = Tone.context.createDelay(2.0);
     this.masterDelay.delayTime.setValueAtTime(0.25, ac.currentTime);
-    this.masterDelayFeedback = ac.createGain();
+    this.masterDelayFeedback = Tone.context.createGain();
     this.masterDelayFeedback.gain.setValueAtTime(0, ac.currentTime);
-    this.masterDelayDryGain = ac.createGain();
+    this.masterDelayDryGain = Tone.context.createGain();
     this.masterDelayDryGain.gain.setValueAtTime(1, ac.currentTime);
-    this.masterDelayWetGain = ac.createGain();
+    this.masterDelayWetGain = Tone.context.createGain();
     this.masterDelayWetGain.gain.setValueAtTime(0, ac.currentTime);
-    this.masterDelayMerge = ac.createGain();
+    this.masterDelayMerge = Tone.context.createGain();
 
     // Reverb with dry/wet mix (defaults to full dry = passthrough)
-    this.masterReverb = ac.createConvolver();
+    this.masterReverb = Tone.context.createConvolver();
     // Generate a default short impulse response
     this.masterReverb.buffer = this.generateImpulseResponse(1.0, 0.01);
-    this.masterReverbDryGain = ac.createGain();
+    this.masterReverbDryGain = Tone.context.createGain();
     this.masterReverbDryGain.gain.setValueAtTime(1, ac.currentTime);
-    this.masterReverbWetGain = ac.createGain();
+    this.masterReverbWetGain = Tone.context.createGain();
     this.masterReverbWetGain.gain.setValueAtTime(0, ac.currentTime);
-    this.masterReverbMerge = ac.createGain();
+    this.masterReverbMerge = Tone.context.createGain();
 
-    this.masterPreGain = ac.createGain();
+    this.masterPreGain = Tone.context.createGain();
     this.masterPreGain.gain.setValueAtTime(1, ac.currentTime);
 
     // Connect chain: EQLow -> EQMid -> EQHigh -> Comp -> Distortion(dry/wet) -> Delay(dry/wet) -> Reverb(dry/wet) -> PreGain -> MasterGain
@@ -1047,8 +1079,8 @@ export class UnifiedAudioEngine {
    * Names: 'kick', 'snare', 'hihat', 'clap'
    */
   private async preloadDefaultSamples(): Promise<void> {
-    if (!this.audioContext) return;
-    const ac = this.audioContext;
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext;
     const add = (name: string, buf: AudioBuffer) => this.sampleBuffers.set(name.toLowerCase(), buf);
     try {
       add('kick', this.generateKickSample(ac));
@@ -1063,8 +1095,9 @@ export class UnifiedAudioEngine {
       add('crash', this.generateCrashSample(ac));
       add('openhat', this.generateOpenHatSample(ac));
       add('perc', this.generatePercSample(ac));
+      console.log('[Unified] Default samples loaded');
     } catch (e) {
-      console.warn('Failed to generate default samples:', e);
+      console.error('[Unified] Error loading default samples:', e);
     }
   }
 
@@ -1310,47 +1343,48 @@ export class UnifiedAudioEngine {
    * Chain: preGain -> filter -> comp -> eqLow -> eqMid -> eqHigh -> pan -> masterChainInput
    */
   private ensureInstrumentChain(name: string) {
-    if (!this.audioContext) return null;
+    if (!Tone.context) return null;
     const n = name.toLowerCase();
     const existing = this.instrumentChains.get(n);
     if (existing) return existing;
 
-    const ac = this.audioContext;
+    const ac = Tone.context.rawContext as AudioContext;
+    const now = ac.currentTime;
     const preGain = ac.createGain();
-    preGain.gain.setValueAtTime(1, ac.currentTime);
+    preGain.gain.setValueAtTime(1, now);
 
     // Filter defaults to lowpass at 20000Hz (passthrough)
     const filter = ac.createBiquadFilter();
     filter.type = 'lowpass';
-    filter.frequency.setValueAtTime(20000, ac.currentTime);
-    filter.Q.setValueAtTime(1, ac.currentTime);
+    filter.frequency.setValueAtTime(20000, now);
+    filter.Q.setValueAtTime(1, now);
 
     const comp = ac.createDynamicsCompressor();
-    comp.threshold.setValueAtTime(-24, ac.currentTime);
-    comp.ratio.setValueAtTime(4, ac.currentTime);
-    comp.attack.setValueAtTime(0.01, ac.currentTime);
-    comp.release.setValueAtTime(0.25, ac.currentTime);
-    comp.knee.setValueAtTime(30, ac.currentTime);
+    comp.threshold.setValueAtTime(-24, now);
+    comp.ratio.setValueAtTime(4, now);
+    comp.attack.setValueAtTime(0.01, now);
+    comp.release.setValueAtTime(0.25, now);
+    comp.knee.setValueAtTime(30, now);
 
     const eqLow = ac.createBiquadFilter();
     eqLow.type = 'lowshelf';
-    eqLow.frequency.setValueAtTime(150, ac.currentTime);
-    eqLow.gain.setValueAtTime(0, ac.currentTime);
+    eqLow.frequency.setValueAtTime(150, now);
+    eqLow.gain.setValueAtTime(0, now);
 
     const eqMid = ac.createBiquadFilter();
     eqMid.type = 'peaking';
-    eqMid.frequency.setValueAtTime(1000, ac.currentTime);
-    eqMid.Q.setValueAtTime(1.0, ac.currentTime);
-    eqMid.gain.setValueAtTime(0, ac.currentTime);
+    eqMid.frequency.setValueAtTime(1000, now);
+    eqMid.Q.setValueAtTime(1.0, now);
+    eqMid.gain.setValueAtTime(0, now);
 
     const eqHigh = ac.createBiquadFilter();
     eqHigh.type = 'highshelf';
-    eqHigh.frequency.setValueAtTime(6000, ac.currentTime);
-    eqHigh.gain.setValueAtTime(0, ac.currentTime);
+    eqHigh.frequency.setValueAtTime(6000, now);
+    eqHigh.gain.setValueAtTime(0, now);
 
     // Pan defaults to center (0)
     const pan = ac.createStereoPanner();
-    pan.pan.setValueAtTime(0, ac.currentTime);
+    pan.pan.setValueAtTime(0, now);
 
     // Connect chain: preGain -> filter -> comp -> eqLow -> eqMid -> eqHigh -> pan -> masterChainInput
     preGain.connect(filter);
@@ -1423,8 +1457,8 @@ export class UnifiedAudioEngine {
    * Create or update an LFO for any supported target parameter
    */
   private updateLFO(lfoCfg: LFOModule): void {
-    if (!this.audioContext) return;
-    const ac = this.audioContext;
+    if (!Tone.context) return;
+    const ac = Tone.context.rawContext as AudioContext;
     const now = ac.currentTime;
     const key = lfoCfg.key.toLowerCase();
 
@@ -1478,13 +1512,15 @@ export class UnifiedAudioEngine {
     this.lfoMap.delete(key);
   }
 
+
   /**
    * Generate an impulse response for convolution reverb
    */
   private generateImpulseResponse(decay: number, predelay: number): AudioBuffer {
-    const sampleRate = this.audioContext!.sampleRate;
+    const ac = Tone.context.rawContext as AudioContext;
+    const sampleRate = ac.sampleRate;
     const length = Math.floor(sampleRate * decay);
-    const buffer = this.audioContext!.createBuffer(2, length, sampleRate);
+    const buffer = ac.createBuffer(2, length, sampleRate);
     for (let channel = 0; channel < 2; channel++) {
       const data = buffer.getChannelData(channel);
       const predelaySamples = Math.floor(predelay * sampleRate);
@@ -1496,132 +1532,188 @@ export class UnifiedAudioEngine {
     return buffer;
   }
 
+
   /**
    * Generate a waveshaper distortion transfer curve
    */
-  private makeDistortionCurve(amount: number): Float32Array<ArrayBuffer> {
+  private makeDistortionCurve(amount: number): Float32Array {
     const samples = 44100;
-    const curve = new Float32Array(new ArrayBuffer(samples * 4));
+    const curve = new Float32Array(samples);
     const k = amount * 100;
     for (let i = 0; i < samples; i++) {
       const x = (i * 2) / samples - 1;
-      curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + k * Math.abs(x));
+      // Precision distortion curve formula: (3+k)*x*20*degToRad / (PI + k*|x|)
+      curve[i] = ((3 + k) * x * 20 * (Math.PI / 180)) / (Math.PI + (k * Math.abs(x)));
     }
     return curve;
   }
 
   /**
-   * Schedule pattern playback with real-time timing
+   * Rebuild the Tone.Part based on the current pattern
    */
-  private schedulePattern(): void {
-    if (!this.audioContext || !this.currentPattern) return;
+  private rebuildTonePart(): void {
+    if (!this.currentPattern) return;
 
-    const timestamp = new Date().toISOString();
+    // Dispose old part
+    if (this.tonePart) {
+      this.tonePart.dispose();
+      this.tonePart = null;
+    }
+
+    const events: any[] = [];
     const totalSteps = this.currentPattern.totalSteps;
-    const currentTime = this.audioContext.currentTime;
-    const stepInterval = this.getStepInterval();
-    const loopDuration = this.getLoopDuration();
+    const bpm = this.currentPattern.tempo;
+    const stepInterval = 60 / bpm / 4; // 16th note in seconds
 
-    // Schedule multiple loops ahead
-    const loopsToSchedule = 4;
+    // Calculate events for each instrument
+    Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+      if (instrumentData.steps.length === 0) return;
 
-    // Calculate current position
-    const currentPosition = currentTime - this.startTime;
-    const currentLoop = Math.floor(currentPosition / loopDuration);
-    const currentStepInLoop = Math.floor((currentPosition % loopDuration) / stepInterval);
+      const steps = instrumentData.steps;
+      const velocities = (instrumentData as any).velocities || [];
 
-    console.log(`[${timestamp}] Current position: ${currentPosition.toFixed(3)}s, loop: ${currentLoop}, step: ${currentStepInLoop}`);
+      // Use the max of instrument steps and total pattern steps for scheduling
+      const scheduleLimit = Math.max(steps.length, totalSteps);
 
-    // Schedule loops starting from the current loop (always schedule the current loop)
-    for (let loop = currentLoop; loop < currentLoop + loopsToSchedule; loop++) {
-      const loopStartTime = this.startTime + (loop * loopDuration);
-      console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
+      for (let step = 0; step < scheduleLimit; step++) {
+        // Determine hit based on overflow mode
+        let isHit = false;
+        let velocity = 0.7;
 
-      // Determine which steps to schedule in this loop
-      let startStep = 0;
-      const endStep = totalSteps;
+        if (this.overflowMode === 'loop') {
+          const patternStep = step % steps.length;
+          isHit = steps[patternStep] === true;
+          velocity = velocities[patternStep] ?? 0.7;
+        } else {
+          if (step < steps.length) {
+            isHit = steps[step] === true;
+            velocity = velocities[step] ?? 0.7;
+          }
+        }
 
-      // If this is the current loop, start from the current step
-      if (loop === currentLoop) {
-        const timeInCurrentLoop = currentTime - loopStartTime;
-        const actualCurrentStep = Math.floor(timeInCurrentLoop / stepInterval);
-        startStep = Math.max(0, actualCurrentStep);
-        console.log(`[${timestamp}] Current loop ${loop}, time in loop: ${timeInCurrentLoop.toFixed(3)}s, starting from step ${startStep}`);
-      }
+        if (isHit) {
+          const isOddStep = step % 2 === 1;
+          const baseTime = step * stepInterval;
 
-      // Schedule steps in this loop
-      for (let step = startStep; step < endStep; step++) {
-        const stepTime = loopStartTime + (step * stepInterval);
+          // Apply Groove/Swing
+          const groove = this.currentPattern?.grooveModules?.[instrumentName.toLowerCase()] ||
+                         this.currentPattern?.grooveModules?.['master'];
 
-        // Only schedule if the step time is in the future
-        if (stepTime >= currentTime) {
-          // Check each instrument for hits at this step
-          Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-            if (instrumentData.steps.length === 0) return;
+          let grooveOffset = 0;
+          if (groove) {
+            const amount = groove.amount;
 
-            let isHit = false;
-            if (this.overflowMode === 'loop') {
-              // Wrap shorter instruments
-              const patternStep = step % instrumentData.steps.length;
-              isHit = instrumentData.steps[patternStep] === true;
+            // Determine if this step should be affected by groove
+            let isTargeted = false;
+            if (groove.type === 'swing') {
+              if (groove.steps) {
+                // Explicit steps override subdivision-based targeting
+                const targetSteps = groove.steps;
+                if (targetSteps === 'odd') {
+                  isTargeted = isOddStep;
+                } else if (targetSteps === 'even') {
+                  isTargeted = !isOddStep;
+                } else if (targetSteps === 'all') {
+                  isTargeted = true;
+                } else if (targetSteps.includes(',')) {
+                  const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
+                  isTargeted = indices.includes(step);
+                } else if (!isNaN(parseInt(targetSteps))) {
+                  isTargeted = parseInt(targetSteps) === step;
+                }
+              } else {
+                // Subdivision-based targeting (default: 8n for audible swing)
+                const subdivision = groove.subdivision || '8n';
+                const stepsPerSubdiv = subdivision === '4n' ? 4 : subdivision === '8n' ? 2 : 1;
+                isTargeted = Math.floor(step / stepsPerSubdiv) % 2 === 1;
+              }
             } else {
-              // Rest beyond instrument length
-              if (step < instrumentData.steps.length) {
-                isHit = instrumentData.steps[step] === true;
-              } else {
-                isHit = false;
+              // Other grooves (humanize, rush, drag) usually apply to all or custom
+              const targetSteps = groove.steps || 'all';
+              if (targetSteps === 'all') {
+                isTargeted = true;
+              } else if (targetSteps === 'odd') {
+                isTargeted = isOddStep;
+              } else if (targetSteps === 'even') {
+                isTargeted = !isOddStep;
+              } else if (targetSteps.includes(',')) {
+                const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
+                isTargeted = indices.includes(step);
               }
             }
 
-            if (isHit) {
-              // Get velocity for this step
-              let vel = 0.7; // default normal
-              if (this.overflowMode === 'loop') {
-                const patternStep = step % instrumentData.steps.length;
-                vel = (instrumentData as any).velocities?.[patternStep] ?? 0.7;
-              } else {
-                vel = (instrumentData as any).velocities?.[step] ?? 0.7;
+            if (isTargeted) {
+              if (groove.type === 'swing') {
+                // Scale offset relative to the subdivision interval
+                const subdivision = groove.subdivision || '8n';
+                const stepsPerSubdiv = subdivision === '4n' ? 4 : subdivision === '8n' ? 2 : 1;
+                grooveOffset = amount * (stepInterval * stepsPerSubdiv) * 0.33;
+              } else if (groove.type === 'humanize') {
+                grooveOffset = (Math.random() - 0.5) * amount * 0.05;
+              } else if (groove.type === 'rush') {
+                grooveOffset = -amount * 0.03;
+              } else if (groove.type === 'drag') {
+                grooveOffset = amount * 0.03;
               }
-              console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}, vel ${vel}`);
-              (this as any).__currentVelocity = vel;
-              this.scheduleInstrumentHit(instrumentName, stepTime);
-              (this as any).__currentVelocity = undefined;
             }
+          }
+
+          events.push({
+            time: baseTime + grooveOffset,
+            instrument: instrumentName,
+            velocity: velocity,
+            step,
+            isOddStep,
+            grooveOffset
           });
         }
       }
-    }
+    });
 
-    // Schedule the next batch of loops
-    const nextSchedulingTime = this.startTime + ((currentLoop + Math.floor(loopsToSchedule / 2)) * loopDuration);
-    const timeoutDelay = Math.max(0, (nextSchedulingTime - this.audioContext.currentTime) * 1000);
+    // Create the part
+    this.tonePart = new Tone.Part((time, event) => {
+      // Diagnostic log (optional, keep for debugging groove)
+      if (event.grooveOffset !== 0) {
+        // Only log sometimes to avoid spam
+        // console.log(`[Groove] ${event.instrument} step ${event.step} offset ${event.grooveOffset.toFixed(4)}s`);
+      }
 
-    console.log(`[${timestamp}] Next scheduling at ${nextSchedulingTime.toFixed(3)}, timeout delay: ${timeoutDelay.toFixed(0)}ms`);
+      this.currentVelocity = event.velocity;
+      this.scheduleInstrumentHit(event.instrument, time);
+      this.currentVelocity = 0.7;
+    }, events);
 
-    // Only schedule timeout if delay is reasonable
-    if (timeoutDelay > 10) {
-      const timeoutId = window.setTimeout(() => {
-        if (this.isPlaying) {
-          const callbackTimestamp = new Date().toISOString();
-          console.log(`[${callbackTimestamp}] Scheduling callback triggered, continuing from ${nextSchedulingTime.toFixed(3)}`);
-          this.schedulePattern();
-        }
-      }, timeoutDelay);
+    // Configure looping
+    this.tonePart.loop = true;
+    this.tonePart.loopEnd = totalSteps * stepInterval;
+    this.tonePart.start(0);
 
-      this.scheduledEvents.push(timeoutId);
-    }
+    console.log(`[Tone] Rebuilt part with ${events.length} events, loop length: ${this.tonePart.loopEnd.toFixed(3)}s`);
   }
+
+  /**
+   * Clear all scheduled events (timeout based)
+   */
+  private clearScheduledEvents(): void {
+    this.scheduledEvents.forEach(id => window.clearTimeout(id));
+    this.scheduledEvents = [];
+  }
+
+  /**
+   * Obsolete custom scheduling method removed — Tone.Part handles this
+   */
 
   /**
    * Schedule an instrument hit
    */
   private scheduleInstrumentHit(instrumentName: string, time: number): void {
-    if (!this.audioContext || !this.masterGain) return;
+    if (!this.masterGain) return;
 
-    const envelope = this.audioContext.createGain();
+    const ac = Tone.context.rawContext as AudioContext;
+    const envelope = ac.createGain();
     const lowerName = instrumentName.toLowerCase();
     // Determine velocity for this hit (default 0.7 = normal)
-    const velocity = (this as any).__currentVelocity ?? 0.7;
+    const velocity = this.currentVelocity;
     const hasInstrumentEffects = !!(
       this.currentPattern?.eqModules?.[lowerName] ||
       this.currentPattern?.ampModules?.[lowerName] ||
@@ -1646,7 +1738,7 @@ export class UnifiedAudioEngine {
     let scheduledNoise: AudioBufferSourceNode | null = null;
 
     if (sampleBuffer) {
-      const source = this.audioContext.createBufferSource();
+      const source = Tone.context.createBufferSource();
       source.buffer = sampleBuffer;
       source.connect(envelope);
       const gainSteps = this.currentPattern?.sampleModules?.[lowerName]?.gain ?? 0;
@@ -1675,7 +1767,7 @@ export class UnifiedAudioEngine {
       scheduledNoise = source;
     } else {
       // Fall back to synthesized sounds
-      const oscillator = this.audioContext.createOscillator();
+      const oscillator = Tone.context.createOscillator();
       scheduledOsc = oscillator;
       oscillator.connect(envelope);
       // Track for immediate stopping
@@ -1707,11 +1799,11 @@ export class UnifiedAudioEngine {
         }
         case 'snare': {
           // Quick noise burst
-          const bufferSize = this.audioContext.sampleRate * 0.1;
-          const buffer = this.audioContext.createBuffer(1, bufferSize, this.audioContext.sampleRate);
+          const bufferSize = Tone.context.sampleRate * 0.1;
+          const buffer = Tone.context.createBuffer(1, bufferSize, Tone.context.sampleRate);
           const output = buffer.getChannelData(0);
           for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
-          const noise = this.audioContext.createBufferSource();
+          const noise = Tone.context.createBufferSource();
           noise.buffer = buffer;
           noise.connect(envelope);
           this.activeNoiseSources.push(noise);
@@ -1780,7 +1872,7 @@ export class UnifiedAudioEngine {
     }
 
     // Track scheduled sources so we can cancel future events on live edits
-    const now = this.audioContext.currentTime;
+    const now = Tone.context.currentTime;
     const cleanupFns: Array<() => void> = [];
     if (scheduledOsc) {
       const osc = scheduledOsc;
@@ -1856,13 +1948,7 @@ export class UnifiedAudioEngine {
     this.cancelFutureScheduledAudio();
   }
 
-  /**
-   * Clear all scheduled events
-   */
-  private clearScheduledEvents(): void {
-    this.scheduledEvents.forEach(id => clearTimeout(id));
-    this.scheduledEvents = [];
-  }
+  // Duplicate clearScheduledEvents removed
 
   /**
    * Cancel any audio sources that are scheduled to start in the future.
@@ -1897,12 +1983,7 @@ export class UnifiedAudioEngine {
     if (this.overflowMode === mode) return;
     this.overflowMode = mode;
     if (this.isPlaying && this.audioContext) {
-      this.clearScheduledEvents();
-      this.stopAllAudio();
-      if (this.masterGain) {
-        this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
-      }
-      this.schedulePattern();
+      this.rebuildTonePart();
     }
   }
 

@@ -11,7 +11,15 @@ export class PatternParser {
    * Phase 1: Very basic parsing - just tempo and simple sequences
    */
   static parse(pattern: string): ParsedPattern {
-    const lines = pattern.split('\n').map(line => line.trim()).filter(line => line.length > 0);
+    // 1. Split lines and strip comments (inline # and //)
+    const lines = pattern.split('\n').map(line => {
+      // Remove comments starting with # or //
+      const commentIndex = line.search(/(\/\/|#)/);
+      if (commentIndex >= 0) {
+        return line.substring(0, commentIndex).trim();
+      }
+      return line.trim();
+    }).filter(line => line.length > 0);
 
     let tempo = this.DEFAULT_TEMPO;
     const instruments: ParsedPattern['instruments'] = {};
@@ -29,6 +37,7 @@ export class PatternParser {
     const chorusModules: ParsedPattern['chorusModules'] = {};
     const phaserModules: ParsedPattern['phaserModules'] = {};
     const noteModules: ParsedPattern['noteModules'] = {};
+    const grooveModules: ParsedPattern['grooveModules'] = {};
 
     for (const line of lines) {
       // Parse tempo
@@ -209,6 +218,19 @@ export class PatternParser {
         continue;
       }
 
+      // Parse GROOVE modules
+      if (line.startsWith('groove ')) {
+        const grooveMatch = line.match(/groove\s+(\w+):\s*(.+)/);
+        if (grooveMatch) {
+          const [, moduleName, grooveString] = grooveMatch;
+          const grooveModule = this.parseGrooveString(moduleName, grooveString);
+          if (grooveModule) {
+            grooveModules[moduleName.toLowerCase()] = grooveModule;
+          }
+        }
+        continue;
+      }
+
       // Parse LFO modules: lfo target: rate=5Hz depth=0.5 wave=sine
       if (line.startsWith('lfo ')) {
         const lfoMatch = line.match(/lfo\s+([^:]+):\s*(.+)/);
@@ -230,10 +252,11 @@ export class PatternParser {
           const { steps, velocities } = this.parsePatternString(patternString);
 
           if (steps.length > 0) {
-            instruments[instrumentName] = {
+            const lowerInstrumentName = instrumentName.toLowerCase();
+            instruments[lowerInstrumentName] = {
               steps,
               velocities,
-              name: instrumentName
+              name: lowerInstrumentName
             };
           }
         }
@@ -263,6 +286,7 @@ export class PatternParser {
       chorusModules,
       phaserModules,
       noteModules,
+      grooveModules,
       totalSteps
     };
   }
@@ -690,6 +714,47 @@ export class PatternParser {
   }
 
   /**
+   * Parse GROOVE string like "type=swing amount=0.5"
+   */
+  private static parseGrooveString(moduleName: string, grooveString: string): any {
+    const pairs = Array.from(grooveString.matchAll(/(type|amount|steps|subdivision)\s*=\s*([^\s]+)/gi));
+    const map: Record<string, string> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = String(value);
+    }
+
+    const typeStr = map['type']?.toLowerCase();
+    const allowedTypes = ['swing', 'humanize', 'rush', 'drag'];
+    const type = (allowedTypes.includes(typeStr) ? typeStr : 'swing') as 'swing' | 'humanize' | 'rush' | 'drag';
+
+    let amount = parseFloat(map['amount']);
+    if (Number.isNaN(amount)) amount = 0.5;
+    amount = Math.max(0, Math.min(1, amount));
+
+    const steps = map['steps']?.toLowerCase();
+
+    // Normalize subdivision values
+    let subdivision: '4n' | '8n' | '16n' | undefined;
+    const rawSubdiv = map['subdivision']?.toLowerCase();
+    if (rawSubdiv) {
+      const subdivMap: Record<string, '4n' | '8n' | '16n'> = {
+        '4n': '4n', '4': '4n', 'quarter': '4n',
+        '8n': '8n', '8': '8n', 'eighth': '8n',
+        '16n': '16n', '16': '16n', 'sixteenth': '16n',
+      };
+      subdivision = subdivMap[rawSubdiv];
+    }
+
+    return {
+      name: moduleName.toLowerCase(),
+      type,
+      amount,
+      steps,
+      subdivision
+    };
+  }
+
+  /**
    * Validate a pattern string with detailed error reporting
    */
   static validate(pattern: string): {
@@ -938,6 +1003,21 @@ export class PatternParser {
           const noteModule = this.parseNoteString(moduleName, noteString);
           if (!noteModule) {
             errors.push(`Invalid note value for ${moduleName}. Use MIDI note (0-127) or frequency (e.g. 440hz)`);
+          }
+        }
+        continue;
+      }
+
+      // Check GROOVE format
+      if (line.startsWith('groove ')) {
+        const grooveMatch = line.match(/groove\s+(\w+):\s*(.+)/);
+        if (!grooveMatch) {
+          errors.push(`Invalid groove format: ${line}. Use: groove name: type=swing amount=0.5`);
+        } else {
+          const [, moduleName, grooveString] = grooveMatch;
+          const grooveModule = this.parseGrooveString(moduleName, grooveString);
+          if (!grooveModule) {
+            errors.push(`Invalid groove values for ${moduleName}. Types: swing, humanize, rush, drag. Amount: 0-1.`);
           }
         }
         continue;

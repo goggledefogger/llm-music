@@ -100,7 +100,29 @@ export const QuickStatsBar: React.FC<QuickStatsBarProps> = ({
         value: instruments.join(', '),
         color: 'orange' as const,
         subtitle: 'active tracks'
-      }
+      },
+      groove: (() => {
+        const grooveModules = pattern.grooveModules;
+        if (!grooveModules || Object.keys(grooveModules).length === 0) {
+          return null;
+        }
+        const entries = Object.entries(grooveModules);
+        const primary = entries[0];
+        const [target, mod] = primary;
+        const subdivSuffix = mod.type === 'swing'
+          ? ` (${mod.subdivision === '4n' ? '4th' : mod.subdivision === '16n' ? '16th' : '8th'})`
+          : '';
+        const label = `${mod.type} ${Math.round(mod.amount * 100)}%${subdivSuffix}`;
+        const subtitle = entries.length > 1
+          ? `${target} + ${entries.length - 1} more`
+          : target;
+        return {
+          label,
+          value: label,
+          color: 'yellow' as const,
+          subtitle
+        };
+      })()
     };
   }, [pattern]);
 
@@ -119,7 +141,7 @@ export const QuickStatsBar: React.FC<QuickStatsBarProps> = ({
       description="Essential pattern metrics at a glance"
       variant="ultra-compact"
     >
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1 sm:gap-2">
+      <div className={`grid grid-cols-2 ${stats.groove ? 'sm:grid-cols-5' : 'sm:grid-cols-4'} gap-1 sm:gap-2`}>
         <div className="min-w-0">
           <StatCard
             label="Complexity"
@@ -152,6 +174,16 @@ export const QuickStatsBar: React.FC<QuickStatsBarProps> = ({
             subtitle={stats.instruments.value}
           />
         </div>
+        {stats.groove && (
+          <div className="min-w-0">
+            <StatCard
+              label="Groove"
+              value={stats.groove.label}
+              color={stats.groove.color}
+              subtitle={stats.groove.subtitle}
+            />
+          </div>
+        )}
       </div>
     </BaseVisualization>
   );

@@ -24,7 +24,14 @@ export function prepareMessages(
     if (last && last.role === 'user') {
       prepared[prepared.length - 1] = {
         ...last,
-        content: `I want you to modify my existing pattern below. Do NOT generate a new pattern from scratch — start from my exact pattern and only change what I ask for. Every line I don't mention must stay exactly the same.\n\nMy current pattern:\n\`\`\`pattern\n${currentPattern}\n\`\`\`\n\nWhat I want changed: ${last.content}`,
+        content: `I want you to modify my existing pattern below. Do NOT generate a new pattern from scratch — start from my exact pattern. Every line I don't mention must stay exactly the same, but IMPORTANT: You MUST add new lines (like groove, sample, or FX) if my request requires it.
+
+My current pattern:
+\`\`\`pattern
+${currentPattern}
+\`\`\`
+
+What I want changed: ${last.content}`,
       };
     }
   }

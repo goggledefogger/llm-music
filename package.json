@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "description": "Browser-based ASCII music sequencer with AI integration",
   "private": true,
+  "type": "module",
   "workspaces": [
     "apps/*",
     "packages/*"
   ],
   "scripts": {
     "build": "turbo run build",
-    "dev": "turbo run dev",
+    "dev:turbo": "turbo run dev",
     "dev:web": "turbo run dev --filter=@ascii-sequencer/web",
-    "dev:api": "turbo run dev --filter=api",
+    "dev:api": "tsx scripts/dev-api.ts",
     "lint": "turbo run lint",
     "test": "turbo run test",
     "test:watch": "turbo run test:watch",
@@ -30,10 +31,13 @@
     "@anthropic-ai/sdk": "^0.39.0",
     "@google/generative-ai": "^0.24.0",
     "@supabase/supabase-js": "^2.49.0",
+    "@types/express": "^5.0.6",
+    "dotenv": "^16.6.1",
+    "express": "^4.22.1",
     "openai": "^4.77.0"
   },
   "devDependencies": {
-    "@types/node": "^22.10.0",
+    "@types/node": "^22.18.1",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
     "@vercel/node": "^5.0.0",
@@ -44,11 +48,12 @@
     "husky": "^9.1.0",
     "lint-staged": "^15.2.0",
     "prettier": "^3.4.0",
+    "tsx": "^4.21.0",
     "turbo": "^2.0.0",
     "typescript": "^5.7.0"
   },
   "engines": {
-    "node": "20.x",
+    "node": ">=20.0.0",
     "npm": ">=9.0.0"
   },
   "packageManager": "pnpm@9.0.0",

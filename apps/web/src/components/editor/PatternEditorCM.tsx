@@ -282,8 +282,8 @@ function computeDSLDecorations(state: EditorState): DecorationSet {
       continue;
     }
 
-    // Generic effect lines: filter, delay, reverb, distort, comp, amp, pan
-    const effectMatch = trimmed.match(/^(filter|delay|reverb|distort|comp|amp|pan)\s/);
+    // Generic effect lines: filter, delay, reverb, distort, comp, amp, pan, groove, chorus, phaser, env, note
+    const effectMatch = trimmed.match(/^(filter|delay|reverb|distort|comp|amp|pan|groove|chorus|phaser|env|note)\s/);
     if (effectMatch) {
       const kw = effectMatch[1];
       const kwIdx = text.indexOf(kw);

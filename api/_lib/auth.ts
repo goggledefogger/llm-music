@@ -12,6 +12,12 @@ interface AuthUser {
  * Returns the user on success, or null if invalid/missing.
  */
 export async function verifyAuth(req: VercelRequest): Promise<AuthUser | null> {
+  // Development bypass: Allow all requests in local development
+  if (process.env.NODE_ENV === 'development') {
+    console.log('[auth] Development mode: bypassing auth check');
+    return { id: 'dev-user', email: 'dev@example.com' };
+  }
+
   const authHeader = req.headers.authorization;
   if (!authHeader?.startsWith('Bearer ')) {
     return null;

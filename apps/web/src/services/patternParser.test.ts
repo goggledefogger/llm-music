@@ -295,7 +295,8 @@ seq hihat: x.x.x.x.x.x.x.x.`;
       const pattern = 'TEMPO 120\n\nseq KICK: x...x...x...x...';
       const result = PatternParser.parse(pattern);
 
-      expect(result.instruments.KICK).toBeDefined();
+      // Parser normalizes instrument names to lowercase
+      expect(result.instruments.kick).toBeDefined();
     });
 
     it('should handle patterns with comments or extra text', () => {
