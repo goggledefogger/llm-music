@@ -2,21 +2,26 @@ import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
+/**
+ * Handles auth redirects: email confirmation after signup, OAuth callbacks.
+ * Supabase exchanges URL hash/params for a session. For PASSWORD_RECOVERY,
+ * redirect to reset-password page so user can set a new password.
+ */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
-    // Supabase automatically exchanges the URL hash/params for a session.
-    // We just need to wait for the session to be established, then redirect.
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event) => {
         if (event === 'SIGNED_IN') {
           navigate('/', { replace: true });
+        } else if (event === 'PASSWORD_RECOVERY') {
+          navigate('/auth/reset-password', { replace: true });
         }
       },
     );
 
-    // Also check if session is already present (e.g. fast redirect)
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         navigate('/', { replace: true });

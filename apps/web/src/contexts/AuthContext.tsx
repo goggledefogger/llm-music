@@ -2,11 +2,25 @@ import React, { createContext, useContext, useEffect, useState, ReactNode } from
 import type { User, Session } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
+export interface SignInResult {
+  error: string | null;
+  needsEmailConfirmation?: boolean;
+}
+
+export interface SignUpResult {
+  error: string | null;
+  needsEmailConfirmation?: boolean;
+}
+
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signIn: (email: string) => Promise<{ error: string | null }>;
+  signInWithPassword: (email: string, password: string) => Promise<SignInResult>;
+  signUp: (email: string, password: string) => Promise<SignUpResult>;
+  resetPasswordForEmail: (email: string) => Promise<{ error: string | null }>;
+  resendConfirmationEmail: (email: string) => Promise<{ error: string | null }>;
+  updatePassword: (newPassword: string) => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
 }
 
@@ -25,7 +39,7 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // Listen for auth changes (SIGNED_IN, SIGNED_OUT, TOKEN_REFRESHED, PASSWORD_RECOVERY)
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (_event, s) => {
         setSession(s);
@@ -37,9 +51,66 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     return () => subscription.unsubscribe();
   }, []);
 
-  const signIn = async (email: string): Promise<{ error: string | null }> => {
-    const redirectTo = `${window.location.origin}/auth/callback`;
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: redirectTo } });
+  const signInWithPassword = async (
+    email: string,
+    password: string
+  ): Promise<SignInResult> => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email.trim().toLowerCase(),
+      password,
+    });
+    if (error) return { error: error.message };
+    if (data?.weakPassword?.reasons?.length) {
+      // Still signed in; optionally warn user
+      return { error: null };
+    }
+    return { error: null };
+  };
+
+  const signUp = async (
+    email: string,
+    password: string
+  ): Promise<SignUpResult> => {
+    const { data, error } = await supabase.auth.signUp({
+      email: email.trim().toLowerCase(),
+      password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
+      },
+    });
+    if (error) return { error: error.message };
+    // If email confirmation required, session may be null
+    if (data.user && !data.session) {
+      return { error: null, needsEmailConfirmation: true };
+    }
+    return { error: null };
+  };
+
+  const resetPasswordForEmail = async (
+    email: string
+  ): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      email.trim().toLowerCase(),
+      { redirectTo: `${window.location.origin}/auth/reset-password` }
+    );
+    return { error: error?.message ?? null };
+  };
+
+  const resendConfirmationEmail = async (
+    email: string
+  ): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.resend({
+      email: email.trim().toLowerCase(),
+      type: 'signup',
+      options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+    });
+    return { error: error?.message ?? null };
+  };
+
+  const updatePassword = async (
+    newPassword: string
+  ): Promise<{ error: string | null }> => {
+    const { error } = await supabase.auth.updateUser({ password: newPassword });
     return { error: error?.message ?? null };
   };
 
@@ -48,7 +119,19 @@ export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, signIn, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        session,
+        loading,
+        signInWithPassword,
+        signUp,
+        resetPasswordForEmail,
+        resendConfirmationEmail,
+        updatePassword,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
