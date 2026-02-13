@@ -1,5 +1,5 @@
 // Basic pattern parser for ASCII Generative Sequencer
-import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, LFOTarget, SampleModule, FilterModule, FilterType, DelayModule, ReverbModule, PanModule, DistortModule } from '../types/app';
+import { ParsedPattern, EQModule, AmpModule, CompModule, LFOModule, LFOWave, LFOTarget, SampleModule, FilterModule, FilterType, DelayModule, ReverbModule, PanModule, DistortModule, EnvelopeModule, ChorusModule, PhaserModule, NoteModule } from '../types/app';
 
 export class PatternParser {
   private static readonly DEFAULT_TEMPO = 120;
@@ -25,6 +25,10 @@ export class PatternParser {
     const panModules: ParsedPattern['panModules'] = {};
     const distortModules: ParsedPattern['distortModules'] = {};
     const lfoModules: ParsedPattern['lfoModules'] = {};
+    const envelopeModules: ParsedPattern['envelopeModules'] = {};
+    const chorusModules: ParsedPattern['chorusModules'] = {};
+    const phaserModules: ParsedPattern['phaserModules'] = {};
+    const noteModules: ParsedPattern['noteModules'] = {};
 
     for (const line of lines) {
       // Parse tempo
@@ -153,6 +157,58 @@ export class PatternParser {
         continue;
       }
 
+      // Parse ENVELOPE (ADSR) modules
+      if (line.startsWith('env ')) {
+        const envMatch = line.match(/env\s+(\w+):\s*(.+)/);
+        if (envMatch) {
+          const [, moduleName, envString] = envMatch;
+          const envModule = this.parseEnvelopeString(moduleName, envString);
+          if (envModule) {
+            envelopeModules[moduleName.toLowerCase()] = envModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse CHORUS modules
+      if (line.startsWith('chorus ')) {
+        const chorusMatch = line.match(/chorus\s+(\w+):\s*(.+)/);
+        if (chorusMatch) {
+          const [, moduleName, chorusString] = chorusMatch;
+          const chorusModule = this.parseChorusString(moduleName, chorusString);
+          if (chorusModule) {
+            chorusModules[moduleName.toLowerCase()] = chorusModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse PHASER modules
+      if (line.startsWith('phaser ')) {
+        const phaserMatch = line.match(/phaser\s+(\w+):\s*(.+)/);
+        if (phaserMatch) {
+          const [, moduleName, phaserString] = phaserMatch;
+          const phaserModule = this.parsePhaserString(moduleName, phaserString);
+          if (phaserModule) {
+            phaserModules[moduleName.toLowerCase()] = phaserModule;
+          }
+        }
+        continue;
+      }
+
+      // Parse NOTE (pitch) modules
+      if (line.startsWith('note ')) {
+        const noteMatch = line.match(/note\s+(\w+):\s*(.+)/);
+        if (noteMatch) {
+          const [, moduleName, noteString] = noteMatch;
+          const noteModule = this.parseNoteString(moduleName, noteString);
+          if (noteModule) {
+            noteModules[moduleName.toLowerCase()] = noteModule;
+          }
+        }
+        continue;
+      }
+
       // Parse LFO modules: lfo target: rate=5Hz depth=0.5 wave=sine
       if (line.startsWith('lfo ')) {
         const lfoMatch = line.match(/lfo\s+([^:]+):\s*(.+)/);
@@ -171,11 +227,12 @@ export class PatternParser {
         const seqMatch = line.match(/seq\s+(\w+):\s*(.+)/);
         if (seqMatch) {
           const [, instrumentName, patternString] = seqMatch;
-          const steps = this.parsePatternString(patternString);
+          const { steps, velocities } = this.parsePatternString(patternString);
 
           if (steps.length > 0) {
             instruments[instrumentName] = {
               steps,
+              velocities,
               name: instrumentName
             };
           }
@@ -202,27 +259,44 @@ export class PatternParser {
       panModules,
       distortModules,
       lfoModules,
+      envelopeModules,
+      chorusModules,
+      phaserModules,
+      noteModules,
       totalSteps
     };
   }
 
   /**
-   * Parse a pattern string like "x...x..." into boolean array
+   * Parse a pattern string like "x...x..." into boolean array and velocities
+   * X = accent (velocity 1.0), x = normal (0.7), o = ghost (0.3), . = rest (0)
    */
-  private static parsePatternString(pattern: string): boolean[] {
+  private static parsePatternString(pattern: string): { steps: boolean[]; velocities: number[] } {
     const steps: boolean[] = [];
+    const velocities: number[] = [];
 
     for (const char of pattern) {
-      if (char === 'x' || char === 'X') {
+      if (char === 'X') {
         steps.push(true);
+        velocities.push(1.0);   // accent
+      } else if (char === 'x') {
+        steps.push(true);
+        velocities.push(0.7);   // normal
+      } else if (char === 'o') {
+        steps.push(true);
+        velocities.push(0.3);   // ghost note
       } else if (char === '.') {
         steps.push(false);
+        velocities.push(0);
       }
       // Ignore spaces and other characters
     }
 
     // Limit to max steps
-    return steps.slice(0, this.MAX_STEPS);
+    return {
+      steps: steps.slice(0, this.MAX_STEPS),
+      velocities: velocities.slice(0, this.MAX_STEPS),
+    };
   }
 
   /**
@@ -507,6 +581,115 @@ export class PatternParser {
   }
 
   /**
+   * Parse ENVELOPE string like "attack=0.01 decay=0.1 sustain=0.6 release=0.5"
+   */
+  private static parseEnvelopeString(moduleName: string, envString: string): EnvelopeModule | null {
+    const pairs = Array.from(envString.matchAll(/(attack|decay|sustain|release)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let attack = map['attack'] ?? 0.01;
+    let decay = map['decay'] ?? 0.1;
+    let sustain = map['sustain'] ?? 0.5;
+    let release = map['release'] ?? 0.3;
+
+    if (Number.isNaN(attack)) attack = 0.01;
+    if (Number.isNaN(decay)) decay = 0.1;
+    if (Number.isNaN(sustain)) sustain = 0.5;
+    if (Number.isNaN(release)) release = 0.3;
+
+    attack = Math.max(0.001, Math.min(2.0, attack));
+    decay = Math.max(0.001, Math.min(2.0, decay));
+    sustain = Math.max(0, Math.min(1, sustain));
+    release = Math.max(0.01, Math.min(5.0, release));
+
+    return { name: moduleName.toLowerCase(), attack, decay, sustain, release };
+  }
+
+  /**
+   * Parse CHORUS string like "rate=1.5 depth=0.4 mix=0.3"
+   */
+  private static parseChorusString(moduleName: string, chorusString: string): ChorusModule | null {
+    const pairs = Array.from(chorusString.matchAll(/(rate|depth|mix)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let rate = map['rate'] ?? 1.5;
+    let depth = map['depth'] ?? 0.4;
+    let mix = map['mix'] ?? 0.3;
+
+    if (Number.isNaN(rate)) rate = 1.5;
+    if (Number.isNaN(depth)) depth = 0.4;
+    if (Number.isNaN(mix)) mix = 0.3;
+
+    rate = Math.max(0.1, Math.min(10, rate));
+    depth = Math.max(0, Math.min(1, depth));
+    mix = Math.max(0, Math.min(1, mix));
+
+    return { name: moduleName.toLowerCase(), rate, depth, mix };
+  }
+
+  /**
+   * Parse PHASER string like "rate=0.5 depth=0.6 stages=4 mix=0.3"
+   */
+  private static parsePhaserString(moduleName: string, phaserString: string): PhaserModule | null {
+    const pairs = Array.from(phaserString.matchAll(/(rate|depth|stages|mix)\s*=\s*([\-\d\.]+)/gi));
+    const map: Record<string, number> = {};
+    for (const [, key, value] of pairs as any) {
+      map[key.toLowerCase()] = parseFloat(value);
+    }
+
+    let rate = map['rate'] ?? 0.5;
+    let depth = map['depth'] ?? 0.6;
+    let stages = map['stages'] ?? 4;
+    let mix = map['mix'] ?? 0.3;
+
+    if (Number.isNaN(rate)) rate = 0.5;
+    if (Number.isNaN(depth)) depth = 0.6;
+    if (Number.isNaN(stages)) stages = 4;
+    if (Number.isNaN(mix)) mix = 0.3;
+
+    rate = Math.max(0.1, Math.min(10, rate));
+    depth = Math.max(0, Math.min(1, depth));
+    mix = Math.max(0, Math.min(1, mix));
+    // Snap to valid stage counts
+    const validStages = [2, 4, 6, 8, 12];
+    stages = validStages.reduce((prev, curr) =>
+      Math.abs(curr - stages) < Math.abs(prev - stages) ? curr : prev
+    );
+
+    return { name: moduleName.toLowerCase(), rate, depth, stages, mix };
+  }
+
+  /**
+   * Parse NOTE string like "36" (MIDI) or "110hz" (frequency)
+   */
+  private static parseNoteString(moduleName: string, noteString: string): NoteModule | null {
+    const trimmed = noteString.trim().toLowerCase();
+
+    // Check for Hz format: "110hz" or "440.5hz"
+    const hzMatch = trimmed.match(/^([\d\.]+)\s*hz$/i);
+    if (hzMatch) {
+      let freq = parseFloat(hzMatch[1]);
+      if (Number.isNaN(freq)) return null;
+      freq = Math.max(20, Math.min(20000, freq));
+      return { name: moduleName.toLowerCase(), pitch: freq };
+    }
+
+    // Otherwise treat as MIDI note number
+    const midi = parseInt(trimmed, 10);
+    if (Number.isNaN(midi)) return null;
+    const clampedMidi = Math.max(0, Math.min(127, midi));
+    // Convert MIDI to Hz: f = 440 * 2^((n-69)/12)
+    const freq = 440 * Math.pow(2, (clampedMidi - 69) / 12);
+    return { name: moduleName.toLowerCase(), pitch: freq };
+  }
+
+  /**
    * Validate a pattern string with detailed error reporting
    */
   static validate(pattern: string): {
@@ -700,6 +883,66 @@ export class PatternParser {
         continue;
       }
 
+      // Check ENV format
+      if (line.startsWith('env ')) {
+        const envMatch = line.match(/env\s+(\w+):\s*(.+)/);
+        if (!envMatch) {
+          errors.push(`Invalid env format: ${line}. Use: env name: attack=0.01 decay=0.1 sustain=0.5 release=0.3`);
+        } else {
+          const [, moduleName, envString] = envMatch;
+          const envModule = this.parseEnvelopeString(moduleName, envString);
+          if (!envModule) {
+            errors.push(`Invalid env values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check CHORUS format
+      if (line.startsWith('chorus ')) {
+        const chorusMatch = line.match(/chorus\s+(\w+):\s*(.+)/);
+        if (!chorusMatch) {
+          errors.push(`Invalid chorus format: ${line}. Use: chorus name: rate=1.5 depth=0.4 mix=0.3`);
+        } else {
+          const [, moduleName, chorusString] = chorusMatch;
+          const chorusModule = this.parseChorusString(moduleName, chorusString);
+          if (!chorusModule) {
+            errors.push(`Invalid chorus values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check PHASER format
+      if (line.startsWith('phaser ')) {
+        const phaserMatch = line.match(/phaser\s+(\w+):\s*(.+)/);
+        if (!phaserMatch) {
+          errors.push(`Invalid phaser format: ${line}. Use: phaser name: rate=0.5 depth=0.6 stages=4 mix=0.3`);
+        } else {
+          const [, moduleName, phaserString] = phaserMatch;
+          const phaserModule = this.parsePhaserString(moduleName, phaserString);
+          if (!phaserModule) {
+            errors.push(`Invalid phaser values for ${moduleName}`);
+          }
+        }
+        continue;
+      }
+
+      // Check NOTE format
+      if (line.startsWith('note ')) {
+        const noteMatch = line.match(/note\s+(\w+):\s*(.+)/);
+        if (!noteMatch) {
+          errors.push(`Invalid note format: ${line}. Use: note name: 60 (MIDI) or note name: 440hz`);
+        } else {
+          const [, moduleName, noteString] = noteMatch;
+          const noteModule = this.parseNoteString(moduleName, noteString);
+          if (!noteModule) {
+            errors.push(`Invalid note value for ${moduleName}. Use MIDI note (0-127) or frequency (e.g. 440hz)`);
+          }
+        }
+        continue;
+      }
+
       // Check sequence format
       if (line.startsWith('seq ')) {
         const seqMatch = line.match(/seq\s+(\w+):\s*(.+)/);
@@ -708,8 +951,8 @@ export class PatternParser {
           invalidInstruments.push('unknown');
         } else {
           const [, instrumentName, patternString] = seqMatch;
-          if (!/^[xX.\s]+$/.test(patternString)) {
-            errors.push(`Invalid pattern characters in ${instrumentName}. Use only 'x' and '.'`);
+          if (!/^[xXo.\s]+$/.test(patternString)) {
+            errors.push(`Invalid pattern characters in ${instrumentName}. Use only 'x', 'X', 'o', and '.'`);
             invalidInstruments.push(instrumentName);
           } else {
             hasValidSequence = true;

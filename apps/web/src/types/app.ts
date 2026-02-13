@@ -56,6 +56,34 @@ export interface DistortModule {
   mix: number;        // 0-1 (dry/wet)
 }
 
+export interface EnvelopeModule {
+  name: string;
+  attack: number;   // 0.001-2.0 seconds
+  decay: number;    // 0.001-2.0 seconds
+  sustain: number;  // 0-1 (amplitude level)
+  release: number;  // 0.01-5.0 seconds
+}
+
+export interface ChorusModule {
+  name: string;
+  rate: number;     // 0.1-10 Hz
+  depth: number;    // 0-1 (delay modulation depth)
+  mix: number;      // 0-1 (dry/wet)
+}
+
+export interface PhaserModule {
+  name: string;
+  rate: number;     // 0.1-10 Hz
+  depth: number;    // 0-1
+  stages: number;   // 2, 4, 6, 8, or 12
+  mix: number;      // 0-1 (dry/wet)
+}
+
+export interface NoteModule {
+  name: string;
+  pitch: number;    // frequency in Hz (converted from MIDI if needed)
+}
+
 export type LFOWave = 'sine' | 'triangle' | 'square' | 'sawtooth';
 export type LFOTarget = 'amp' | 'filter.freq' | 'filter.q' | 'pan' | 'delay.time' | 'delay.feedback';
 
@@ -84,6 +112,7 @@ export interface ParsedPattern {
   instruments: {
     [instrumentName: string]: {
       steps: boolean[];
+      velocities?: number[];  // 0-1 per step (X=1.0, x=0.7, o=0.3, .=0)
       name: string;
     };
   };
@@ -116,6 +145,18 @@ export interface ParsedPattern {
   };
   lfoModules?: {
     [key: string]: LFOModule; // keyed by 'name.target' (e.g., 'kick.amp')
+  };
+  envelopeModules?: {
+    [moduleName: string]: EnvelopeModule;
+  };
+  chorusModules?: {
+    [moduleName: string]: ChorusModule;
+  };
+  phaserModules?: {
+    [moduleName: string]: PhaserModule;
+  };
+  noteModules?: {
+    [moduleName: string]: NoteModule;
   };
   totalSteps: number;
 }
