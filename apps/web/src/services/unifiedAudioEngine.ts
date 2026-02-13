@@ -1,7 +1,7 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
 import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, ChorusModule, PhaserModule } from '../types/app';
 import { PatternParser } from './patternParser';
-import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
+import * as Tone from 'tone';
 
 export interface ParameterUpdate {
   type: ParameterType;
@@ -28,6 +28,7 @@ export class UnifiedAudioEngine {
   private isPlaying = false;
   private isPaused = false;
   private currentPattern: ParsedPattern | null = null;
+  private tonePart: Tone.Part | null = null;
 
   // Audio context and nodes
   private audioContext: AudioContext | null = null;
@@ -80,9 +81,7 @@ export class UnifiedAudioEngine {
     depth: number;
   }> = new Map();
 
-  // Real-time timing system (no pre-calculation)
-  private startTime: number = 0;
-  private pausePosition: number = 0;
+  // No longer using custom timing system, powered by Tone.Transport
 
   // Audio sources and scheduling
   private activeOscillators: OscillatorNode[] = [];
@@ -129,8 +128,8 @@ export class UnifiedAudioEngine {
     try {
       console.log('Initializing Unified Audio Engine...');
 
-      // Create AudioContext
-      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
+      // Use Tone.js context as our source of truth
+      this.audioContext = Tone.context.rawContext as AudioContext;
 
       // Create audio graph
       this.masterGain = this.audioContext.createGain();
@@ -146,13 +145,11 @@ export class UnifiedAudioEngine {
       this.masterGain.connect(this.volumeGain);
       this.volumeGain.connect(this.audioContext.destination);
 
+      // Connect Tone.js destination to our master chain so any Tone nodes are heard
+      Tone.getDestination().connect(this.masterGain);
+
       // Preload a minimal sample bank (procedurally generated for MVP)
       await this.preloadDefaultSamples();
-
-      // Resume context if suspended
-      if (this.audioContext.state === 'suspended') {
-        await this.audioContext.resume();
-      }
 
       this.isInitialized = true;
       console.log('Unified Audio Engine initialized successfully');
@@ -206,7 +203,7 @@ export class UnifiedAudioEngine {
   /**
    * Play the pattern
    */
-  play(): void {
+  async play(): Promise<void> {
     if (!this.isInitialized || !this.audioContext) {
       throw new Error('Audio engine not initialized');
     }
@@ -220,33 +217,39 @@ export class UnifiedAudioEngine {
     }
 
     try {
-      console.log('Starting unified playback...');
+      console.log('Starting unified playback with Tone.js...');
 
-      // Clear any existing scheduled events and audio sources
+      // CRITICAL: Tone.start() must be the very first await to preserve the user gesture
+      // in some browsers (Chrome). It will resume the underlying AudioContext.
+      await Tone.start();
+      console.log(`[Audio] Tone started. Context state: ${Tone.context.state}`);
+
+      if (Tone.context.state !== 'running') {
+        console.warn('[Audio] Warning: Tone.context is still NOT running after start(). Resuming raw context...');
+        await this.audioContext.resume();
+      }
+
+      // Clear any existing scheduled events
       this.clearScheduledEvents();
       this.stopAllAudio();
 
-      // Calculate start time based on pause position
+      // Sync Tone Transport BPM
+      Tone.Transport.bpm.value = this.currentPattern.tempo;
+
+      // Ensure Tone.Part is up to date
+      this.rebuildTonePart();
+
+      // Start transport
       if (this.isPaused) {
-        this.startTime = this.audioContext.currentTime - this.pausePosition;
+        Tone.Transport.start();
         this.isPaused = false;
-        console.log(`Resuming from position: ${this.pausePosition.toFixed(3)}s`);
       } else {
-        this.startTime = this.audioContext.currentTime;
-        this.pausePosition = 0;
-        console.log('Starting from beginning');
+        Tone.Transport.position = 0;
+        Tone.Transport.start();
       }
-
-      // Restore master gain
-      if (this.masterGain) {
-        this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
-      }
-
-      // Start scheduling
-      this.schedulePattern();
 
       this.isPlaying = true;
-      console.log('Unified playback started');
+      console.log('Unified playback started via Tone.Transport');
     } catch (error) {
       console.error('Failed to start playback:', error);
       throw new Error('Failed to start playback');
@@ -259,41 +262,30 @@ export class UnifiedAudioEngine {
   pause(): void {
     if (!this.isPlaying) return;
 
-    // Calculate current position
-    if (this.audioContext && this.startTime > 0) {
-      this.pausePosition = this.audioContext.currentTime - this.startTime;
-      // Keep position within loop bounds
-      const loopDuration = this.getLoopDuration();
-      if (loopDuration > 0) {
-        this.pausePosition = this.pausePosition % loopDuration;
-      }
-    }
+    Tone.Transport.pause();
 
-    // Stop all audio immediately
+    // Stop all active non-Tone audio immediately
     this.stopAllAudio();
-
-    // Clear scheduling
-    this.clearScheduledEvents();
 
     this.isPlaying = false;
     this.isPaused = true;
 
-    console.log(`Paused at position: ${this.pausePosition.toFixed(3)}s`);
+    console.log(`Paused via Tone.Transport at: ${Tone.Transport.position}`);
   }
 
   /**
    * Stop playback and reset
    */
   stop(): void {
+    Tone.Transport.stop();
+    Tone.Transport.position = 0;
+
     // Stop all audio immediately
     this.stopAllAudio();
 
     // Clear scheduling
-    this.clearScheduledEvents();
-
-    // Reset position
-    this.pausePosition = 0;
-    this.startTime = 0;
+    this.scheduledEvents.forEach(id => window.clearTimeout(id));
+    this.scheduledEvents = [];
 
     // Restore master gain
     if (this.masterGain && this.audioContext) {
@@ -303,7 +295,7 @@ export class UnifiedAudioEngine {
     this.isPlaying = false;
     this.isPaused = false;
 
-    console.log('Stopped and reset to beginning');
+    console.log('Stopped and reset via Tone.Transport');
   }
 
   /**
@@ -849,41 +841,30 @@ export class UnifiedAudioEngine {
   /**
    * Apply real-time tempo change without waiting for next loop
    */
-  private applyRealTimeTempoChange(oldTempo: number, newTempo: number): void {
-    if (!this.audioContext || !this.currentPattern) return;
+  private applyRealTimeTempoChange(_oldTempo: number, newTempo: number): void {
+    if (!this.currentPattern) return;
 
-    // Calculate tempo ratio for timing adjustment
-    const tempoRatio = newTempo / oldTempo;
-    const currentTime = this.audioContext.currentTime;
-    const elapsedTime = currentTime - this.startTime;
+    console.log(`[Tone] Tempo change: ${newTempo} BPM`);
 
-    // Adjust start time to maintain current position with new tempo
-    this.startTime = currentTime - (elapsedTime / tempoRatio);
+    // Update Tone.Transport BPM
+    Tone.Transport.bpm.value = newTempo;
 
-    // Clear existing scheduled events & cancel future sources; keep current audio playing
-    this.clearScheduledEvents();
-    this.cancelFutureScheduledAudio();
-
-    // Immediately reschedule from current position with new tempo (no hard stop)
-    this.schedulePattern();
-
-    console.log(`[Unified] Timing adjusted - tempo ratio: ${tempoRatio.toFixed(3)}`);
+    // We must rebuild the part because the groove offsets (in seconds) are based on the tempo-derived step interval
+    if (this.isPlaying) {
+      this.rebuildTonePart();
+    }
   }
 
   /**
    * Apply real-time sequence change
    */
   private applyRealTimeSequenceChange(_oldPattern: ParsedPattern | null, _newPattern: ParsedPattern): void {
-    if (!this.audioContext) return;
+    console.log(`[Tone] Sequence adjusted for pattern change`);
 
-    console.log(`[Unified] Sequence adjusted for pattern change`);
-
-    // Clear scheduled events & cancel future sources; let currently playing sounds finish
-    this.clearScheduledEvents();
-    this.cancelFutureScheduledAudio();
-
-    // Immediately reschedule with new pattern (no hard stop)
-    this.schedulePattern();
+    // Rebuild the Tone.Part with the new sequence
+    if (this.isPlaying) {
+      this.rebuildTonePart();
+    }
   }
 
   /**
@@ -893,17 +874,10 @@ export class UnifiedAudioEngine {
     const tempo = this.currentPattern?.tempo || 120;
     const volume = this.volumeGain ? 20 * Math.log10(this.volumeGain.gain.value) : -6;
 
-    // Calculate real-time position
-    let currentTime = 0;
-    if (this.audioContext && this.isPlaying && this.startTime > 0) {
-      currentTime = this.audioContext.currentTime - this.startTime;
-      // Keep within loop bounds
-      const loopDuration = this.getLoopDuration();
-      if (loopDuration > 0) {
-        currentTime = currentTime % loopDuration;
-      }
-    } else if (this.isPaused) {
-      currentTime = this.pausePosition;
+    // Calculate real-time position using Tone.Transport
+    let currentTime = Tone.Transport.seconds;
+    if (this.tonePart && (this.tonePart.loopEnd as any) > 0) {
+      currentTime = currentTime % (this.tonePart.loopEnd as any);
     }
 
     return {
@@ -920,21 +894,7 @@ export class UnifiedAudioEngine {
     };
   }
 
-  /**
-   * Real-time timing calculations (no pre-calculation)
-   */
-  private getStepInterval(): number {
-    if (!this.currentPattern) return 0;
-    const stepsPerBeat = AUDIO_CONSTANTS.STEPS_PER_BEAT; // e.g., 4 = 16th notes
-    const beatsPerMinute = this.currentPattern.tempo;
-    const secondsPerBeat = 60 / beatsPerMinute;
-    return secondsPerBeat / stepsPerBeat;
-  }
-
-  private getLoopDuration(): number {
-    if (!this.currentPattern) return 0;
-    return this.currentPattern.totalSteps * this.getStepInterval();
-  }
+  // OBOSLETE custom loop duration methods removed
 
   // getCurrentStep method removed - not currently used
 
@@ -1511,134 +1471,148 @@ export class UnifiedAudioEngine {
   }
 
   /**
-   * Schedule pattern playback with real-time timing
+   * Rebuild the Tone.Part based on the current pattern
    */
-  private schedulePattern(): void {
-    if (!this.audioContext || !this.currentPattern) return;
+  private rebuildTonePart(): void {
+    if (!this.currentPattern) return;
 
-    const timestamp = new Date().toISOString();
+    // Dispose old part
+    if (this.tonePart) {
+      this.tonePart.dispose();
+      this.tonePart = null;
+    }
+
+    const events: any[] = [];
     const totalSteps = this.currentPattern.totalSteps;
-    const currentTime = this.audioContext.currentTime;
-    const stepInterval = this.getStepInterval();
-    const loopDuration = this.getLoopDuration();
+    const bpm = this.currentPattern.tempo;
+    const stepInterval = 60 / bpm / 4; // 16th note in seconds
 
-    // Schedule multiple loops ahead
-    const loopsToSchedule = 4;
+    // Calculate events for each instrument
+    Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
+      if (instrumentData.steps.length === 0) return;
 
-    // Calculate current position
-    const currentPosition = currentTime - this.startTime;
-    const currentLoop = Math.floor(currentPosition / loopDuration);
-    const currentStepInLoop = Math.floor((currentPosition % loopDuration) / stepInterval);
+      const steps = instrumentData.steps;
+      const velocities = (instrumentData as any).velocities || [];
 
-    console.log(`[${timestamp}] Current position: ${currentPosition.toFixed(3)}s, loop: ${currentLoop}, step: ${currentStepInLoop}`);
+      // Use the max of instrument steps and total pattern steps for scheduling
+      const scheduleLimit = Math.max(steps.length, totalSteps);
 
-    // Schedule loops starting from the current loop (always schedule the current loop)
-    for (let loop = currentLoop; loop < currentLoop + loopsToSchedule; loop++) {
-      const loopStartTime = this.startTime + (loop * loopDuration);
-      console.log(`[${timestamp}] Scheduling loop ${loop} at time ${loopStartTime.toFixed(3)}`);
+      for (let step = 0; step < scheduleLimit; step++) {
+        // Determine hit based on overflow mode
+        let isHit = false;
+        let velocity = 0.7;
 
-      if (loop === currentLoop) {
-        console.log(`[Groove-Debug] currentPattern.grooveModules:`, JSON.stringify(this.currentPattern?.grooveModules));
-      }
-
-      // Determine which steps to schedule in this loop
-      let startStep = 0;
-      const endStep = totalSteps;
-
-      // If this is the current loop, start from the current step
-      if (loop === currentLoop) {
-        const timeInCurrentLoop = currentTime - loopStartTime;
-        const actualCurrentStep = Math.floor(timeInCurrentLoop / stepInterval);
-        startStep = Math.max(0, actualCurrentStep);
-        console.log(`[${timestamp}] Current loop ${loop}, time in loop: ${timeInCurrentLoop.toFixed(3)}s, starting from step ${startStep}`);
-      }
-
-      // Schedule steps in this loop
-      for (let step = startStep; step < endStep; step++) {
-        const baseStepTime = loopStartTime + (step * stepInterval);
-
-        // Check each instrument for hits at this step
-        Object.entries(this.currentPattern.instruments).forEach(([instrumentName, instrumentData]) => {
-          if (instrumentData.steps.length === 0) return;
-
-          let isHit = false;
-          let velocity = 0.7;
-
-          // Determine hit and velocity based on overflow mode
-          if (this.overflowMode === 'loop') {
-            const patternStep = step % instrumentData.steps.length;
-            isHit = instrumentData.steps[patternStep] === true;
-            velocity = (instrumentData as any).velocities?.[patternStep] ?? 0.7;
-          } else {
-            if (step < instrumentData.steps.length) {
-              isHit = instrumentData.steps[step] === true;
-              velocity = (instrumentData as any).velocities?.[step] ?? 0.7;
-            } else {
-              isHit = false;
-            }
+        if (this.overflowMode === 'loop') {
+          const patternStep = step % steps.length;
+          isHit = steps[patternStep] === true;
+          velocity = velocities[patternStep] ?? 0.7;
+        } else {
+          if (step < steps.length) {
+            isHit = steps[step] === true;
+            velocity = velocities[step] ?? 0.7;
           }
-
-          if (isHit) {
-            const isOddStep = step % 2 === 1;
-
-            // Apply Groove/Swing
-            // Check for instrument-specific groove, fallback to master
-            const groove = this.currentPattern?.grooveModules?.[instrumentName.toLowerCase()] ||
-                           this.currentPattern?.grooveModules?.['master'];
-
-            let grooveOffset = 0;
-            if (groove) {
-                const amount = groove.amount; // 0..1
-                if (groove.type === 'swing') {
-                    if (isOddStep) {
-                        grooveOffset = amount * stepInterval * 0.33;
-                    }
-                } else if (groove.type === 'humanize') {
-                    grooveOffset = (Math.random() - 0.5) * amount * 0.05;
-                } else if (groove.type === 'rush') {
-                    grooveOffset = -amount * 0.03;
-                } else if (groove.type === 'drag') {
-                    grooveOffset = amount * 0.03;
-                }
-            }
-
-            if (isHit) {
-              console.log(`[Hit] ${instrumentName} at step ${step} (${isOddStep ? 'ODD' : 'EVEN'}). Offset: ${grooveOffset.toFixed(4)}s`);
-            }
-
-            const stepTime = baseStepTime + grooveOffset;
-
-            // Only schedule if the step time with groove is in the future
-            if (stepTime >= currentTime) {
-              // console.log(`[${timestamp}] Scheduling ${instrumentName} hit at step ${step}, time ${stepTime.toFixed(3)}, vel ${velocity}`);
-              (this as any).__currentVelocity = velocity;
-              this.scheduleInstrumentHit(instrumentName, stepTime);
-              (this as any).__currentVelocity = undefined;
-            }
-          }
-        });
-      }
-    }
-
-    // Schedule the next batch of loops
-    const nextSchedulingTime = this.startTime + ((currentLoop + Math.floor(loopsToSchedule / 2)) * loopDuration);
-    const timeoutDelay = Math.max(0, (nextSchedulingTime - this.audioContext.currentTime) * 1000);
-
-    console.log(`[${timestamp}] Next scheduling at ${nextSchedulingTime.toFixed(3)}, timeout delay: ${timeoutDelay.toFixed(0)}ms`);
-
-    // Only schedule timeout if delay is reasonable
-    if (timeoutDelay > 10) {
-      const timeoutId = window.setTimeout(() => {
-        if (this.isPlaying) {
-          const callbackTimestamp = new Date().toISOString();
-          console.log(`[${callbackTimestamp}] Scheduling callback triggered, continuing from ${nextSchedulingTime.toFixed(3)}`);
-          this.schedulePattern();
         }
-      }, timeoutDelay);
 
-      this.scheduledEvents.push(timeoutId);
-    }
+        if (isHit) {
+          const isOddStep = step % 2 === 1;
+          const baseTime = step * stepInterval;
+
+          // Apply Groove/Swing
+          const groove = this.currentPattern?.grooveModules?.[instrumentName.toLowerCase()] ||
+                         this.currentPattern?.grooveModules?.['master'];
+
+          let grooveOffset = 0;
+          if (groove) {
+            const amount = groove.amount;
+
+            // Determine if this step should be affected by groove
+            let isTargeted = false;
+            if (groove.type === 'swing') {
+              const targetSteps = groove.steps || 'odd'; // Default to odd
+              if (targetSteps === 'odd') {
+                isTargeted = isOddStep;
+              } else if (targetSteps === 'even') {
+                isTargeted = !isOddStep;
+              } else if (targetSteps === 'all') {
+                isTargeted = true;
+              } else if (targetSteps.includes(',')) {
+                const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
+                isTargeted = indices.includes(step);
+              } else if (!isNaN(parseInt(targetSteps))) {
+                isTargeted = parseInt(targetSteps) === step;
+              }
+            } else {
+              // Other grooves (humanize, rush, drag) usually apply to all or custom
+              const targetSteps = groove.steps || 'all';
+              if (targetSteps === 'all') {
+                isTargeted = true;
+              } else if (targetSteps === 'odd') {
+                isTargeted = isOddStep;
+              } else if (targetSteps === 'even') {
+                isTargeted = !isOddStep;
+              } else if (targetSteps.includes(',')) {
+                const indices = targetSteps.split(',').map(s => parseInt(s.trim()));
+                isTargeted = indices.includes(step);
+              }
+            }
+
+            if (isTargeted) {
+              if (groove.type === 'swing') {
+                grooveOffset = amount * stepInterval * 0.33;
+              } else if (groove.type === 'humanize') {
+                grooveOffset = (Math.random() - 0.5) * amount * 0.05;
+              } else if (groove.type === 'rush') {
+                grooveOffset = -amount * 0.03;
+              } else if (groove.type === 'drag') {
+                grooveOffset = amount * 0.03;
+              }
+            }
+          }
+
+          events.push({
+            time: baseTime + grooveOffset,
+            instrument: instrumentName,
+            velocity: velocity,
+            step,
+            isOddStep,
+            grooveOffset
+          });
+        }
+      }
+    });
+
+    // Create the part
+    this.tonePart = new Tone.Part((time, event) => {
+      // Diagnostic log (optional, keep for debugging groove)
+      if (event.grooveOffset !== 0) {
+        // Only log sometimes to avoid spam
+        // console.log(`[Groove] ${event.instrument} step ${event.step} offset ${event.grooveOffset.toFixed(4)}s`);
+      }
+
+      (this as any).__currentVelocity = event.velocity;
+      this.scheduleInstrumentHit(event.instrument, time);
+      (this as any).__currentVelocity = undefined;
+    }, events);
+
+    // Configure looping
+    this.tonePart.loop = true;
+    this.tonePart.loopEnd = totalSteps * stepInterval;
+    this.tonePart.start(0);
+
+    console.log(`[Tone] Rebuilt part with ${events.length} events, loop length: ${this.tonePart.loopEnd.toFixed(3)}s`);
   }
+
+  /**
+   * Clear all scheduled events (timeout based)
+   */
+  private clearScheduledEvents(): void {
+    this.scheduledEvents.forEach(id => window.clearTimeout(id));
+    this.scheduledEvents = [];
+  }
+
+  /**
+   * OBOSLETE custom scheduling method removed
+   */
 
   /**
    * Schedule an instrument hit
@@ -1884,13 +1858,7 @@ export class UnifiedAudioEngine {
     this.cancelFutureScheduledAudio();
   }
 
-  /**
-   * Clear all scheduled events
-   */
-  private clearScheduledEvents(): void {
-    this.scheduledEvents.forEach(id => clearTimeout(id));
-    this.scheduledEvents = [];
-  }
+  // Duplicate clearScheduledEvents removed
 
   /**
    * Cancel any audio sources that are scheduled to start in the future.
@@ -1925,12 +1893,7 @@ export class UnifiedAudioEngine {
     if (this.overflowMode === mode) return;
     this.overflowMode = mode;
     if (this.isPlaying && this.audioContext) {
-      this.clearScheduledEvents();
-      this.stopAllAudio();
-      if (this.masterGain) {
-        this.masterGain.gain.setValueAtTime(1, this.audioContext.currentTime);
-      }
-      this.schedulePattern();
+      this.rebuildTonePart();
     }
   }
 

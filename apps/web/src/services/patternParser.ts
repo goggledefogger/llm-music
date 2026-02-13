@@ -716,8 +716,8 @@ export class PatternParser {
   /**
    * Parse GROOVE string like "type=swing amount=0.5"
    */
-  private static parseGrooveString(moduleName: string, grooveString: string): { name: string; type: 'swing' | 'humanize' | 'rush' | 'drag'; amount: number } | null {
-    const pairs = Array.from(grooveString.matchAll(/(type|amount)\s*=\s*([^\s]+)/gi));
+  private static parseGrooveString(moduleName: string, grooveString: string): any {
+    const pairs = Array.from(grooveString.matchAll(/(type|amount|steps|subdivision)\s*=\s*([^\s]+)/gi));
     const map: Record<string, string> = {};
     for (const [, key, value] of pairs as any) {
       map[key.toLowerCase()] = String(value);
@@ -731,7 +731,16 @@ export class PatternParser {
     if (Number.isNaN(amount)) amount = 0.5;
     amount = Math.max(0, Math.min(1, amount));
 
-    return { name: moduleName.toLowerCase(), type, amount };
+    const steps = map['steps']?.toLowerCase();
+    const subdivision = map['subdivision']?.toLowerCase();
+
+    return {
+      name: moduleName.toLowerCase(),
+      type,
+      amount,
+      steps,
+      subdivision
+    };
   }
 
   /**

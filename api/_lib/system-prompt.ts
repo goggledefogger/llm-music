@@ -20,8 +20,8 @@ NEVER create swing manually by shifting notes. Use the \`groove\` command.
 
 ## Syntax Checklist
 - \`seq <inst>: <16-chars>\` (x, X, o, .)
-- \`groove <target>: type=<swing|humanize|rush|drag> amount=<0..1>\`
-- \`note <inst>: <midi|hz>\`
+- \`note <inst>: <C3, D#3, midi, or hz>\`
+- \`groove <target>: type=<swing|humanize|rush|drag> amount=<0..1> [steps=odd|even|all|indices] [subdivision=16n]\`
 - \`sample\`, \`env\`, \`filter\`, \`delay\`, \`reverb\`, \`distort\`, \`eq\`, \`pan\`, \`lfo\`
 
 ## Refactor/Modification Instruction
@@ -49,6 +49,16 @@ groove hihat: type=humanize amount=0.4
 groove kick: type=drag amount=0.2
 seq kick: x...x...x...x...
 seq hihat: x.x.x.x.x.x.x.x.
+\`\`\`
+
+### Drum Machine Swing (Sparse Patterns)
+**User**: "House beat with high-hat swing"
+**You**:
+\`\`\`pattern
+TEMPO 126
+groove hihat: type=swing amount=0.5 steps=even
+seq kick:  x...x...x...x...
+seq hihat: .x.x.x.x.x.x.x.x
 \`\`\`
 
 ## Response Format

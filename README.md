@@ -304,13 +304,19 @@ seq hihat: x.x.x.x.x.x.x.x.
 | `phaser` | `phaser master: rate=0.5 depth=0.6 stages=4 mix=0.3` | Phaser; stages: 2, 4, 6, 8, 12 |
 | `note` | `note bass: 36` or `note lead: 440hz` | Pitch assignment (MIDI 0–127 or Hz) |
 | `lfo` | `lfo kick.amp: rate=5Hz depth=0.5 wave=sine` | LFO modulation; targets: amp, filter.freq, filter.q, pan, delay.time, delay.feedback |
-| `groove` | `groove master: type=swing amount=0.5` | Timing feel; types: swing (odd steps 1,3,5...), humanize, rush, drag |
+| `groove` | `groove master: type=swing amount=0.5 steps=odd subdivision=16` | Timing feel; types: `swing` (can target specific `steps` like `odd`, `even`, `all`, or a comma-separated list `1,5,9`), `humanize`, `rush`, `drag`. `subdivision` (e.g., `16`, `8`) defines the grid for swing. |
 | `#` / `//` | `# Comment` or `seq k: x... // comment` | Inline comments are ignored |
+
+### `note <instrument>: <pitch>`
+Changes the pitch of an instrument.
+- `note kick: 40hz`
+- `note snare: C3`
+- `note lead: D#4`
+- `note bass: 55` (MIDI note)
 
 ## AI Assistant
 
 The AI assistant can help you:
-
 - Generate new patterns from descriptions
 - Modify existing patterns
 - Suggest improvements
