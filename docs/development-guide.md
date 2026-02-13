@@ -80,7 +80,7 @@ packages:
 ### Key Dependencies
 
 - **Frontend**: React 18, TypeScript, Vite, Tailwind CSS with modular design system
-- **Audio**: Web Audio API (current) + Tone.js (upcoming hybrid approach)
+- **Audio**: Tone.js (Transport/scheduling) + Web Audio API (synthesis/effects)
 - **Editor**: CodeMirror 6 with decorations (inline playhead), base step coloring, click-to-toggle
 - **Testing**: Vitest, React Testing Library
 - **Build**: Turborepo for monorepo management
@@ -334,23 +334,43 @@ lfo snare.filter.freq: rate=1Hz depth=0.6 wave=triangle
 Groove modules affect the timing of patterns to create a "human" or "swing" feel:
 
 ```ascii
-# Groove Settings
-groove master: type=swing amount=0.5
-groove hihat: type=humanize amount=0.3
+# Standard swing (8th-note level, most common)
+groove master: type=swing amount=0.6 subdivision=8n
+
+# Per-instrument groove
+groove hihat: type=humanize amount=0.3 steps=all
+groove kick: type=drag amount=0.2
+
+# Genre groove templates
+groove master: type=template name=bossa-nova amount=0.8
+groove master: type=template name=mpc-swing-66 amount=1.0
 ```
 
 **Groove Syntax:**
 - `groove name:`: Defines a groove module for an instrument or `master`
-- `type`: `swing` (MPC style), `humanize` (random), `rush` (ahead), `drag` (behind)
+- `type`: `swing`, `humanize` (random), `rush` (ahead), `drag` (behind), `template` (named preset)
 - `amount`: 0..1 (intensity)
-- `steps`: `odd`, `even`, `all`, or comma-separated indices (e.g. `1,3,5`) — default: `odd` for swing, `all` for others
-- `subdivision`: e.g. `16n` (optional)
+- `subdivision`: `8n` (default for swing), `16n`, `4n` — controls which rhythmic level swing targets
+- `steps`: `odd`, `even`, `all`, or comma-separated indices (e.g. `1,3,5`) — overrides subdivision when set
+- `name`: preset name for `type=template` (e.g. `bossa-nova`, `mpc-swing-66`, `afrobeat-12-8`)
+
+**Subdivision Details:**
+- `8n` (default) — delays off-beat 8th notes (steps 2,6,10,14 in 16-step grid). Standard swing feel.
+- `16n` — delays off-beat 16th notes (steps 1,3,5,7...). Subtle hi-hat shuffle.
+- `4n` — delays off-beat quarter notes (steps 4-7, 12-15). Wide, half-time feel.
+
+**Available Template Presets:**
+- **Swing**: `mpc-swing-54`, `mpc-swing-58`, `mpc-swing-62`, `mpc-swing-66`, `mpc-swing-71`
+- **Latin**: `bossa-nova`, `son-clave-3-2`, `rumba-clave-3-2`
+- **African**: `afrobeat-12-8`
+- **Reggae**: `reggae-one-drop`
+- **Funk**: `second-line`, `go-go-swing`, `dilla-feel`
 
 **Groove Features:**
 - Per-instrument or master targeting
 - Real-time updates without stopping playback
-- Swing delays offbeat steps by `amount * stepInterval * 0.33`
-- Humanize adds random micro-timing variation
+- Subdivision-aware offset scaling (8n offset is 2x the 16n offset for the same amount)
+- Template grooves provide per-step timing offsets and velocity shaping
 - AI system prompt enforces groove usage — manual swing in `seq` lines is forbidden
 
 ### Comment Syntax
@@ -478,13 +498,11 @@ export class PatternService {
 5. **Editor Integration**: Pattern appears in ASCII editor with full audio integration
 
 #### Sample Patterns
-The system includes 6 pre-loaded sample patterns:
-- **Basic House Beat** (House) - 128 BPM, 3 instruments
-- **Minimal Techno** (Techno) - 130 BPM, 2 instruments
-- **Complex Breakbeat** (Breakbeat) - 140 BPM, 3 instruments
-- **Simple Rock** (Rock) - 120 BPM, 2 instruments
-- **Jungle Pattern** (Jungle) - 160 BPM, 3 instruments
-- **Ambient Drone** (Ambient) - 60 BPM, 2 instruments
+The system includes pre-loaded sample patterns covering various genres and groove types:
+- **Basic House Beat**, **Minimal Techno**, **Complex Breakbeat**, **Simple Rock**, **Jungle Pattern**, **Ambient Drone**
+- **Swung House** (8n swing), **J Dilla Lazy Beat** (drag/humanize), **16th-Note Shuffle**, **Half-Time Swing** (4n), **Rushed Garage**, **Humanized Boom Bap**
+
+New sample patterns are auto-added to existing localStorage via `initializeStorage()`.
 
 ### Testing Pattern Loading
 
@@ -540,12 +558,13 @@ pnpm test App.test.tsx
 ```
 
 ### Current Test Status
-- **Total Tests**: 230+ tests
-- **Parser Tests**: 151 (3 test files including modular synth features)
-- **Integration Tests**: 35 modular synth + 2 workflow integration tests
+- **Total Tests**: 446+ tests across 25+ test files
+- **Parser Tests**: Pattern parsing, groove parsing, subdivision normalization
+- **Audio Engine Tests**: Groove subdivision targeting, offset scaling, template application
+- **Groove Presets Tests**: Template integrity, lookup, velocity scaling, amount blending
+- **Integration Tests**: Workflow, audio engine, AI pipeline
 - **Coverage**: Comprehensive coverage of parser, engine, components, and services
 - **Test Quality**: Behavior-focused approach with robust selectors
-- **Production Ready**: All parser and integration tests passing
 
 ### Recent Test Improvements (December 2024)
 
@@ -876,19 +895,19 @@ expect(screen.getByText('✓ Valid & Loaded')).toBeInTheDocument()
 **Architecture:**
 - Simplified component-based architecture with focused custom hooks
 - Supabase magic link and password authentication
-- 230+ tests passing
+- 446+ tests passing
 
 **Deployment:**
 - Production-ready build, Vercel CI/CD pipeline
 - Complete documentation suite
 
-### 🎯 Upcoming: Audio Refactor
+### 🎯 Completed: Tone.js Integration
 
-**Hybrid Audio Pipeline:**
-- Tone.js integration for professional effects and advanced transport
-- State synchronization for collaborative features
-- Enhanced audio quality and performance
-- Real-time collaboration capabilities
+**Hybrid Audio Pipeline (implemented):**
+- Tone.js integrated for Transport and Part scheduling
+- Web Audio API used for synthesis and effects (raw AudioContext)
+- Groove system with subdivision-aware swing and 13 genre templates
+- `rebuildTonePart()` builds flat event list with groove offsets for looping
 
 ## Auto-Validation System
 
@@ -1060,13 +1079,13 @@ const mockAudioContext = {
 - **Issue**: TypeScript compilation errors preventing production builds
 - **Solution**: Fixed unused variable declarations and missing imports in test files
 - **Result**: Clean production build with 575KB optimized bundle
-- **Testing**: All 139 tests passing, build successful
+- **Testing**: All tests passing, build successful
 
 #### Test Suite Improvements (December 2024)
 - **Issue**: PlayheadIndicator tests failing due to ambiguous text selectors finding multiple elements
 - **Solution**: Updated tests to use more specific selectors targeting "Current Step" display specifically
 - **Result**: All PlayheadIndicator tests now passing with robust selectors
-- **Testing**: 139 tests passing, 0 tests skipped
+- **Testing**: all tests passing, 0 tests skipped
 
 #### Audio Engine Integration Test Fixes
 - **Issue**: Audio engine integration tests failing due to user interaction requirements
@@ -1092,13 +1111,11 @@ const mockAudioContext = {
 
 The ASCII Generative Sequencer is **100% ready for production deployment**. All systems have been tested and verified:
 
-- ✅ **Build**: Production build successful (575KB bundle)
-- ✅ **Tests**: All 139 tests passing (100% success rate)
-- ✅ **TypeScript**: All errors resolved, strict mode enabled
-- ✅ **Performance**: Optimized for production with Vercel Edge Network
-- ✅ **Deployment**: Successfully deployed to Vercel
-- ✅ **Environment**: Production environment variables configured
-- ✅ **Live URL**: https://ascii-generative-sequencer.vercel.app
+- ✅ **Build**: Production build successful
+- ✅ **Tests**: 446+ tests passing (100% success rate)
+- ✅ **TypeScript**: Strict mode enabled, CI enforced
+- ✅ **Deployment**: Vercel CI/CD pipeline
+- ✅ **Live URL**: https://llm-music.roytown.net
 
 ### Deployment Strategy
 
@@ -1123,13 +1140,7 @@ vercel --prod
 
 ### Live Production URL
 
-**Current Deployment**: https://ascii-generative-sequencer-5zds7ms6o.vercel.app
-
-*Note: Currently has Vercel Authentication Protection enabled. To make it publicly accessible:*
-1. Go to [Vercel Dashboard](https://vercel.com/dashboard)
-2. Click on `ascii-generative-sequencer` project
-3. Go to Settings → Deployment Protection
-4. Disable "Vercel Authentication"
+**Current Deployment**: https://llm-music.roytown.net
 
 ### Environment Setup
 
@@ -1206,26 +1217,9 @@ Comprehensive deployment guides are available:
 
 **Ready to deploy!** 🎵🚀
 
-### ✅ Successful Deployment Completed
+### Deployment Status
 
-**Deployment Date**: September 16, 2025
-**Status**: Production Ready
-**URL**: https://ascii-generative-sequencer-5zds7ms6o.vercel.app
-
-#### Deployment Process Completed:
-1. ✅ **Environment Setup**: All required environment variables configured
-2. ✅ **Build Process**: Production build successful (575KB bundle)
-3. ✅ **Test Suite**: All 139 tests passing
-4. ✅ **Vercel Configuration**: `vercel.json` optimized for monorepo with SPA routing
-5. ✅ **Deployment**: Successfully deployed to Vercel
-6. ✅ **Environment Variables**: Production environment configured
-7. ✅ **Routing Fix**: Fixed SPA routing with proper rewrites (no more 404s)
-8. ✅ **Verification**: Deployment accessible and functional
-
-#### Next Steps for Public Access:
-- Disable Vercel Authentication Protection in dashboard
-- Set up production Supabase project for full functionality
-- Configure custom domain (optional)
+Deployed to Vercel at https://llm-music.roytown.net with GitHub Actions CI/CD.
 
 ## Code Standards
 
@@ -1446,24 +1440,11 @@ VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
 
 After setting up your development environment:
 
-1. **Explore the codebase** - Start with the main components
-2. **Run the tests** - Understand the testing patterns (139 tests passing)
-3. **Test the audio engine** - Click play to hear the synthesizers
-4. **Deploy to production** - Use `pnpm deploy` to go live
-5. **Make a small change** - Get familiar with the workflow
-6. **Read the documentation** - Understand the project goals
-7. **Join the team** - Participate in discussions and planning
-
-### 🚀 Ready to Deploy
-
-Your ASCII Generative Sequencer is **production-ready**:
-- All tests passing (139/139)
-- Production build optimized (575KB)
-- CI/CD pipeline configured
-- Environment setup documented
-- Cost-effective deployment strategy ($0/month for MVP)
-
-**Deploy now**: `pnpm deploy` 🎵
+1. **Explore the codebase** — start with `apps/web/src/services/`
+2. **Run the tests** — `pnpm test` (446+ tests)
+3. **Test the audio engine** — click play to hear the synthesizers
+4. **Make a small change** — get familiar with the workflow
+5. **Read the documentation** — understand the DSL and architecture
 
 ### Quick Audio Test
 
@@ -1476,119 +1457,29 @@ Your ASCII Generative Sequencer is **production-ready**:
 
 The audio engine is fully functional with professional-quality synthesis and real-time effects! 🎵
 
-## Audio Refactor Plan
+## Audio Architecture
 
-### 📚 **Documentation Updates Complete**
+### Current Implementation (Hybrid Tone.js + Web Audio API)
 
-The development team now has comprehensive documentation for the upcoming **Hybrid Audio Pipeline Refactor**:
+The audio engine uses a **hybrid approach**:
 
-#### **✅ Updated Existing Documents**
-1. **architecture.md** - Updated with hybrid audio pipeline approach
-2. **AUDIO-IMPLEMENTATION-COMPLETE.md** - Current status and next steps
+- **Tone.js**: `Transport` and `Part` for timing, scheduling, and loop management
+- **Web Audio API**: Raw `AudioContext` nodes for synthesis, effects, and audio graph
+- **Bridge**: `Tone.context.rawContext as AudioContext` connects both worlds
 
-#### **✅ Created New Comprehensive Documents**
-1. **AUDIO-REFACTOR-PLAN.md** - Complete implementation plan with phases
-2. **COLLABORATIVE-AUDIO-ARCHITECTURE.md** - State synchronization approach
-3. **TONE-JS-INTEGRATION-GUIDE.md** - Detailed integration instructions
-4. **PACKAGE-DEPENDENCIES-UPDATE.md** - Dependencies and installation guide
-5. **DEV-HANDOFF-AUDIO-REFACTOR.md** - Comprehensive development handoff
+Key files:
+- `apps/web/src/services/unifiedAudioEngine.ts` — singleton audio engine
+- `apps/web/src/services/groovePresets.ts` — 13 genre groove templates
+- `apps/web/src/services/patternParser.ts` — DSL parser
 
-### 🎯 **Key Decisions Documented**
+### Groove System
 
-#### **Hybrid Architecture Approach**
-- **Custom Web Audio API**: Critical timing and high-performance synthesis
-- **Tone.js Integration**: Professional effects and advanced transport
-- **State Synchronization**: Collaborative features without audio streaming
+`rebuildTonePart()` builds a flat event list with per-step groove offsets:
+- Subdivision-aware swing targeting (`8n`/`16n`/`4n`)
+- Template grooves with per-step timing offsets and velocity shaping
+- Explicit `steps` parameter overrides subdivision-based targeting
 
-#### **Collaborative Strategy**
-- **State Sync vs Audio Streaming**: 10x bandwidth savings (< 1KB/s vs 100KB/s+)
-- **Low Latency**: < 10ms for state sync vs 50-200ms for audio streaming
-- **Scalability**: 2-100+ participants vs 2-10 for audio streaming
-- **Deterministic Quality**: Perfect audio output across all clients
-
-### 🚀 **Ready for Development Team**
-
-The development team now has:
-
-1. **Complete Implementation Plan**: 5-8 week roadmap with clear phases
-2. **Technical Architecture**: Hybrid approach with detailed class structures
-3. **Collaboration Strategy**: State sync approach for real-time features
-4. **Performance Targets**: Clear metrics for success
-5. **Risk Mitigation**: Strategies for common issues
-6. **Testing Strategy**: Comprehensive testing approach
-7. **Dependencies Guide**: Exact packages and versions needed
-
-### 📋 **Next Steps for Dev Team**
-
-1. **Read DEV-HANDOFF-AUDIO-REFACTOR.md** for complete overview
-2. **Follow AUDIO-REFACTOR-PLAN.md** for implementation phases
-3. **Use TONE-JS-INTEGRATION-GUIDE.md** for technical details
-4. **Reference COLLABORATIVE-AUDIO-ARCHITECTURE.md** for collaboration features
-5. **Follow PACKAGE-DEPENDENCIES-UPDATE.md** for setup
-
-### 🎵 **Hybrid Audio Pipeline Overview**
-
-The upcoming refactor will implement a **hybrid audio architecture** that combines:
-
-#### **Custom Web Audio API (Core)**
-- **Critical Timing**: Sample-accurate scheduling for drum synthesis
-- **High Performance**: Low-latency audio processing
-- **Cross-Platform**: Consistent behavior across devices
-- **Custom Synthesis**: Kick, snare, hihat synthesizers
-
-#### **Tone.js Integration (Enhancement)**
-- **Professional Effects**: Reverb, delay, compression, EQ
-- **Advanced Transport**: Loop points, quantization, swing
-- **Audio Analysis**: FFT, spectrum analysis, beat detection
-- **MIDI Support**: External controller integration
-
-#### **State Synchronization (Collaboration)**
-- **Real-time Sync**: Pattern changes, transport state, effects
-- **Conflict Resolution**: Intelligent merge strategies
-- **Offline Support**: Local changes with sync on reconnect
-- **Scalable**: Support for 2-100+ participants
-
-### 🔧 **Implementation Phases**
-
-#### **Phase 1: Foundation (Week 1-2)**
-- Tone.js integration and basic setup
-- Hybrid audio engine architecture
-- State synchronization infrastructure
-- Basic testing framework
-
-#### **Phase 2: Core Features (Week 3-4)**
-- Professional effects implementation
-- Advanced transport controls
-- Real-time collaboration features
-- Performance optimization
-
-#### **Phase 3: Enhancement (Week 5-6)**
-- Audio analysis and visualization
-- MIDI controller support
-- Advanced collaboration features
-- Comprehensive testing
-
-#### **Phase 4: Polish (Week 7-8)**
-- Performance tuning
-- Bug fixes and edge cases
-- Documentation updates
-- Production deployment
-
-### 📊 **Performance Targets**
-
-- **Audio Latency**: < 20ms end-to-end
-- **State Sync Latency**: < 10ms for pattern changes
-- **Collaboration**: Support 2-100+ participants
-- **Bandwidth**: < 1KB/s for state sync
-- **CPU Usage**: < 15% on modern devices
-- **Memory**: < 100MB for audio processing
-
-### 🧪 **Testing Strategy**
-
-- **Unit Tests**: Individual component testing
-- **Integration Tests**: Audio pipeline testing
-- **Performance Tests**: Latency and CPU usage
-- **Collaboration Tests**: Multi-user scenarios
-- **Cross-Platform Tests**: Desktop and mobile compatibility
-
-The foundation is solid and ready for the **Hybrid Audio Pipeline Refactor**! 🎵✨
+### Future Considerations
+- Migrate effects to Tone.js nodes to reduce boilerplate
+- Real-time collaboration via state synchronization
+- MIDI controller integration
