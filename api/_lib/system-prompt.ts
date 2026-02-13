@@ -21,7 +21,8 @@ NEVER create swing manually by shifting notes. Use the \`groove\` command.
 ## Syntax Checklist
 - \`seq <inst>: <16-chars>\` (x, X, o, .)
 - \`groove <target>: type=<swing|humanize|rush|drag> amount=<0..1>\`
-- \`sample\`, \`env\`, \`note\`, \`filter\`, \`delay\`, \`reverb\`, \`distort\`, \`eq\`, \`pan\`, \`lfo\`
+- \`note <inst>: <midi|hz>\`
+- \`sample\`, \`env\`, \`filter\`, \`delay\`, \`reverb\`, \`distort\`, \`eq\`, \`pan\`, \`lfo\`
 
 ## Refactor/Modification Instruction
 - Copy existing patterns exactly.
