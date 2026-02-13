@@ -93,7 +93,7 @@ export const useUnifiedAudioEngine = () => {
   }, []);
 
   // Audio control functions
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     if (!state.isInitialized) {
       setState(prev => ({
         ...prev,
@@ -103,7 +103,7 @@ export const useUnifiedAudioEngine = () => {
     }
 
     try {
-      unifiedAudioEngine.play();
+      await unifiedAudioEngine.play();
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to play';
@@ -114,9 +114,9 @@ export const useUnifiedAudioEngine = () => {
     }
   }, [state.isInitialized, updateState]);
 
-  const pause = useCallback(() => {
+  const pause = useCallback(async () => {
     try {
-      unifiedAudioEngine.pause();
+      await unifiedAudioEngine.pause();
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to pause';
@@ -127,9 +127,9 @@ export const useUnifiedAudioEngine = () => {
     }
   }, [updateState]);
 
-  const stop = useCallback(() => {
+  const stop = useCallback(async () => {
     try {
-      unifiedAudioEngine.stop();
+      await unifiedAudioEngine.stop();
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to stop';
@@ -141,9 +141,9 @@ export const useUnifiedAudioEngine = () => {
   }, [updateState]);
 
   // Unified parameter update interface
-  const updateParameter = useCallback((type: 'tempo' | 'sequence' | 'effects' | 'eq' | 'volume', value: any) => {
+  const updateParameter = useCallback(async (type: 'tempo' | 'sequence' | 'effects' | 'eq' | 'volume', value: any) => {
     try {
-      unifiedAudioEngine.updateParameter(type, value);
+      await unifiedAudioEngine.updateParameter(type, value);
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : `Failed to update ${type}`;
@@ -189,9 +189,9 @@ export const useUnifiedAudioEngine = () => {
   }, []);
 
   // Overflow mode control (loop vs rest for shorter instruments)
-  const setOverflowMode = useCallback((mode: 'loop' | 'rest') => {
+  const setOverflowMode = useCallback(async (mode: 'loop' | 'rest') => {
     try {
-      unifiedAudioEngine.setOverflowMode(mode);
+      await unifiedAudioEngine.setOverflowMode(mode);
       updateState();
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to set overflow mode';
