@@ -27,6 +27,12 @@ export async function verifyAuth(req: VercelRequest): Promise<AuthUser | null> {
   }
 
   try {
+    // Development bypass: Allow all requests in local development if no token provided or if it fails
+    if (process.env.NODE_ENV === 'development') {
+      console.log('[auth] Development mode: bypassing auth check');
+      return { id: 'dev-user', email: 'dev@example.com' };
+    }
+
     const supabase = createClient(supabaseUrl, serviceRoleKey, {
       auth: { autoRefreshToken: false, persistSession: false },
     });
@@ -38,6 +44,9 @@ export async function verifyAuth(req: VercelRequest): Promise<AuthUser | null> {
     return { id: user.id, email: user.email };
   } catch (err) {
     console.warn('[auth] Auth check failed:', (err as Error).message);
+    if (process.env.NODE_ENV === 'development') {
+      return { id: 'dev-user', email: 'dev@example.com' };
+    }
     return null;
   }
 }
