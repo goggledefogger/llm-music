@@ -225,7 +225,7 @@ export function getStoredProvider(): AIProvider {
   } catch {
     // localStorage unavailable
   }
-  return 'openai';
+  return 'gemini';
 }
 
 export function setStoredProvider(provider: AIProvider): void {

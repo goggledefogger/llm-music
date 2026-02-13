@@ -7,9 +7,9 @@ interface ProviderSelectorProps {
 }
 
 const PROVIDERS: { value: AIProvider; label: string }[] = [
+  { value: 'gemini', label: 'Gemini' },
   { value: 'openai', label: 'OpenAI' },
   { value: 'anthropic', label: 'Claude' },
-  { value: 'gemini', label: 'Gemini' },
 ];
 
 export const ProviderSelector: React.FC<ProviderSelectorProps> = ({ provider, onChange }) => {

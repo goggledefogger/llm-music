@@ -60,7 +60,7 @@ export default async function handler(
     return;
   }
 
-  const provider = body.provider ?? 'openai';
+  const provider = body.provider ?? 'gemini';
   if (!ALLOWED_PROVIDERS.includes(provider as any)) {
     res.status(400).json({ error: `Invalid provider. Must be one of: ${ALLOWED_PROVIDERS.join(', ')}` });
     return;
