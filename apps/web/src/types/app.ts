@@ -107,7 +107,40 @@ export interface SampleModule {
   gain?: number;
 }
 
-export type GrooveType = 'swing' | 'humanize' | 'rush' | 'drag';
+export type GrooveType = 'swing' | 'humanize' | 'rush' | 'drag' | 'template';
+
+/**
+ * A groove template defines per-step timing offsets and optional velocity
+ * adjustments for a repeating pattern cycle. Offsets are expressed as fractions
+ * of a step interval (-0.5 to +0.5, where +0.33 ≈ MPC swing).
+ */
+export interface GrooveTemplate {
+  /** Unique kebab-case identifier, e.g. 'mpc-swing-66' */
+  name: string;
+  /** Human-readable label */
+  label: string;
+  /** Grouping category for UI */
+  category: 'swing' | 'latin' | 'african' | 'reggae' | 'funk' | 'other';
+  /** Short description */
+  description: string;
+  /**
+   * Per-step timing offsets as fractions of the step interval.
+   * Length determines the cycle — offsets repeat modulo this length.
+   * Positive = late (behind the beat), negative = early (ahead).
+   * Range: -0.5 to +0.5
+   */
+  offsets: number[];
+  /**
+   * Optional per-step velocity multipliers (0.0 to 2.0, default 1.0).
+   * Same length as offsets. Applied multiplicatively to existing velocity.
+   */
+  velocities?: number[];
+  /** Suggested tempo range for best feel */
+  tempoRange?: { min: number; max: number };
+}
+
+/** Dictionary of named groove templates */
+export type GroovePresetLibrary = Record<string, GrooveTemplate>;
 
 export interface GrooveModule {
   name: string; // 'master' or instrument name
@@ -115,6 +148,8 @@ export interface GrooveModule {
   amount: number; // 0..1 (intensity)
   steps?: 'all' | 'odd' | 'even' | string; // Which steps to apply to
   subdivision?: '4n' | '8n' | '16n';
+  /** Template preset name — required when type='template' */
+  templateName?: string;
 }
 
 export interface ParsedPattern {

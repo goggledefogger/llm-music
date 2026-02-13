@@ -48,6 +48,41 @@ seq kick: x...`;
       const result = PatternParser.parse(pattern);
       expect(result.grooveModules?.kick.amount).toBe(1);
     });
+
+    it('should parse template groove with name', () => {
+      const pattern = `TEMPO 120
+groove master: type=template name=bossa-nova amount=0.8
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master).toEqual({
+        name: 'master',
+        type: 'template',
+        amount: 0.8,
+        templateName: 'bossa-nova'
+      });
+    });
+
+    it('should parse template groove with MPC swing preset', () => {
+      const pattern = `TEMPO 120
+groove hihat: type=template name=mpc-swing-66 amount=0.7
+seq hihat: x.x.x.x.`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.hihat).toEqual({
+        name: 'hihat',
+        type: 'template',
+        amount: 0.7,
+        templateName: 'mpc-swing-66'
+      });
+    });
+
+    it('should not include templateName for non-template types', () => {
+      const pattern = `TEMPO 120
+groove master: type=swing name=bossa-nova amount=0.5
+seq kick: x...x...`;
+      const result = PatternParser.parse(pattern);
+      expect(result.grooveModules?.master.type).toBe('swing');
+      expect(result.grooveModules?.master).not.toHaveProperty('templateName');
+    });
   });
 
   describe('Subdivision Parsing', () => {

@@ -1,6 +1,7 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
 import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, ChorusModule, PhaserModule } from '../types/app';
 import { PatternParser } from './patternParser';
+import { applyGrooveTemplate, getGrooveTemplate } from './groovePresets';
 import * as Tone from 'tone';
 
 export interface ParameterUpdate {
@@ -1654,6 +1655,16 @@ export class UnifiedAudioEngine {
                 grooveOffset = -amount * 0.03;
               } else if (groove.type === 'drag') {
                 grooveOffset = amount * 0.03;
+              }
+            }
+
+            // Template groove: uses per-step offsets from a named preset
+            if (groove.type === 'template' && groove.templateName) {
+              const template = getGrooveTemplate(groove.templateName);
+              if (template) {
+                const applied = applyGrooveTemplate(template, step, amount);
+                grooveOffset = applied.timingOffset * stepInterval;
+                velocity = velocity * applied.velocityScale;
               }
             }
           }
