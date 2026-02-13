@@ -717,15 +717,15 @@ export class PatternParser {
    * Parse GROOVE string like "type=swing amount=0.5"
    */
   private static parseGrooveString(moduleName: string, grooveString: string): any {
-    const pairs = Array.from(grooveString.matchAll(/(type|amount|steps|subdivision)\s*=\s*([^\s]+)/gi));
+    const pairs = Array.from(grooveString.matchAll(/(type|amount|steps|subdivision|name)\s*=\s*([^\s]+)/gi));
     const map: Record<string, string> = {};
     for (const [, key, value] of pairs as any) {
       map[key.toLowerCase()] = String(value);
     }
 
     const typeStr = map['type']?.toLowerCase();
-    const allowedTypes = ['swing', 'humanize', 'rush', 'drag'];
-    const type = (allowedTypes.includes(typeStr) ? typeStr : 'swing') as 'swing' | 'humanize' | 'rush' | 'drag';
+    const allowedTypes = ['swing', 'humanize', 'rush', 'drag', 'template'];
+    const type = (allowedTypes.includes(typeStr) ? typeStr : 'swing') as 'swing' | 'humanize' | 'rush' | 'drag' | 'template';
 
     let amount = parseFloat(map['amount']);
     if (Number.isNaN(amount)) amount = 0.5;
@@ -744,13 +744,15 @@ export class PatternParser {
       };
       subdivision = subdivMap[rawSubdiv];
     }
+    const templateName = type === 'template' ? map['name']?.toLowerCase() : undefined;
 
     return {
       name: moduleName.toLowerCase(),
       type,
       amount,
       steps,
-      subdivision
+      subdivision,
+      ...(templateName && { templateName })
     };
   }
 
