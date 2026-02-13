@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.mocked(supabase.auth.signInWithPassword).mockResolvedValue({
-      data: { user: {}, session: {} },
+      data: { user: {} as any, session: {} as any },
       error: null,
     });
   });

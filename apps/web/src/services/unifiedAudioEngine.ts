@@ -1,5 +1,5 @@
 // Unified Audio Engine - Real-time everything, no pre-calculation
-import { ParsedPattern, UnifiedAudioState, LFOModule, LFOTarget, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, EnvelopeModule, ChorusModule, PhaserModule, NoteModule } from '../types/app';
+import { ParsedPattern, UnifiedAudioState, LFOModule, FilterModule, DelayModule, ReverbModule, PanModule, DistortModule, ChorusModule, PhaserModule } from '../types/app';
 import { PatternParser } from './patternParser';
 import { AUDIO_CONSTANTS } from '@ascii-sequencer/shared';
 
@@ -572,27 +572,13 @@ export class UnifiedAudioEngine {
           const wetG = this.audioContext!.createGain();
           const merge = this.audioContext!.createGain();
 
-          // Get whatever pan currently connects to
-          const target = (chain as any).__delay ? null : chain.pan;
-          const sourceNode = target || ((chain as any).__delayDry ? (() => {
-            // If delay exists, it reconnects from the delay merge
-            return null;
-          })() : chain.pan);
 
           // Route from pan (or delay merge) through reverb
-          // If there's already a delay, tap after the delay merge
-          const inputNode = (chain as any).__delayDry 
-            ? (() => { 
-                // Find the delay merge node - it connects pan's delay output
-                // We'll just add reverb in parallel with the whole chain output
-                return chain.pan; 
-              })()
-            : chain.pan;
 
-          try { 
+          try {
             // Only if no delay is present, disconnect pan
             if (!(chain as any).__delay) {
-              chain.pan.disconnect(); 
+              chain.pan.disconnect();
             }
           } catch {}
 
@@ -773,12 +759,6 @@ export class UnifiedAudioEngine {
       const merge = ac.createGain();
 
       // Insert after chorus (or after reverb if no chorus)
-      const sourceNode = (this as any).__chorusWet
-        ? (() => {
-            // After chorus merge
-            return null; // We'll connect differently
-          })()
-        : this.masterReverbMerge;
 
       // For simplicity, insert before masterPreGain
       if (this.masterPreGain) {

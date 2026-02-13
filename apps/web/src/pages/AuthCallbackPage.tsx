@@ -9,7 +9,6 @@ import { supabase } from '../lib/supabase';
  */
 export const AuthCallbackPage: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
