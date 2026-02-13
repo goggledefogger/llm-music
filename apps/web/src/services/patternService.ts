@@ -516,13 +516,21 @@ seq hihat: x.xxx.x.x.xxx.x.`),
   }
 
   /**
-   * Initialize storage with sample patterns if empty
+   * Initialize storage with sample patterns, adding any missing ones
    */
   static initializeStorage(): void {
     const existingPatterns = this.getStoredPatterns();
     if (existingPatterns.length === 0) {
       const samplePatterns = this.getSamplePatterns();
       this.savePatterns(samplePatterns);
+    } else {
+      // Add any new sample patterns that don't exist yet
+      const samplePatterns = this.getSamplePatterns();
+      const existingIds = new Set(existingPatterns.map(p => p.id));
+      const newSamples = samplePatterns.filter(p => !existingIds.has(p.id));
+      if (newSamples.length > 0) {
+        this.savePatterns([...existingPatterns, ...newSamples]);
+      }
     }
   }
 

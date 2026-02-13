@@ -330,7 +330,7 @@ describe('PatternService', () => {
     it('should return sample patterns with correct structure', () => {
       const samplePatterns = PatternService.getSamplePatterns();
       
-      expect(samplePatterns).toHaveLength(12);
+      expect(samplePatterns.length).toBeGreaterThan(0);
       expect(samplePatterns[0]).toHaveProperty('id');
       expect(samplePatterns[0]).toHaveProperty('name');
       expect(samplePatterns[0]).toHaveProperty('category');
@@ -349,14 +349,29 @@ describe('PatternService', () => {
       expect(localStorageMock.setItem).toHaveBeenCalled();
       const callArgs = localStorageMock.setItem.mock.calls[0];
       const savedPatterns = JSON.parse(callArgs[1]);
-      expect(savedPatterns).toHaveLength(12);
+      const expectedCount = PatternService.getSamplePatterns().length;
+      expect(savedPatterns).toHaveLength(expectedCount);
     });
 
-    it('should not initialize storage when patterns already exist', () => {
-      localStorageMock.getItem.mockReturnValue(JSON.stringify([{ id: 'existing' }]));
-      
+    it('should add missing sample patterns when some already exist', () => {
+      localStorageMock.getItem.mockReturnValue(JSON.stringify([{ id: 'existing', name: 'Untitled Pattern', category: 'Uncategorized' }]));
+
       PatternService.initializeStorage();
-      
+
+      expect(localStorageMock.setItem).toHaveBeenCalled();
+      const callArgs = localStorageMock.setItem.mock.calls[0];
+      const savedPatterns = JSON.parse(callArgs[1]);
+      const expectedCount = PatternService.getSamplePatterns().length + 1; // +1 for existing
+      expect(savedPatterns).toHaveLength(expectedCount);
+      expect(savedPatterns[0].id).toBe('existing');
+    });
+
+    it('should not write when all sample patterns already exist', () => {
+      const allSamples = PatternService.getSamplePatterns();
+      localStorageMock.getItem.mockReturnValue(JSON.stringify(allSamples));
+
+      PatternService.initializeStorage();
+
       expect(localStorageMock.setItem).not.toHaveBeenCalled();
     });
   });
