@@ -244,4 +244,5 @@ docs/prd/
 
 # MCP (Model Context Protocol) files
 .mcp/
+.mcp.json
 mcp.json

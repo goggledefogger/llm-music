@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { clsx } from 'clsx';
+import { useAuth } from '../../contexts/AuthContext';
 
 export const Header: React.FC = () => {
   const location = useLocation();
+  const { user, signOut } = useAuth();
 
   const navItems = [
     { path: '/', label: 'Home', icon: '🏠' },
@@ -40,13 +42,20 @@ export const Header: React.FC = () => {
         </nav>
 
         <div className="flex items-center space-x-1 sm:space-x-2">
-          <button className="btn btn-ghost btn-sm">
-            <span className="sm:mr-2">🎧</span>
-            <span className="hidden sm:inline">Audio</span>
-          </button>
-          <button className="btn btn-ghost btn-sm">
-            <span className="sm:mr-2">🤖</span>
-            <span className="hidden sm:inline">AI</span>
+          {user && (
+            <span className="text-xs text-foreground-muted truncate max-w-[120px] sm:max-w-[180px] hidden sm:inline" title={user.email}>
+              {user.email}
+            </span>
+          )}
+          <button
+            className="btn btn-ghost btn-sm"
+            onClick={signOut}
+            title="Sign out"
+          >
+            <span className="sm:mr-2">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            </span>
+            <span className="hidden sm:inline">Sign Out</span>
           </button>
         </div>
       </div>
